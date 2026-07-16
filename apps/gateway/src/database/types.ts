@@ -6,7 +6,10 @@ export interface ServersTable {
   createdAt: Generated<string>;
   id: string;
   isActive: Generated<number>;
+  lastLatencyMs: Generated<number>;
+  lastProbedAt: Generated<string>;
   name: string;
+  supportsHttps: Generated<number>;
   updatedAt: Generated<string>;
   version: string;
 }

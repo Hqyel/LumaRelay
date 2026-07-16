@@ -18,6 +18,7 @@ import {
 } from "fastify-type-provider-zod";
 
 import type { GatewayConfig } from "./config.js";
+import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
@@ -26,6 +27,7 @@ export interface BuildAppOptions {
   config: GatewayConfig;
   logger?: boolean;
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
+  serverStore?: ServerStore;
   version?: string;
 }
 
@@ -62,6 +64,15 @@ export async function buildApp(
   options: BuildAppOptions,
 ): Promise<FastifyInstance> {
   const version = options.version ?? "0.0.0";
+  let memoryServer: ServerSummary | null = null;
+  const serverStore = options.serverStore ?? {
+    async getCurrent() {
+      return memoryServer;
+    },
+    async select(server: ServerSummary) {
+      memoryServer = server;
+    },
+  };
   const app = Fastify({
     genReqId: (request) => requestIdFromHeader(request.headers["x-request-id"]),
     logger:
@@ -111,6 +122,17 @@ export async function buildApp(
     },
   });
 
+  app.get(ApiRoutes.currentServer.url, {
+    schema: ApiRoutes.currentServer.schema,
+    async handler(request) {
+      return {
+        configuredBaseUrl: options.config.embyBaseUrl,
+        requestId: request.id,
+        server: await serverStore.getCurrent(),
+      };
+    },
+  });
+
   app.post(ApiRoutes.probeServer.url, {
     schema: ApiRoutes.probeServer.schema,
     async handler(request, reply) {
@@ -136,6 +158,46 @@ export async function buildApp(
           server,
           requestId: request.id,
         };
+      } catch (error) {
+        const probeError =
+          error instanceof EmbyProbeError
+            ? error
+            : new EmbyProbeError(
+                "unreachable",
+                "Emby probe failed unexpectedly",
+                { cause: error },
+              );
+        const response = probeErrorResponse(probeError);
+        return reply
+          .status(response.statusCode)
+          .send(errorEnvelope(response.code, probeError.message, request.id));
+      }
+    },
+  });
+
+  app.post(ApiRoutes.selectServer.url, {
+    schema: ApiRoutes.selectServer.schema,
+    async handler(request, reply) {
+      const origin = new URL(request.body.baseUrl).origin;
+
+      if (!options.config.allowedServerOrigins.includes(origin)) {
+        return reply
+          .status(403)
+          .send(
+            errorEnvelope(
+              "SERVER_NOT_ALLOWED",
+              "The requested Emby origin is not allowed",
+              request.id,
+            ),
+          );
+      }
+
+      try {
+        const server = await (options.probeServer ?? probeEmbyServer)(
+          request.body.baseUrl,
+        );
+        await serverStore.select(server);
+        return { requestId: request.id, server };
       } catch (error) {
         const probeError =
           error instanceof EmbyProbeError

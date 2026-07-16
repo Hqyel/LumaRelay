@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
   HealthResponseSchema,
   ProbeServerRequestSchema,
@@ -56,5 +57,15 @@ describe("shared API contracts", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts an empty current-server response", () => {
+    const result = CurrentServerResponseSchema.safeParse({
+      configuredBaseUrl: "http://127.0.0.1:8096/",
+      requestId: "request-3",
+      server: null,
+    });
+
+    expect(result.success).toBe(true);
   });
 });

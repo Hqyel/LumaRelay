@@ -133,4 +133,37 @@ describe("Gateway application", () => {
     expect(response.statusCode).toBe(408);
     expect(response.json().error.code).toBe("SERVER_TIMEOUT");
   });
+
+  it("selects and returns the current Emby server", async () => {
+    const probeServer = vi.fn().mockResolvedValue({
+      baseUrl: "http://127.0.0.1:8096/",
+      capabilityFlags: { ping: true, publicInfo: true },
+      latencyMs: 15,
+      name: "Home Emby",
+      serverId: "server-id",
+      supportsHttps: false,
+      version: "4.8.11.0",
+    });
+    const app = await buildApp({
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer,
+    });
+    apps.push(app);
+
+    const selection = await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+    const current = await app.inject({
+      method: "GET",
+      url: "/api/v1/servers/current",
+    });
+
+    expect(selection.statusCode).toBe(200);
+    expect(current.statusCode).toBe(200);
+    expect(current.json().server.serverId).toBe("server-id");
+    expect(current.json().configuredBaseUrl).toBe("http://127.0.0.1:8096/");
+  });
 });

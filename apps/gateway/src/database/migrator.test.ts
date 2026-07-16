@@ -2,11 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { sql } from "kysely";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createDatabase } from "./database.js";
 import { migrateDown, migrateToLatest } from "./migrator.js";
+import { createServerStore } from "./server-store.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -41,17 +41,46 @@ describe("SQLite migrations", () => {
       expect(server.id).toBe("server-1");
 
       await migrateDown(database);
-      const removed = await sql<{ name: string }>`
-        select name from sqlite_master where name = 'servers'
-      `.execute(database);
-      expect(removed.rows).toHaveLength(0);
+      const rolledBack = await database
+        .selectFrom("servers")
+        .select(["id", "name"])
+        .executeTakeFirstOrThrow();
+      expect(rolledBack.id).toBe("server-1");
 
       await migrateToLatest(database);
       const restored = await database
         .selectFrom("servers")
         .selectAll()
-        .execute();
-      expect(restored).toHaveLength(0);
+        .executeTakeFirstOrThrow();
+      expect(restored.lastLatencyMs).toBe(0);
+    } finally {
+      await database.destroy();
+    }
+  });
+
+  it("persists the selected server", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "newemby-server-store-"));
+    temporaryDirectories.push(directory);
+    const database = createDatabase(join(directory, "test.db"));
+
+    try {
+      await migrateToLatest(database);
+      const store = createServerStore(database);
+      await store.select({
+        baseUrl: "https://emby.example.com/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 23,
+        name: "Home Emby",
+        serverId: "server-1",
+        supportsHttps: true,
+        version: "4.8.11.0",
+      });
+
+      await expect(store.getCurrent()).resolves.toMatchObject({
+        latencyMs: 23,
+        serverId: "server-1",
+        supportsHttps: true,
+      });
     } finally {
       await database.destroy();
     }

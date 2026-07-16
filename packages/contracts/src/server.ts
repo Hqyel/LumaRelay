@@ -26,7 +26,14 @@ export const ProbeServerResponseSchema = z.object({
   requestId: RequestIdSchema,
 });
 
+export const CurrentServerResponseSchema = z.object({
+  server: ServerSummarySchema.nullable(),
+  configuredBaseUrl: z.url(),
+  requestId: RequestIdSchema,
+});
+
 export type ProbeServerRequest = z.infer<typeof ProbeServerRequestSchema>;
 export type ProbeServerResponse = z.infer<typeof ProbeServerResponseSchema>;
+export type CurrentServerResponse = z.infer<typeof CurrentServerResponseSchema>;
 export type ServerCapabilityFlags = z.infer<typeof ServerCapabilityFlagsSchema>;
 export type ServerSummary = z.infer<typeof ServerSummarySchema>;

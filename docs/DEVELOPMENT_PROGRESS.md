@@ -33,7 +33,7 @@
 |---|---|---:|---:|---|
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
-| M1 | 媒体浏览 MVP | 未开始 | 0/28 | M0 发布门通过 |
+| M1 | 媒体浏览 MVP | 进行中 | 1/28 | 带 M0 外部阻塞进入 |
 | M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
@@ -179,7 +179,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 6.1 认证与会话
 
-- [ ] `M1-001` 实现服务器连接页面 `/connect`。
+- [x] `M1-001` 实现服务器连接页面 `/connect`。
 - [ ] `M1-002` 实现公共用户读取与登录页面 `/login`。
 - [ ] `M1-003` Gateway 实现用户名密码认证代理。
 - [ ] `M1-004` 使用 HttpOnly Cookie 建立 NewEmby 会话。
@@ -475,7 +475,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；本地可执行的 M0 开发任务已完成。
+- 暂无；下一项为 `M1-002` 公共用户与登录页面。
 
 ### 阻塞
 
@@ -488,7 +488,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 带着已记录的 M0 外部阻塞执行 `M1-001` 服务器连接流程。
+1. 执行 `M1-002` 公共用户读取与登录页面。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
@@ -512,6 +512,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | M1-001 | 完成 | 已实现当前服务器读取/选择契约、SQLite 持久化、允许列表探测、`/connect` 状态与 `/login` 跳转；迁移 up/down/up、真实 SQLite store、Gateway/Web 测试、根级 check、构建和本地 smoke 通过 | `packages/contracts`, `apps/gateway`, `apps/web/src/routes/connect.tsx` | M1-002 |
+| 2026-07-16 | M1-001 | 进行中 | 正在实现当前服务器选择、持久化和 `/connect` 页面 | `packages/contracts`, `apps/gateway`, `apps/web` | 完成连接流程验证 |
 | 2026-07-16 | M0-BASELINE | 完成 | Node 22.13 冻结安装、临时 SQLite 迁移、本地 Web/Gateway smoke、format、lint、typecheck、41 项单测、应用/Storybook 构建及 axe/视觉回归 2/2 全部通过；补齐 `.gitignore`、根 `.env` 加载和一键本地验证 | `.gitignore`, `scripts/local-smoke.mjs`, `README.md` | M1-001 |
 | 2026-07-16 | M0-017 | 完成 | Storybook 已覆盖正常、加载、空、错误和禁用状态；修复收藏语义与强调色文字对比度；format、lint、typecheck、41 项单测、应用/Storybook 构建、axe/键盘/视觉回归 2/2 全部通过 | `packages/ui/.storybook`, `foundation.stories.tsx`, `visual/` | 等待 M0 外部发布门 |
 | 2026-07-16 | M0-016 | 完成 | 已实现 PosterCard、ContinueWatchingCard、MediaRow、ImageFallback，覆盖进度、收藏、未看、懒加载和失败回退；19 项 UI 测试及 UI/Web 构建通过 | `packages/ui/src/media-*`, `image-fallback.tsx` | M0-017 |

@@ -6,10 +6,12 @@ import {
 } from "kysely";
 
 import { InitialMigration } from "./migrations/001-initial.js";
+import { ServerSelectionMigration } from "./migrations/002-server-selection.js";
 import type { DatabaseSchema } from "./types.js";
 
 const migrations: Record<string, Migration> = {
   "001-initial": InitialMigration,
+  "002-server-selection": ServerSelectionMigration,
 };
 
 function createMigrator(database: Kysely<DatabaseSchema>): Migrator {
