@@ -51,10 +51,16 @@ export const SessionResponseSchema = z.object({
   user: UserProfileSchema,
 });
 
+export const LogoutResponseSchema = z.object({
+  requestId: RequestIdSchema,
+  success: z.literal(true),
+});
+
 export type PublicUser = z.infer<typeof PublicUserSchema>;
 export type PublicUsersResponse = z.infer<typeof PublicUsersResponseSchema>;
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type LogoutResponse = z.infer<typeof LogoutResponseSchema>;
 export type SessionResponse = z.infer<typeof SessionResponseSchema>;
 export type UserPermissions = z.infer<typeof UserPermissionsSchema>;
 export type UserProfile = z.infer<typeof UserProfileSchema>;

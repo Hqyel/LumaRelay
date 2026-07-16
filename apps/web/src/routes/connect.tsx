@@ -1,5 +1,5 @@
 import { BrandMark, Button, Input } from "@newemby/ui";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Server } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
@@ -16,6 +16,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 function ConnectPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [baseUrl, setBaseUrl] = useState("");
   const currentServer = useQuery({
     queryFn: getCurrentServer,
@@ -23,7 +24,12 @@ function ConnectPage() {
   });
   const selection = useMutation({
     mutationFn: selectServer,
-    async onSuccess() {
+    async onSuccess(response) {
+      queryClient.setQueryData(["server", "current"], {
+        configuredBaseUrl: response.server.baseUrl,
+        requestId: response.requestId,
+        server: response.server,
+      });
       await navigate({ to: "/login" });
     },
   });

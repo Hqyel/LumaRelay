@@ -2,6 +2,7 @@ import { ErrorEnvelopeSchema } from "./common.js";
 import {
   LoginRequestSchema,
   LoginResponseSchema,
+  LogoutResponseSchema,
   PublicUserAvatarParamsSchema,
   PublicUsersResponseSchema,
   SessionResponseSchema,
@@ -52,6 +53,16 @@ export const ApiRoutes = {
         409: ErrorEnvelopeSchema,
         408: ErrorEnvelopeSchema,
         502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  logout: {
+    method: "POST",
+    url: `${API_PREFIX}/auth/logout`,
+    schema: {
+      response: {
+        200: LogoutResponseSchema,
+        403: ErrorEnvelopeSchema,
       },
     },
   },

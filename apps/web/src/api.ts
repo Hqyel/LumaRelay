@@ -3,10 +3,15 @@ import type {
   ErrorEnvelope,
   LoginRequest,
   LoginResponse,
+  LogoutResponse,
   ProbeServerResponse,
   PublicUsersResponse,
   SessionResponse,
 } from "@newemby/contracts";
+
+type UnauthorizedListener = () => void;
+
+const unauthorizedListeners = new Set<UnauthorizedListener>();
 
 export class ApiError extends Error {
   constructor(
@@ -31,6 +36,8 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = (await response.json()) as ErrorEnvelope;
+    if (body.error.code === "UNAUTHENTICATED")
+      for (const listener of unauthorizedListeners) listener();
     throw new ApiError(
       body.error.code,
       body.error.message,
@@ -39,6 +46,13 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+export function subscribeToUnauthorized(
+  listener: UnauthorizedListener,
+): () => void {
+  unauthorizedListeners.add(listener);
+  return () => unauthorizedListeners.delete(listener);
 }
 
 export function getCurrentServer(): Promise<CurrentServerResponse> {
@@ -59,6 +73,10 @@ export function login(credentials: LoginRequest): Promise<LoginResponse> {
     headers: { "content-type": "application/json" },
     method: "POST",
   });
+}
+
+export function logout(): Promise<LogoutResponse> {
+  return requestJson("/api/v1/auth/logout", { method: "POST" });
 }
 
 export function selectServer(baseUrl: string): Promise<ProbeServerResponse> {

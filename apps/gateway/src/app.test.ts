@@ -390,6 +390,203 @@ describe("Gateway application", () => {
     expect(response.json().error.code).toBe("SERVER_NOT_SELECTED");
   });
 
+  it("revokes locally before attempting the upstream logout", async () => {
+    const events: string[] = [];
+    const user = {
+      name: "Alex",
+      permissions: {
+        canDownload: true,
+        canManageServer: false,
+        isAdministrator: false,
+      },
+      serverId: "server-id",
+      userId: "user-1",
+    };
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn().mockResolvedValue({
+        accessToken: "emby-secret-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        sessionId: "session-id",
+        user,
+      }),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      revoke: vi.fn().mockImplementation(() => {
+        events.push("local-revoke");
+      }),
+      updateUser: vi.fn(),
+    };
+    const logoutSession = vi.fn().mockImplementation(() => {
+      events.push("upstream-logout");
+    });
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      logoutSession,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: {
+        cookie: "newemby_session=browser-session-token",
+        origin: "http://127.0.0.1:5173",
+      },
+      method: "POST",
+      url: "/api/v1/auth/logout",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ success: true });
+    expect(response.headers["set-cookie"]).toContain("newemby_session=");
+    expect(response.headers["set-cookie"]).toContain("Max-Age=0");
+    expect(events).toEqual(["local-revoke", "upstream-logout"]);
+    expect(JSON.stringify(response.json())).not.toContain("emby-secret-token");
+  });
+
+  it("keeps the local logout successful when Emby is unavailable", async () => {
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn().mockResolvedValue({
+        accessToken: "emby-secret-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        sessionId: "session-id",
+        user: {
+          name: "Alex",
+          permissions: {
+            canDownload: true,
+            canManageServer: false,
+            isAdministrator: false,
+          },
+          serverId: "server-id",
+          userId: "user-1",
+        },
+      }),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      revoke: vi.fn(),
+      updateUser: vi.fn(),
+    };
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      logoutSession: vi.fn().mockRejectedValue(new Error("Emby offline")),
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: {
+        cookie: "newemby_session=browser-session-token",
+        origin: "http://127.0.0.1:5173",
+      },
+      method: "POST",
+      url: "/api/v1/auth/logout",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(authSessionStore.revoke).toHaveBeenCalled();
+  });
+
+  it("rejects logout requests from an untrusted origin", async () => {
+    const app = await createTestApp();
+    const response = await app.inject({
+      headers: { origin: "https://evil.example.com" },
+      method: "POST",
+      url: "/api/v1/auth/logout",
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe("ORIGIN_NOT_ALLOWED");
+  });
+
+  it("revokes a local session after an upstream unauthorized response", async () => {
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn().mockResolvedValue({
+        accessToken: "expired-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        sessionId: "session-id",
+        user: {
+          name: "Alex",
+          permissions: {
+            canDownload: true,
+            canManageServer: false,
+            isAdministrator: false,
+          },
+          serverId: "server-id",
+          userId: "user-1",
+        },
+      }),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      revoke: vi.fn(),
+      updateUser: vi.fn(),
+    };
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      getAuthenticatedUser: vi
+        .fn()
+        .mockRejectedValue(new EmbyAuthError("unauthorized", "Expired token")),
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=browser-session-token" },
+      method: "GET",
+      url: "/api/v1/auth/me",
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().error.code).toBe("UNAUTHENTICATED");
+    expect(response.headers["set-cookie"]).toContain("Max-Age=0");
+    expect(authSessionStore.revoke).toHaveBeenCalledWith(
+      "browser-session-token",
+    );
+  });
+
   it("rejects login requests from an untrusted origin", async () => {
     const authenticateUser = vi.fn();
     const app = await buildApp({

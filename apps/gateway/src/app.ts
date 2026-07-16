@@ -19,10 +19,12 @@ import {
   getAuthenticatedUser as getEmbyAuthenticatedUser,
   listPublicUsers,
   loadPublicUserAvatar,
+  logoutEmbySession,
   probeEmbyServer,
   type PublicUserAvatar,
   type AuthenticateUserResult,
   type CurrentUserRequest,
+  type LogoutSessionRequest,
 } from "@newemby/emby-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -57,6 +59,10 @@ export interface BuildAppOptions {
     input: CurrentUserRequest,
   ) => Promise<UserProfile>;
   logger?: boolean;
+  logoutSession?: (
+    baseUrl: string,
+    input: LogoutSessionRequest,
+  ) => Promise<void>;
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
   version?: string;
@@ -285,6 +291,46 @@ export async function buildApp(
           .status(response.statusCode)
           .send(errorEnvelope(response.code, authError.message, request.id));
       }
+    },
+  });
+
+  app.post(ApiRoutes.logout.url, {
+    schema: ApiRoutes.logout.schema,
+    async handler(request, reply) {
+      if (request.headers.origin !== options.config.publicOrigin)
+        return reply
+          .status(403)
+          .send(
+            errorEnvelope(
+              "ORIGIN_NOT_ALLOWED",
+              "The request origin is not allowed",
+              request.id,
+            ),
+          );
+
+      const cookieToken = request.cookies.newemby_session;
+      void reply.clearCookie("newemby_session", { path: "/" });
+
+      if (cookieToken === undefined || options.authSessionStore === undefined)
+        return { requestId: request.id, success: true as const };
+
+      const session = await options.authSessionStore.find(cookieToken);
+      await options.authSessionStore.revoke(cookieToken);
+
+      const server = await serverStore.getCurrent();
+      if (session !== null && server?.serverId === session.user.serverId) {
+        try {
+          const deviceId = await options.authSessionStore.getDeviceId();
+          await (options.logoutSession ?? logoutEmbySession)(server.baseUrl, {
+            accessToken: session.accessToken,
+            deviceId,
+          });
+        } catch {
+          // Local revocation is authoritative; upstream logout is best effort.
+        }
+      }
+
+      return { requestId: request.id, success: true as const };
     },
   });
 

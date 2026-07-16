@@ -33,7 +33,7 @@
 |---|---|---:|---:|---|
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
-| M1 | 媒体浏览 MVP | 进行中 | 6/28 | 带 M0 外部阻塞进入 |
+| M1 | 媒体浏览 MVP | 进行中 | 7/28 | 带 M0 外部阻塞进入 |
 | M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
@@ -185,7 +185,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M1-004` 使用 HttpOnly Cookie 建立 NewEmby 会话。
 - [x] `M1-005` 加密保存 Emby AccessToken。
 - [x] `M1-006` 实现当前用户、权限和管理员能力探测。
-- [ ] `M1-007` 实现退出、Token 撤销和 401 统一恢复流程。
+- [x] `M1-007` 实现退出、Token 撤销和 401 统一恢复流程。
 
 ### 6.2 Emby 领域适配
 
@@ -475,7 +475,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；下一项为 `M1-007`。
+- 暂无；下一项为 `M1-008`。
 
 ### 阻塞
 
@@ -488,7 +488,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 执行 `M1-007` 退出、Token 撤销和 401 统一恢复流程。
+1. 执行 `M1-008` 建立统一媒体领域模型与 DTO 转换。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
@@ -512,6 +512,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | M1-007 | 完成 | 已实现本地优先会话撤销、Emby `/Sessions/Logout` 尽力注销、上游 401/403 会话失效、精确 Origin 校验、前端用户菜单与统一未认证恢复；Emby Client 17 项、Gateway 22 项、Web 10 项单测、Playwright 认证闭环 1/1、`verify:local`、smoke 和迁移 up/down/up 全部通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-008 |
+| 2026-07-16 | M1-007 | 进行中 | 正在实现本地优先退出、Emby 会话注销、全局未认证恢复和浏览器闭环测试 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | 完成退出与 401 恢复验证 |
 | 2026-07-16 | M1-006 | 完成 | 已实现 `/auth/me`、Emby 用户与权限刷新、会话权限持久化、未选服务器/未登录路由守卫和管理员能力导航；Emby Client 15 项、Gateway 18 项、Web 8 项测试及根级 format/check/build/smoke 全部通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-007 |
 | 2026-07-16 | M1-006 | 进行中 | 正在实现会话读取、Emby 用户状态刷新、路由守卫和管理员能力导航 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | 完成当前用户能力验证 |
 | 2026-07-16 | M1-003～M1-005 | 完成 | 已实现 Emby 认证代理、精确 Origin 校验、IP/用户名十分钟五次限流、HttpOnly 会话、Cookie HMAC 摘要及 AES-256-GCM Token 存储；Contracts 5 项、Emby Client 12 项、Gateway 15 项、Web 5 项测试及类型/lint/格式检查通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-006 |

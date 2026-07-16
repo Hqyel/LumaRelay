@@ -5,7 +5,9 @@ import {
   getCurrentUser,
   getPublicUsers,
   login,
+  logout,
   selectServer,
+  subscribeToUnauthorized,
 } from "./api.js";
 
 afterEach(() => {
@@ -162,5 +164,72 @@ describe("Web Gateway client", () => {
       "/api/v1/auth/login",
       expect.objectContaining({ credentials: "include", method: "POST" }),
     );
+  });
+
+  it("posts logout only to the Gateway", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ requestId: "request-5", success: true }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(logout()).resolves.toMatchObject({ success: true });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/v1/auth/logout",
+      expect.objectContaining({ credentials: "include", method: "POST" }),
+    );
+  });
+
+  it("notifies recovery only for an unauthenticated session", async () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeToUnauthorized(listener);
+
+    try {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "UNAUTHENTICATED",
+                message: "Session expired",
+                requestId: "request-6",
+              },
+            }),
+            { status: 401 },
+          ),
+        ),
+      );
+      await expect(getCurrentUser()).rejects.toMatchObject({
+        code: "UNAUTHENTICATED",
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "AUTH_INVALID_CREDENTIALS",
+                message: "Invalid credentials",
+                requestId: "request-7",
+              },
+            }),
+            { status: 401 },
+          ),
+        ),
+      );
+      await expect(
+        login({ password: "wrong", username: "Alex" }),
+      ).rejects.toMatchObject({ code: "AUTH_INVALID_CREDENTIALS" });
+      expect(listener).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
   });
 });
