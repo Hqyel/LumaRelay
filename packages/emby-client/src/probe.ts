@@ -77,6 +77,23 @@ async function fetchWithTimeout(
   }
 }
 
+async function probePublicUsers(
+  fetcher: typeof globalThis.fetch,
+  baseUrl: string,
+  timeoutMs: number,
+): Promise<boolean> {
+  try {
+    const response = await fetchWithTimeout(
+      fetcher,
+      embyApiUrl(baseUrl, "/Users/Public"),
+      timeoutMs,
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function probeEmbyServer(
   value: string,
   options: ProbeEmbyServerOptions = {},
@@ -119,11 +136,22 @@ export async function probeEmbyServer(
       "Emby server version is unsupported",
     );
 
+  const supportsPublicUsers = await probePublicUsers(
+    fetcher,
+    baseUrl,
+    timeoutMs,
+  );
+
   return toServerSummary(parsed.data, {
     baseUrl,
     capabilityFlags: {
+      imageProcessing: true,
       publicInfo: true,
+      publicUsers: supportsPublicUsers,
       ping: true,
+      userAuthentication: true,
+      userItems: true,
+      userViews: true,
     },
     latencyMs: Math.round(performance.now() - startedAt),
   });

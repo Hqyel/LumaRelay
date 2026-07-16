@@ -3,8 +3,13 @@ import { z } from "zod";
 import { RequestIdSchema } from "./common.js";
 
 export const ServerCapabilityFlagsSchema = z.object({
+  imageProcessing: z.boolean().optional(),
   publicInfo: z.boolean(),
+  publicUsers: z.boolean().optional(),
   ping: z.boolean(),
+  userAuthentication: z.boolean().optional(),
+  userItems: z.boolean().optional(),
+  userViews: z.boolean().optional(),
 });
 
 export const ServerSummarySchema = z.object({

@@ -68,7 +68,15 @@ describe("SQLite migrations", () => {
       const store = createServerStore(database);
       await store.select({
         baseUrl: "https://emby.example.com/",
-        capabilityFlags: { ping: true, publicInfo: true },
+        capabilityFlags: {
+          imageProcessing: true,
+          ping: true,
+          publicInfo: true,
+          publicUsers: false,
+          userAuthentication: true,
+          userItems: true,
+          userViews: true,
+        },
         latencyMs: 23,
         name: "Home Emby",
         serverId: "server-1",
@@ -77,9 +85,15 @@ describe("SQLite migrations", () => {
       });
 
       await expect(store.getCurrent()).resolves.toMatchObject({
+        capabilityFlags: {
+          imageProcessing: true,
+          publicUsers: false,
+          userItems: true,
+        },
         latencyMs: 23,
         serverId: "server-1",
         supportsHttps: true,
+        version: "4.8.11.0",
       });
     } finally {
       await database.destroy();

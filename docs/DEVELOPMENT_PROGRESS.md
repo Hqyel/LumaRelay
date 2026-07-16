@@ -33,7 +33,7 @@
 |---|---|---:|---:|---|
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
-| M1 | 媒体浏览 MVP | 进行中 | 11/28 | 带 M0 外部阻塞进入 |
+| M1 | 媒体浏览 MVP | 进行中 | 12/28 | 带 M0 外部阻塞进入 |
 | M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
@@ -193,7 +193,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M1-009` 实现 MediaLibrary、MediaCard 和 MediaDetail 适配。
 - [x] `M1-010` 实现 SeasonSummary、EpisodeSummary 和 PersonSummary 适配。
 - [x] `M1-011` 实现图片 URL 构造、Image Tag 和尺寸策略。
-- [ ] `M1-012` 实现能力探测和 Emby 版本记录。
+- [x] `M1-012` 实现能力探测和 Emby 版本记录。
 
 ### 6.3 页面
 
@@ -475,7 +475,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；下一项为 `M1-012`。
+- 暂无；下一项为 `M1-013`。
 
 ### 阻塞
 
@@ -488,7 +488,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 执行 `M1-012` 能力探测和 Emby 版本记录。
+1. 执行 `M1-013` 首页 `/home`。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
@@ -512,6 +512,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | M1-012 | 完成 | 已扩展公共用户、用户认证、用户视图、用户媒体和图片处理能力标志，公共用户只读探测失败时安全闭合，并验证版本号与能力 JSON 持久化；Emby Client 34 项、Gateway 22 项及根级 format/check/build/smoke 全部通过 | `packages/contracts/src/server.ts`, `packages/emby-client/src/probe.ts`, `apps/gateway/src/database/migrator.test.ts` | M1-013 |
+| 2026-07-16 | M1-012 | 进行中 | 正在扩展只读服务器能力探测，并验证版本号与能力标志随当前服务器持久化 | `packages/contracts`, `packages/emby-client`, `apps/gateway` | 完成能力与版本记录验证 |
 | 2026-07-16 | M1-011 | 完成 | 已实现不携带 Token 的子路径安全图片 URL、必需 Image Tag 缓存键，以及海报 360–480px、背景 1920/2560px、横图、头像和 Logo 的 DPR 尺寸预算；Emby Client 33 项及根级 format/check/build/smoke 全部通过 | `packages/emby-client/src/image.ts` | M1-012 |
 | 2026-07-16 | M1-011 | 进行中 | 正在实现不含 Token 的 Emby 图片 URL、不可变 Image Tag 查询参数和海报/横图/背景/头像尺寸预算 | `packages/emby-client` | 完成图片策略验证 |
 | 2026-07-16 | M1-010 | 完成 | 已新增 `SeasonSummary`、`EpisodeSummary`、`PersonSummary` 契约及转换，覆盖季序号/未看数、单集编号/时长/进度、人物类型/角色/头像并保留 `serverId`；Emby Client 28 项及根级 format/check/build/smoke 全部通过 | `packages/contracts/src/media.ts`, `packages/emby-client/src/media-adapters.ts` | M1-011 |

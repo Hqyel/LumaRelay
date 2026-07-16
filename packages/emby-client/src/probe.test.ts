@@ -14,7 +14,8 @@ describe("probeEmbyServer", () => {
           ServerName: "Home Emby",
           Version: "4.8.11.0",
         }),
-      );
+      )
+      .mockResolvedValueOnce(Response.json([]));
 
     const result = await probeEmbyServer("https://emby.example.com/emby", {
       fetch: fetcher,
@@ -26,10 +27,43 @@ describe("probeEmbyServer", () => {
       version: "4.8.11.0",
       baseUrl: "https://emby.example.com/emby/",
       supportsHttps: true,
+      capabilityFlags: {
+        imageProcessing: true,
+        ping: true,
+        publicInfo: true,
+        publicUsers: true,
+        userAuthentication: true,
+        userItems: true,
+        userViews: true,
+      },
     });
     expect(fetcher.mock.calls[0]?.[0].toString()).toBe(
       "https://emby.example.com/emby/System/Ping",
     );
+    expect(fetcher.mock.calls[2]?.[0].toString()).toBe(
+      "https://emby.example.com/emby/Users/Public",
+    );
+  });
+
+  it("records an unavailable optional public-users capability", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Emby Server", { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          Id: "server-id",
+          ServerName: "Home Emby",
+          Version: "4.8.11.0",
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 403 }));
+
+    const result = await probeEmbyServer("https://emby.example.com", {
+      fetch: fetcher,
+    });
+
+    expect(result.capabilityFlags.publicUsers).toBe(false);
+    expect(result.version).toBe("4.8.11.0");
   });
 
   it("classifies timeout errors", async () => {
