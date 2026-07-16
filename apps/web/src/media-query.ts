@@ -29,3 +29,19 @@ export function moviesQuery(page: number) {
     staleTime: 60_000,
   });
 }
+
+export function seriesQuery(page: number) {
+  const limit = 40;
+  return queryOptions({
+    queryFn: () =>
+      getMediaItems({
+        kind: "series",
+        limit,
+        sortBy: "dateAdded",
+        sortOrder: "descending",
+        startIndex: (page - 1) * limit,
+      }),
+    queryKey: ["media", "series", { page }],
+    staleTime: 60_000,
+  });
+}

@@ -14,6 +14,7 @@ import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppSeriesRouteImport } from './routes/_app.series'
 import { Route as AppMoviesRouteImport } from './routes/_app.movies'
 import { Route as AppHomeRouteImport } from './routes/_app.home'
 
@@ -41,6 +42,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSeriesRoute = AppSeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMoviesRoute = AppMoviesRouteImport.update({
   id: '/movies',
   path: '/movies',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/home': typeof AppHomeRoute
   '/movies': typeof AppMoviesRoute
+  '/series': typeof AppSeriesRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/home': typeof AppHomeRoute
   '/movies': typeof AppMoviesRoute
+  '/series': typeof AppSeriesRoute
   '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -76,13 +84,15 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/movies': typeof AppMoviesRoute
+  '/_app/series': typeof AppSeriesRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/connect' | '/login' | '/home' | '/movies'
+  fullPaths:
+    '/' | '/admin' | '/connect' | '/login' | '/home' | '/movies' | '/series'
   fileRoutesByTo: FileRoutesByTo
-  to: '/admin' | '/connect' | '/login' | '/home' | '/movies' | '/'
+  to: '/admin' | '/connect' | '/login' | '/home' | '/movies' | '/series' | '/'
   id:
     | '__root__'
     | '/_app'
@@ -91,6 +101,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/home'
     | '/_app/movies'
+    | '/_app/series'
     | '/_app/'
   fileRoutesById: FileRoutesById
 }
@@ -138,6 +149,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/series': {
+      id: '/_app/series'
+      path: '/series'
+      fullPath: '/series'
+      preLoaderRoute: typeof AppSeriesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/movies': {
       id: '/_app/movies'
       path: '/movies'
@@ -158,12 +176,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppHomeRoute: typeof AppHomeRoute
   AppMoviesRoute: typeof AppMoviesRoute
+  AppSeriesRoute: typeof AppSeriesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
   AppMoviesRoute: AppMoviesRoute,
+  AppSeriesRoute: AppSeriesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

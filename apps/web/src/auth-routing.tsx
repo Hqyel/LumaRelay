@@ -40,7 +40,12 @@ export function navigationForUser(
       icon: <Film size={20} />,
       label: "电影",
     },
-    { disabled: true, href: "/series", icon: <Tv size={20} />, label: "剧集" },
+    {
+      active: pathname === "/series",
+      href: "/series",
+      icon: <Tv size={20} />,
+      label: "剧集",
+    },
     {
       disabled: true,
       href: "/libraries",

@@ -67,6 +67,19 @@ function renderNavigationLink({
       </Link>
     );
 
+  if (item.href === "/series")
+    return (
+      <Link
+        aria-current={item.active ? "page" : undefined}
+        aria-label={item.label}
+        className={className}
+        search={{ page: 1 }}
+        to="/series"
+      >
+        {children}
+      </Link>
+    );
+
   return <span className={className}>{children}</span>;
 }
 
@@ -148,7 +161,8 @@ function FrontAppLayout() {
   });
 
   if (session === undefined) return null;
-  const title = pathname === "/movies" ? "电影" : "首页";
+  const title =
+    pathname === "/movies" ? "电影" : pathname === "/series" ? "剧集" : "首页";
 
   return (
     <AppShell

@@ -115,6 +115,26 @@ describe("Emby media domain adapters", () => {
     expect(ticksToSeconds(undefined)).toBeUndefined();
   });
 
+  it("maps series lifecycle and latest episode date", () => {
+    const card = toMediaCard(
+      EmbyBaseItemDtoSchema.parse({
+        DateLastMediaAdded: "2026-07-15T10:00:00.000Z",
+        Id: "series-1",
+        Name: "Fixture Series",
+        Status: "Continuing",
+        Type: "Series",
+        UserData: { UnplayedItemCount: 4 },
+      }),
+      "server-1",
+    );
+
+    expect(card).toMatchObject({
+      latestEpisodeDate: "2026-07-15T10:00:00.000Z",
+      seriesStatus: "continuing",
+      unplayedItemCount: 4,
+    });
+  });
+
   it("maps season state and unplayed episode count", () => {
     const dto = EmbyBaseItemDtoSchema.parse({
       Id: "season-1",

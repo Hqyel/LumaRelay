@@ -33,6 +33,7 @@ const EmbyItemsResponseSchema = z.object({
 const HOME_FIELDS = [
   "BackdropImageTags",
   "CommunityRating",
+  "DateLastMediaAdded",
   "Genres",
   "ImageTags",
   "OfficialRating",

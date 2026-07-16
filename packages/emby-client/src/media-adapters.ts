@@ -30,6 +30,7 @@ export const EmbyBaseItemDtoSchema = z.object({
   ChildCount: z.number().int().nonnegative().nullish(),
   CollectionType: z.string().nullish(),
   CommunityRating: z.number().nonnegative().nullish(),
+  DateLastMediaAdded: z.string().nullish(),
   Genres: z.array(z.string()).nullish(),
   Id: z.string().min(1),
   ImageTags: z.record(z.string(), z.string()).nullish(),
@@ -48,6 +49,7 @@ export const EmbyBaseItemDtoSchema = z.object({
   SeriesName: z.string().nullish(),
   SeriesId: z.string().nullish(),
   SeasonId: z.string().nullish(),
+  Status: z.string().nullish(),
   Taglines: z.array(z.string()).nullish(),
   Type: z.string().min(1),
   UserData: EmbyUserDataDtoSchema.nullish(),
@@ -137,6 +139,14 @@ function percentage(value: number | null | undefined): number | undefined {
   return Math.min(100, Math.max(0, value));
 }
 
+function seriesStatus(
+  value: string | null | undefined,
+): "continuing" | "ended" | undefined {
+  if (value?.toLowerCase() === "continuing") return "continuing";
+  if (value?.toLowerCase() === "ended") return "ended";
+  return undefined;
+}
+
 function cardInput(dto: EmbyBaseItemDto, serverId: string) {
   return {
     backdropImageTag: nonEmpty(dto.BackdropImageTags?.[0]),
@@ -145,6 +155,7 @@ function cardInput(dto: EmbyBaseItemDto, serverId: string) {
     isPlayed: dto.UserData?.Played === true,
     itemId: dto.Id,
     kind: mediaKind(dto.Type),
+    latestEpisodeDate: nonEmpty(dto.DateLastMediaAdded),
     officialRating: nonEmpty(dto.OfficialRating),
     parentId: nonEmpty(dto.ParentId),
     playbackPositionSeconds:
@@ -154,6 +165,7 @@ function cardInput(dto: EmbyBaseItemDto, serverId: string) {
     productionYear: dto.ProductionYear ?? undefined,
     runtimeSeconds: ticksToSeconds(dto.RunTimeTicks),
     serverId,
+    seriesStatus: seriesStatus(dto.Status),
     subtitle: nonEmpty(dto.SeriesName),
     title: dto.Name,
     unplayedItemCount: dto.UserData?.UnplayedItemCount ?? undefined,
