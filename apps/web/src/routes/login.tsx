@@ -6,12 +6,20 @@ import {
   Input,
   Skeleton,
 } from "@newemby/ui";
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogIn, Server, UserRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
-import { getCurrentServer, getPublicUsers } from "../api.js";
+import { ApiError, getCurrentServer, getPublicUsers, login } from "../api.js";
+
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  AUTH_INVALID_CREDENTIALS: "用户名或密码不正确。",
+  AUTH_UPSTREAM_ERROR: "Emby 登录服务暂时不可用。",
+  ORIGIN_NOT_ALLOWED: "当前页面来源不允许登录。",
+  RATE_LIMITED: "登录尝试过多，请十分钟后重试。",
+  SERVER_TIMEOUT: "登录请求超时，请稍后重试。",
+};
 
 function UserAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }) {
   if (avatarUrl !== undefined)
@@ -32,6 +40,7 @@ function UserAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }) {
 }
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const currentServer = useQuery({
@@ -43,12 +52,26 @@ function LoginPage() {
     queryFn: getPublicUsers,
     queryKey: ["auth", "public-users"],
   });
+  const authentication = useMutation({
+    mutationFn: login,
+    async onSuccess() {
+      await navigate({ to: "/" });
+    },
+  });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    authentication.mutate({ password, username });
   }
 
   const server = currentServer.data?.server;
+  const loginError =
+    authentication.error instanceof ApiError
+      ? (LOGIN_ERROR_MESSAGES[authentication.error.code] ??
+        authentication.error.message)
+      : authentication.error instanceof Error
+        ? authentication.error.message
+        : undefined;
 
   return (
     <main className="min-h-screen bg-bg px-5 py-10 text-text">
@@ -90,18 +113,24 @@ function LoginPage() {
                   label="用户名"
                   onChange={(event) => setUsername(event.target.value)}
                   required
+                  disabled={authentication.isPending}
                   value={username}
                 />
                 <Input
                   autoComplete="current-password"
                   label="密码"
+                  error={loginError}
+                  disabled={authentication.isPending}
                   onChange={(event) => setPassword(event.target.value)}
                   type="password"
                   value={password}
                 />
-                <Button disabled type="submit">
+                <Button
+                  disabled={authentication.isPending || username.trim() === ""}
+                  type="submit"
+                >
                   <LogIn aria-hidden="true" size={18} />
-                  登录认证将在下一项任务启用
+                  {authentication.isPending ? "正在登录…" : "登录"}
                 </Button>
               </form>
             </>

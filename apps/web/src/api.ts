@@ -1,6 +1,8 @@
 import type {
   CurrentServerResponse,
   ErrorEnvelope,
+  LoginRequest,
+  LoginResponse,
   ProbeServerResponse,
   PublicUsersResponse,
 } from "@newemby/contracts";
@@ -44,6 +46,14 @@ export function getCurrentServer(): Promise<CurrentServerResponse> {
 
 export function getPublicUsers(): Promise<PublicUsersResponse> {
   return requestJson("/api/v1/auth/public-users");
+}
+
+export function login(credentials: LoginRequest): Promise<LoginResponse> {
+  return requestJson("/api/v1/auth/login", {
+    body: JSON.stringify(credentials),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
 }
 
 export function selectServer(baseUrl: string): Promise<ProbeServerResponse> {

@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getCurrentServer, getPublicUsers, selectServer } from "./api.js";
+import {
+  getCurrentServer,
+  getPublicUsers,
+  login,
+  selectServer,
+} from "./api.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -79,5 +84,43 @@ describe("Web Gateway client", () => {
     await expect(getPublicUsers()).resolves.toMatchObject({
       users: [{ userId: "user-1" }],
     });
+  });
+
+  it("posts credentials only to the Gateway login endpoint", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          requestId: "request-4",
+          server: {
+            baseUrl: "https://emby.example.com/",
+            capabilityFlags: { ping: true, publicInfo: true },
+            latencyMs: 10,
+            name: "Home Emby",
+            serverId: "server-1",
+            supportsHttps: true,
+            version: "4.8.11.0",
+          },
+          user: {
+            name: "Alex",
+            permissions: {
+              canDownload: true,
+              canManageServer: false,
+              isAdministrator: false,
+            },
+            serverId: "server-1",
+            userId: "user-1",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await login({ password: "password", username: "Alex" });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/v1/auth/login",
+      expect.objectContaining({ credentials: "include", method: "POST" }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 export * from "./auth-errors.js";
+export * from "./authentication.js";
 export * from "./errors.js";
 export * from "./fixture-safety.js";
 export * from "./probe.js";

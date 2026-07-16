@@ -1,20 +1,25 @@
 import { randomUUID } from "node:crypto";
 
+import cookie from "@fastify/cookie";
+import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import {
   ApiRoutes,
   OpenApiInfo,
   type HealthResponse,
+  type LoginRequest,
   type PublicUser,
   type ServerSummary,
 } from "@newemby/contracts";
 import {
   EmbyAuthError,
   EmbyProbeError,
+  authenticateUser as authenticateEmbyUser,
   listPublicUsers,
   loadPublicUserAvatar,
   probeEmbyServer,
   type PublicUserAvatar,
+  type AuthenticateUserResult,
 } from "@newemby/emby-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -26,12 +31,18 @@ import {
 } from "fastify-type-provider-zod";
 
 import type { GatewayConfig } from "./config.js";
+import type { AuthSessionStore } from "./database/auth-session-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export interface BuildAppOptions {
+  authSessionStore?: AuthSessionStore;
+  authenticateUser?: (
+    baseUrl: string,
+    credentials: LoginRequest & { deviceId: string },
+  ) => Promise<AuthenticateUserResult>;
   config: GatewayConfig;
   getPublicUserAvatar?: (
     baseUrl: string,
@@ -42,6 +53,22 @@ export interface BuildAppOptions {
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
   version?: string;
+}
+
+function loginErrorResponse(error: EmbyAuthError): {
+  code: "AUTH_INVALID_CREDENTIALS" | "AUTH_UPSTREAM_ERROR" | "SERVER_TIMEOUT";
+  statusCode: 401 | 408 | 502;
+} {
+  switch (error.kind) {
+    case "unauthorized":
+      return { code: "AUTH_INVALID_CREDENTIALS", statusCode: 401 };
+    case "timeout":
+      return { code: "SERVER_TIMEOUT", statusCode: 408 };
+    case "invalid-response":
+    case "not-found":
+    case "unreachable":
+      return { code: "AUTH_UPSTREAM_ERROR", statusCode: 502 };
+  }
 }
 
 function authErrorResponse(error: EmbyAuthError): {
@@ -113,6 +140,7 @@ export async function buildApp(
               paths: [
                 "req.headers.authorization",
                 "req.headers.cookie",
+                "req.body.password",
                 "res.headers.set-cookie",
               ],
               censor: "[REDACTED]",
@@ -123,6 +151,12 @@ export async function buildApp(
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  await app.register(cookie);
+  await app.register(rateLimit, {
+    global: false,
+    hook: "preHandler",
+  });
 
   await app.register(swagger, {
     openapi: {
@@ -243,6 +277,84 @@ export async function buildApp(
     },
   });
 
+  app.post(ApiRoutes.login.url, {
+    config: {
+      rateLimit: {
+        keyGenerator(request) {
+          const body = request.body as Partial<LoginRequest>;
+          const username = body.username?.trim().toLowerCase() ?? "unknown";
+          return `${request.ip}:${username}`;
+        },
+        max: 5,
+        timeWindow: 10 * 60 * 1000,
+      },
+    },
+    schema: ApiRoutes.login.schema,
+    async handler(request, reply) {
+      if (request.headers.origin !== options.config.publicOrigin)
+        return reply
+          .status(403)
+          .send(
+            errorEnvelope(
+              "ORIGIN_NOT_ALLOWED",
+              "The request origin is not allowed",
+              request.id,
+            ),
+          );
+
+      const server = await serverStore.getCurrent();
+      if (server === null)
+        return reply
+          .status(409)
+          .send(
+            errorEnvelope(
+              "SERVER_NOT_SELECTED",
+              "Select an Emby server before signing in",
+              request.id,
+            ),
+          );
+      if (options.authSessionStore === undefined)
+        throw new Error("Auth session store is not configured");
+
+      try {
+        const deviceId = await options.authSessionStore.getDeviceId();
+        const authentication = await (
+          options.authenticateUser ?? authenticateEmbyUser
+        )(server.baseUrl, { ...request.body, deviceId });
+        const cookieToken = await options.authSessionStore.create({
+          accessToken: authentication.accessToken,
+          user: authentication.user,
+        });
+
+        void reply.setCookie("newemby_session", cookieToken, {
+          httpOnly: true,
+          maxAge: 7 * 24 * 60 * 60,
+          path: "/",
+          sameSite: "lax",
+          secure: options.config.cookieSecure,
+        });
+        return {
+          requestId: request.id,
+          server,
+          user: authentication.user,
+        };
+      } catch (error) {
+        const authError =
+          error instanceof EmbyAuthError
+            ? error
+            : new EmbyAuthError(
+                "unreachable",
+                "Emby authentication failed unexpectedly",
+                { cause: error },
+              );
+        const response = loginErrorResponse(authError);
+        return reply
+          .status(response.statusCode)
+          .send(errorEnvelope(response.code, authError.message, request.id));
+      }
+    },
+  });
+
   app.post(ApiRoutes.probeServer.url, {
     schema: ApiRoutes.probeServer.schema,
     async handler(request, reply) {
@@ -328,6 +440,27 @@ export async function buildApp(
   registerNotFoundHandler(app);
 
   app.setErrorHandler((error, request, reply) => {
+    const statusCode =
+      typeof error === "object" &&
+      error !== null &&
+      "statusCode" in error &&
+      typeof error.statusCode === "number"
+        ? error.statusCode
+        : undefined;
+
+    if (statusCode === 429) {
+      void reply
+        .status(429)
+        .send(
+          errorEnvelope(
+            "RATE_LIMITED",
+            "Too many login attempts; try again later",
+            request.id,
+          ),
+        );
+      return;
+    }
+
     if (hasZodFastifySchemaValidationErrors(error)) {
       void reply
         .status(400)

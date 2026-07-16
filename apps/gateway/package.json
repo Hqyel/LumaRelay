@@ -14,6 +14,8 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.5.1",
     "@newemby/contracts": "workspace:*",
     "@newemby/emby-client": "workspace:*",

@@ -1,4 +1,10 @@
 import { ErrorEnvelopeSchema } from "./common.js";
+import {
+  LoginRequestSchema,
+  LoginResponseSchema,
+  PublicUserAvatarParamsSchema,
+  PublicUsersResponseSchema,
+} from "./auth.js";
 import { HealthResponseSchema } from "./health.js";
 import {
   CurrentServerResponseSchema,
@@ -15,6 +21,23 @@ export const ApiRoutes = {
     schema: {
       response: {
         200: HealthResponseSchema,
+      },
+    },
+  },
+  login: {
+    method: "POST",
+    url: `${API_PREFIX}/auth/login`,
+    schema: {
+      body: LoginRequestSchema,
+      response: {
+        200: LoginResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
       },
     },
   },
@@ -87,7 +110,3 @@ export const OpenApiInfo = {
     description: "Shared API contract for NewEmby Web and Player Bridge.",
   },
 } as const;
-import {
-  PublicUserAvatarParamsSchema,
-  PublicUsersResponseSchema,
-} from "./auth.js";

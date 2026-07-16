@@ -32,7 +32,7 @@ const EnvironmentSchema = z
     TOKEN_ENCRYPTION_KEY: z
       .string()
       .min(32)
-      .default("development-only-token-key-32-bytes"),
+      .default("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="),
     COOKIE_SECURE: BooleanStringSchema.default(false),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])

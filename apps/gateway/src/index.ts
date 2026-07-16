@@ -3,12 +3,14 @@ import { loadConfig } from "./config.js";
 import { createDatabase } from "./database/database.js";
 import { migrateToLatest } from "./database/migrator.js";
 import { createServerStore } from "./database/server-store.js";
+import { createAuthSessionStore } from "./database/auth-session-store.js";
 
 const config = loadConfig();
 const database = createDatabase(config.databasePath);
 await migrateToLatest(database);
 
 const app = await buildApp({
+  authSessionStore: createAuthSessionStore(database, config),
   config,
   serverStore: createServerStore(database),
 });

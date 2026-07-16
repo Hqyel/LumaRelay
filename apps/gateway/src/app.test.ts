@@ -1,4 +1,4 @@
-import { EmbyProbeError } from "@newemby/emby-client";
+import { EmbyAuthError, EmbyProbeError } from "@newemby/emby-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
@@ -218,5 +218,147 @@ describe("Gateway application", () => {
     expect(avatar.statusCode).toBe(200);
     expect(avatar.headers["content-type"]).toBe("image/png");
     expect(avatar.rawPayload).toEqual(Buffer.from([1, 2, 3]));
+  });
+
+  it("creates an HttpOnly session without exposing the Emby token", async () => {
+    const authenticateUser = vi.fn().mockResolvedValue({
+      accessToken: "emby-secret-token",
+      user: {
+        name: "Alex",
+        permissions: {
+          canDownload: true,
+          canManageServer: false,
+          isAdministrator: false,
+        },
+        serverId: "server-id",
+        userId: "user-1",
+      },
+    });
+    const authSessionStore = {
+      create: vi.fn().mockResolvedValue("browser-session-token"),
+      find: vi.fn(),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      revoke: vi.fn(),
+    };
+    const app = await buildApp({
+      authSessionStore,
+      authenticateUser,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: { origin: "http://127.0.0.1:5173" },
+      method: "POST",
+      payload: { password: "correct-password", username: "Alex" },
+      url: "/api/v1/auth/login",
+    });
+    const serialized = JSON.stringify(response.json());
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["set-cookie"]).toContain(
+      "newemby_session=browser-session-token",
+    );
+    expect(response.headers["set-cookie"]).toContain("HttpOnly");
+    expect(response.headers["set-cookie"]).toContain("SameSite=Lax");
+    expect(serialized).not.toContain("emby-secret-token");
+    expect(authSessionStore.create).toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: "emby-secret-token" }),
+    );
+  });
+
+  it("rejects login requests from an untrusted origin", async () => {
+    const authenticateUser = vi.fn();
+    const app = await buildApp({
+      authenticateUser,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { origin: "https://evil.example.com" },
+      method: "POST",
+      payload: { password: "password", username: "Alex" },
+      url: "/api/v1/auth/login",
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe("ORIGIN_NOT_ALLOWED");
+    expect(authenticateUser).not.toHaveBeenCalled();
+  });
+
+  it("classifies invalid credentials and limits repeated login attempts", async () => {
+    const authenticateUser = vi
+      .fn()
+      .mockRejectedValue(
+        new EmbyAuthError("unauthorized", "Invalid credentials"),
+      );
+    const app = await buildApp({
+      authSessionStore: {
+        create: vi.fn(),
+        find: vi.fn(),
+        getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+        revoke: vi.fn(),
+      },
+      authenticateUser,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    for (let i = 0; i < 5; i++) {
+      const response = await app.inject({
+        headers: { origin: "http://127.0.0.1:5173" },
+        method: "POST",
+        payload: { password: "wrong", username: "Alex" },
+        remoteAddress: "192.0.2.10",
+        url: "/api/v1/auth/login",
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json().error.code).toBe("AUTH_INVALID_CREDENTIALS");
+    }
+
+    const limited = await app.inject({
+      headers: { origin: "http://127.0.0.1:5173" },
+      method: "POST",
+      payload: { password: "wrong", username: "Alex" },
+      remoteAddress: "192.0.2.10",
+      url: "/api/v1/auth/login",
+    });
+
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().error.code).toBe("RATE_LIMITED");
+    expect(authenticateUser).toHaveBeenCalledTimes(5);
   });
 });
