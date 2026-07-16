@@ -92,6 +92,19 @@ function renderNavigationLink({
       </Link>
     );
 
+  if (item.href === "/search")
+    return (
+      <Link
+        aria-current={item.active ? "page" : undefined}
+        aria-label={item.label}
+        className={className}
+        search={{ q: "" }}
+        to="/search"
+      >
+        {children}
+      </Link>
+    );
+
   return <span className={className}>{children}</span>;
 }
 
@@ -109,15 +122,15 @@ function HeaderActions({ user }: { user: UserProfile }) {
 
   return (
     <>
-      <button
-        aria-label="全局搜索（尚未开放）"
-        className="grid size-10 cursor-not-allowed place-items-center rounded-control text-text-muted opacity-45"
-        disabled
-        title="全局搜索（尚未开放）"
-        type="button"
+      <Link
+        aria-label="全局搜索"
+        className="grid size-10 place-items-center rounded-control text-text-muted hover:bg-surface-hover hover:text-text"
+        search={{ q: "" }}
+        title="全局搜索"
+        to="/search"
       >
         <Search aria-hidden="true" size={20} />
-      </button>
+      </Link>
       <span className="hidden items-center gap-2 text-small text-text-muted sm:flex">
         <span aria-hidden="true" className="size-2 rounded-full bg-warning" />
         Bridge 未连接
@@ -180,7 +193,9 @@ function FrontAppLayout() {
         ? "剧集"
         : pathname === "/libraries" || pathname.startsWith("/library/")
           ? "媒体库"
-          : "首页";
+          : pathname === "/search"
+            ? "搜索"
+            : "首页";
 
   return (
     <AppShell

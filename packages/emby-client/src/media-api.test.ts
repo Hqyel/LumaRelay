@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getMediaHome, getMediaItems, getMediaLibraries } from "./media-api.js";
+import {
+  getMediaHome,
+  getMediaItems,
+  getMediaLibraries,
+  searchMedia,
+} from "./media-api.js";
 
 const input = {
   accessToken: "gateway-only-token",
@@ -116,5 +121,38 @@ describe("authenticated media client", () => {
 
     expect(result.total).toBe(81);
     expect(result.items[0]?.kind).toBe("movie");
+  });
+
+  it("groups user-scoped search results and people", async () => {
+    const fetcher = vi.fn(async (request: string | URL | Request) => {
+      const url = new URL(String(request));
+      if (url.pathname === "/Persons")
+        return new Response(
+          JSON.stringify({
+            Items: [{ Id: "person-1", Name: "Alex Actor", Type: "Actor" }],
+          }),
+        );
+      return new Response(
+        JSON.stringify({
+          Items: [
+            movie,
+            { Id: "series-1", Name: "Example Series", Type: "Series" },
+            { Id: "episode-1", Name: "Episode One", Type: "Episode" },
+          ],
+        }),
+      );
+    });
+
+    const result = await searchMedia(
+      "https://emby.example.com",
+      input,
+      { limit: 8, q: "example" },
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(result.movies).toHaveLength(1);
+    expect(result.series).toHaveLength(1);
+    expect(result.episodes).toHaveLength(1);
+    expect(result.people[0]?.name).toBe("Alex Actor");
   });
 });

@@ -5,6 +5,7 @@ import {
   type MediaHomeResponse,
   type MediaItemsQuery,
   type MediaLibrary,
+  type MediaSearchResponse,
   type PagedMediaResponse,
 } from "@newemby/contracts";
 import { z } from "zod";
@@ -20,6 +21,7 @@ import {
   toMediaCard,
   toMediaDetail,
   toMediaLibrary,
+  toPersonSummary,
   type EmbyBaseItemDto,
 } from "./media-adapters.js";
 import { embyApiUrl } from "./url.js";
@@ -395,6 +397,48 @@ export async function getMediaItems(
     limit: query.limit,
     startIndex: parsed.data.StartIndex ?? query.startIndex,
     total: parsed.data.TotalRecordCount ?? parsed.data.Items.length,
+  };
+}
+
+export async function searchMedia(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  query: { limit: number; q: string },
+  options: MediaClientOptions = {},
+): Promise<Omit<MediaSearchResponse, "requestId">> {
+  const mediaUrl = listUrl(baseUrl, input.userId, "", {
+    EnableImages: "true",
+    EnableUserData: "true",
+    Fields: HOME_FIELDS,
+    IncludeItemTypes: "Movie,Series,Episode",
+    Limit: String(query.limit * 3),
+    Recursive: "true",
+    SearchTerm: query.q,
+  });
+  const peopleUrl = embyApiUrl(baseUrl, "/Persons");
+  peopleUrl.searchParams.set("EnableImages", "true");
+  peopleUrl.searchParams.set("Fields", "PrimaryImageAspectRatio");
+  peopleUrl.searchParams.set("Limit", String(query.limit));
+  peopleUrl.searchParams.set("SearchTerm", query.q);
+  peopleUrl.searchParams.set("UserId", input.userId);
+
+  const [media, people] = await Promise.all([
+    readItemsResponse(await fetchEmby(mediaUrl, input, options)),
+    readItemsResponse(await fetchEmby(peopleUrl, input, options)),
+  ]);
+  const cards = media.map((item) => toMediaCard(item, input.serverId));
+
+  return {
+    episodes: cards
+      .filter((item) => item.kind === "episode")
+      .slice(0, query.limit),
+    movies: cards.filter((item) => item.kind === "movie").slice(0, query.limit),
+    people: people
+      .map((person) => toPersonSummary(person, input.serverId))
+      .slice(0, query.limit),
+    series: cards
+      .filter((item) => item.kind === "series")
+      .slice(0, query.limit),
   };
 }
 

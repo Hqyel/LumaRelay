@@ -65,7 +65,7 @@ export function navigationForUser(
       label: "播放列表",
     },
     {
-      disabled: true,
+      active: pathname === "/search",
       href: "/search",
       icon: <Search size={20} />,
       label: "搜索",

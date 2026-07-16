@@ -3,6 +3,7 @@ import {
   type MediaHomeResponse,
   type MediaItemsQuery,
   type MediaLibrary,
+  type MediaSearchResponse,
   type PagedMediaResponse,
 } from "@newemby/contracts";
 import {
@@ -11,6 +12,7 @@ import {
   getMediaItems,
   getMediaLibraries,
   loadAuthenticatedImage,
+  searchMedia,
   type AuthenticatedImage,
   type AuthenticatedImageRequest,
   type AuthenticatedMediaRequest,
@@ -43,6 +45,11 @@ export interface MediaRouteDependencies {
     input: AuthenticatedMediaRequest,
     query: MediaItemsQuery,
   ) => Promise<Omit<PagedMediaResponse, "requestId">>;
+  search?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    query: { limit: number; q: string },
+  ) => Promise<Omit<MediaSearchResponse, "requestId">>;
   loadImage?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
@@ -232,6 +239,27 @@ export function registerMediaRoutes(
             context.baseUrl,
             context.input,
             query,
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.mediaSearch.url, {
+    schema: ApiRoutes.mediaSearch.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.search ?? searchMedia)(
+            context.baseUrl,
+            context.input,
+            request.query as { limit: number; q: string },
           )),
           requestId: request.id,
         };

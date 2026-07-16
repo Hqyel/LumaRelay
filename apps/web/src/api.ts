@@ -8,6 +8,7 @@ import type {
   MediaHomeResponse,
   MediaItemsQuery,
   MediaLibrariesResponse,
+  MediaSearchResponse,
   PagedMediaResponse,
   ProbeServerResponse,
   PublicUsersResponse,
@@ -144,6 +145,14 @@ export function getMediaItems(
       params.append(key, String(value));
   }
   return requestJson(`/api/v1/media/items?${params.toString()}`);
+}
+
+export function searchMedia(
+  query: string,
+  limit = 8,
+): Promise<MediaSearchResponse> {
+  const params = new URLSearchParams({ limit: String(limit), q: query });
+  return requestJson(`/api/v1/media/search?${params.toString()}`);
 }
 
 export function mediaImageUrl(input: {

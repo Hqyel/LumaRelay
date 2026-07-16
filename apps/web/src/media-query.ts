@@ -1,6 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
 
-import { getMediaHome, getMediaItems, getMediaLibraries } from "./api.js";
+import {
+  getMediaHome,
+  getMediaItems,
+  getMediaLibraries,
+  searchMedia,
+} from "./api.js";
 
 export const mediaHomeQuery = queryOptions({
   queryFn: getMediaHome,
@@ -59,6 +64,15 @@ export function libraryItemsQuery(libraryId: string, page: number) {
         startIndex: (page - 1) * limit,
       }),
     queryKey: ["media", "library", libraryId, { page }],
+    staleTime: 60_000,
+  });
+}
+
+export function mediaSearchQuery(searchTerm: string) {
+  return queryOptions({
+    enabled: searchTerm.trim() !== "",
+    queryFn: () => searchMedia(searchTerm),
+    queryKey: ["media", "search", searchTerm],
     staleTime: 60_000,
   });
 }

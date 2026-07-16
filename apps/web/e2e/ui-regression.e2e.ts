@@ -143,9 +143,7 @@ test("application shell is accessible and matches its baseline", async ({
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "跳到主要内容" })).toBeFocused();
-  await expect(
-    page.getByRole("button", { name: "全局搜索（尚未开放）" }),
-  ).toBeDisabled();
+  await expect(page.getByRole("link", { name: "全局搜索" })).toBeVisible();
   await page
     .getByRole("link", { name: "跳到主要内容" })
     .evaluate((element: HTMLElement) => element.blur());
