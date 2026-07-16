@@ -195,7 +195,9 @@ function FrontAppLayout() {
           ? "媒体库"
           : pathname === "/search"
             ? "搜索"
-            : "首页";
+            : pathname.startsWith("/item/")
+              ? "详情"
+              : "首页";
 
   return (
     <AppShell

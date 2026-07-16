@@ -20,6 +20,7 @@ import { Route as AppMoviesRouteImport } from './routes/_app.movies'
 import { Route as AppLibrariesRouteImport } from './routes/_app.libraries'
 import { Route as AppHomeRouteImport } from './routes/_app.home'
 import { Route as AppLibraryLibraryIdRouteImport } from './routes/_app.library.$libraryId'
+import { Route as AppItemIdRouteImport } from './routes/_app.item.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -75,6 +76,11 @@ const AppLibraryLibraryIdRoute = AppLibraryLibraryIdRouteImport.update({
   path: '/library/$libraryId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppItemIdRoute = AppItemIdRouteImport.update({
+  id: '/item/$id',
+  path: '/item/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/movies': typeof AppMoviesRoute
   '/search': typeof AppSearchRoute
   '/series': typeof AppSeriesRoute
+  '/item/$id': typeof AppItemIdRoute
   '/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRoutesByTo {
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/search': typeof AppSearchRoute
   '/series': typeof AppSeriesRoute
   '/': typeof AppIndexRoute
+  '/item/$id': typeof AppItemIdRoute
   '/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRoutesById {
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/_app/search': typeof AppSearchRoute
   '/_app/series': typeof AppSeriesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/item/$id': typeof AppItemIdRoute
   '/_app/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRouteTypes {
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/movies'
     | '/search'
     | '/series'
+    | '/item/$id'
     | '/library/$libraryId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/series'
     | '/'
+    | '/item/$id'
     | '/library/$libraryId'
   id:
     | '__root__'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/_app/search'
     | '/_app/series'
     | '/_app/'
+    | '/_app/item/$id'
     | '/_app/library/$libraryId'
   fileRoutesById: FileRoutesById
 }
@@ -240,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLibraryLibraryIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/item/$id': {
+      id: '/_app/item/$id'
+      path: '/item/$id'
+      fullPath: '/item/$id'
+      preLoaderRoute: typeof AppItemIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -250,6 +269,7 @@ interface AppRouteChildren {
   AppSearchRoute: typeof AppSearchRoute
   AppSeriesRoute: typeof AppSeriesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppItemIdRoute: typeof AppItemIdRoute
   AppLibraryLibraryIdRoute: typeof AppLibraryLibraryIdRoute
 }
 
@@ -260,6 +280,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSearchRoute: AppSearchRoute,
   AppSeriesRoute: AppSeriesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppItemIdRoute: AppItemIdRoute,
   AppLibraryLibraryIdRoute: AppLibraryLibraryIdRoute,
 }
 

@@ -25,6 +25,14 @@ export const EmbyUserDataDtoSchema = z.object({
   UnplayedItemCount: z.number().int().nonnegative().nullish(),
 });
 
+export const EmbyPersonInlineDtoSchema = z.object({
+  Id: z.string().min(1),
+  Name: z.string().min(1),
+  PrimaryImageTag: z.string().nullish(),
+  Role: z.string().nullish(),
+  Type: z.string().min(1),
+});
+
 export const EmbyBaseItemDtoSchema = z.object({
   BackdropImageTags: z.array(z.string()).nullish(),
   ChildCount: z.number().int().nonnegative().nullish(),
@@ -41,6 +49,7 @@ export const EmbyBaseItemDtoSchema = z.object({
   Overview: z.string().nullish(),
   ParentId: z.string().nullish(),
   ParentIndexNumber: z.number().int().nonnegative().nullish(),
+  People: z.array(EmbyPersonInlineDtoSchema).nullish(),
   PremiereDate: z.string().nullish(),
   ProductionYear: z.number().int().nonnegative().nullish(),
   PrimaryImageTag: z.string().nullish(),

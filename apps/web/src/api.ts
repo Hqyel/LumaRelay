@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   LogoutResponse,
   MediaHomeResponse,
+  MediaItemResponse,
   MediaItemsQuery,
   MediaLibrariesResponse,
   MediaSearchResponse,
@@ -145,6 +146,10 @@ export function getMediaItems(
       params.append(key, String(value));
   }
   return requestJson(`/api/v1/media/items?${params.toString()}`);
+}
+
+export function getMediaItem(itemId: string): Promise<MediaItemResponse> {
+  return requestJson(`/api/v1/media/items/${encodeURIComponent(itemId)}`);
 }
 
 export function searchMedia(

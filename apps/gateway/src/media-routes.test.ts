@@ -1,4 +1,4 @@
-import type { MediaHomeResponse } from "@newemby/contracts";
+import type { MediaHomeResponse, MediaItemResponse } from "@newemby/contracts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
@@ -149,6 +149,61 @@ describe("authenticated media routes", () => {
       "http://127.0.0.1:8096/",
       expect.any(Object),
       expect.objectContaining({ kind: "movie", startIndex: 40 }),
+    );
+  });
+
+  it("returns an authenticated movie detail without exposing credentials", async () => {
+    const detail: Omit<MediaItemResponse, "requestId"> = {
+      item: {
+        genres: ["Drama"],
+        isFavorite: false,
+        isPlayed: false,
+        itemId: "movie-1",
+        kind: "movie",
+        playbackPositionSeconds: 0,
+        serverId: "server-1",
+        title: "Example Movie",
+      },
+      people: [],
+      relatedItems: [],
+    };
+    const getItem = vi.fn().mockResolvedValue(detail);
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: { getItem },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=session-cookie" },
+      method: "GET",
+      url: "/api/v1/media/items/movie-1",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      ...detail,
+      requestId: expect.any(String),
+    });
+    expect(response.body).not.toContain("encrypted-at-rest-token");
+    expect(getItem).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ userId: "user-1" }),
+      "movie-1",
     );
   });
 

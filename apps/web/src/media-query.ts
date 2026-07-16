@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 
 import {
   getMediaHome,
+  getMediaItem,
   getMediaItems,
   getMediaLibraries,
   searchMedia,
@@ -74,5 +75,13 @@ export function mediaSearchQuery(searchTerm: string) {
     queryFn: () => searchMedia(searchTerm),
     queryKey: ["media", "search", searchTerm],
     staleTime: 60_000,
+  });
+}
+
+export function mediaItemQuery(itemId: string) {
+  return queryOptions({
+    queryFn: () => getMediaItem(itemId),
+    queryKey: ["media", "item", itemId],
+    staleTime: 5 * 60_000,
   });
 }

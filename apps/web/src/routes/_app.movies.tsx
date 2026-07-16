@@ -6,7 +6,7 @@ import {
   Skeleton,
 } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { mediaImageUrl } from "../api.js";
 import { moviesQuery } from "../media-query.js";
@@ -88,13 +88,10 @@ function MoviesPage() {
         {result.items.map((item) => (
           <PosterCard
             action={
-              <Button
-                disabled
-                size="small"
-                title="详情将在 M1-018 开放"
-                variant="secondary"
-              >
-                查看详情
+              <Button asChild size="small" variant="secondary">
+                <Link params={{ id: item.itemId }} to="/item/$id">
+                  查看详情
+                </Link>
               </Button>
             }
             favorite={item.isFavorite}

@@ -9,7 +9,7 @@ import {
   Skeleton,
 } from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -59,13 +59,10 @@ function MediaGroup({ items, title }: { items: MediaCard[]; title: string }) {
         {items.map((item) => (
           <PosterCard
             action={
-              <Button
-                disabled
-                size="small"
-                title="详情将在后续任务开放"
-                variant="secondary"
-              >
-                查看详情
+              <Button asChild size="small" variant="secondary">
+                <Link params={{ id: item.itemId }} to="/item/$id">
+                  查看详情
+                </Link>
               </Button>
             }
             favorite={item.isFavorite}

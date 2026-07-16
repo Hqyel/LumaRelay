@@ -3,6 +3,7 @@ import {
   type MediaCard,
   type MediaDetail,
   type MediaHomeResponse,
+  type MediaItemResponse,
   type MediaItemsQuery,
   type MediaLibrary,
   type MediaSearchResponse,
@@ -40,6 +41,7 @@ const HOME_FIELDS = [
   "ImageTags",
   "OfficialRating",
   "Overview",
+  "People",
   "PremiereDate",
   "ProductionYear",
   "RunTimeTicks",
@@ -439,6 +441,50 @@ export async function searchMedia(
     series: cards
       .filter((item) => item.kind === "series")
       .slice(0, query.limit),
+  };
+}
+
+export async function getMediaItem(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  itemId: string,
+  options: MediaClientOptions = {},
+): Promise<Omit<MediaItemResponse, "requestId">> {
+  const itemUrl = embyApiUrl(
+    baseUrl,
+    `/Users/${encodeURIComponent(input.userId)}/Items/${encodeURIComponent(itemId)}`,
+  );
+  itemUrl.searchParams.set("Fields", HOME_FIELDS);
+  const relatedUrl = embyApiUrl(
+    baseUrl,
+    `/Items/${encodeURIComponent(itemId)}/Similar`,
+  );
+  relatedUrl.searchParams.set("EnableImages", "true");
+  relatedUrl.searchParams.set("EnableUserData", "true");
+  relatedUrl.searchParams.set("Fields", HOME_FIELDS);
+  relatedUrl.searchParams.set("Limit", "12");
+  relatedUrl.searchParams.set("UserId", input.userId);
+
+  const [itemResponse, related] = await Promise.all([
+    fetchEmby(itemUrl, input, options),
+    readItemsResponse(await fetchEmby(relatedUrl, input, options)),
+  ]);
+  const parsed = EmbyBaseItemDtoSchema.safeParse(await itemResponse.json());
+  if (!parsed.success)
+    throw new EmbyMediaError(
+      "invalid-response",
+      "The Emby media detail response is invalid",
+    );
+
+  return {
+    item: toMediaDetail(parsed.data, input.serverId),
+    people: (parsed.data.People ?? []).map((person) =>
+      toPersonSummary(
+        EmbyBaseItemDtoSchema.parse({ ...person, ImageTags: {} }),
+        input.serverId,
+      ),
+    ),
+    relatedItems: related.map((item) => toMediaCard(item, input.serverId)),
   };
 }
 

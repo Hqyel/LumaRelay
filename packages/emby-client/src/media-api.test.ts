@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   getMediaHome,
+  getMediaItem,
   getMediaItems,
   getMediaLibraries,
   searchMedia,
@@ -154,5 +155,53 @@ describe("authenticated media client", () => {
     expect(result.series).toHaveLength(1);
     expect(result.episodes).toHaveLength(1);
     expect(result.people[0]?.name).toBe("Alex Actor");
+  });
+
+  it("maps an authorized movie detail, cast, and related items", async () => {
+    const fetcher = vi.fn(async (request: string | URL | Request) => {
+      const url = new URL(String(request));
+      if (url.pathname.endsWith("/Similar"))
+        return new Response(
+          JSON.stringify({ Items: [{ ...movie, Id: "movie-2" }] }),
+        );
+      expect(url.pathname).toBe("/Users/user-1/Items/movie-1");
+      return new Response(
+        JSON.stringify({
+          ...movie,
+          CommunityRating: 8.4,
+          People: [
+            {
+              Id: "person-1",
+              Name: "Alex Actor",
+              PrimaryImageTag: "person-tag",
+              Role: "Lead",
+              Type: "Actor",
+            },
+          ],
+          ProductionYear: 2025,
+          Taglines: ["A fixture tagline."],
+        }),
+      );
+    });
+
+    const result = await getMediaItem(
+      "https://emby.example.com",
+      input,
+      "movie-1",
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(result.item).toEqual(
+      expect.objectContaining({
+        communityRating: 8.4,
+        itemId: "movie-1",
+        tagline: "A fixture tagline.",
+      }),
+    );
+    expect(result.people[0]).toEqual(
+      expect.objectContaining({ personId: "person-1", role: "Lead" }),
+    );
+    expect(result.relatedItems[0]?.itemId).toBe("movie-2");
+    expect(JSON.stringify(result)).not.toContain(input.accessToken);
   });
 });

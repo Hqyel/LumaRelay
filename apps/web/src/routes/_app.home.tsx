@@ -8,7 +8,7 @@ import {
   Skeleton,
 } from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Info, Play } from "lucide-react";
 
 import { mediaImageUrl } from "../api.js";
@@ -52,13 +52,10 @@ function MediaPosterRow({
         {items.slice(0, 12).map((item) => (
           <PosterCard
             action={
-              <Button
-                disabled
-                size="small"
-                title="详情将在 M1-018 开放"
-                variant="secondary"
-              >
-                查看详情
+              <Button asChild size="small" variant="secondary">
+                <Link params={{ id: item.itemId }} to="/item/$id">
+                  查看详情
+                </Link>
               </Button>
             }
             favorite={item.isFavorite}
@@ -155,9 +152,11 @@ function HomePage() {
                 <Play aria-hidden="true" fill="currentColor" size={18} />
                 播放
               </Button>
-              <Button disabled title="详情将在 M1-018 开放" variant="secondary">
-                <Info aria-hidden="true" size={18} />
-                查看详情
+              <Button asChild variant="secondary">
+                <Link params={{ id: data.hero.itemId }} to="/item/$id">
+                  <Info aria-hidden="true" size={18} />
+                  查看详情
+                </Link>
               </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import {
   ApiRoutes,
   type MediaHomeResponse,
+  type MediaItemResponse,
   type MediaItemsQuery,
   type MediaLibrary,
   type MediaSearchResponse,
@@ -9,6 +10,7 @@ import {
 import {
   EmbyMediaError,
   getMediaHome,
+  getMediaItem,
   getMediaItems,
   getMediaLibraries,
   loadAuthenticatedImage,
@@ -36,6 +38,11 @@ export interface MediaRouteDependencies {
     baseUrl: string,
     input: AuthenticatedMediaRequest,
   ) => Promise<Omit<MediaHomeResponse, "requestId">>;
+  getItem?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    itemId: string,
+  ) => Promise<Omit<MediaItemResponse, "requestId">>;
   getLibraries?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
@@ -260,6 +267,27 @@ export function registerMediaRoutes(
             context.baseUrl,
             context.input,
             request.query as { limit: number; q: string },
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.mediaItem.url, {
+    schema: ApiRoutes.mediaItem.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.getItem ?? getMediaItem)(
+            context.baseUrl,
+            context.input,
+            (request.params as { itemId: string }).itemId,
           )),
           requestId: request.id,
         };
