@@ -1,21 +1,8 @@
 import type { UserProfile } from "@newemby/contracts";
-import { z } from "zod";
 
 import { EmbyAuthError } from "./auth-errors.js";
+import { EmbyUserDtoSchema, toUserProfile } from "./domain-adapters.js";
 import { embyApiUrl } from "./url.js";
-
-const UserDtoSchema = z.object({
-  Id: z.string().min(1),
-  Name: z.string().min(1),
-  Policy: z
-    .object({
-      EnableContentDownloading: z.boolean().optional(),
-      IsAdministrator: z.boolean().optional(),
-      IsDisabled: z.boolean().optional(),
-    })
-    .optional(),
-  PrimaryImageTag: z.string().min(1).nullish(),
-});
 
 export interface CurrentUserRequest {
   accessToken: string;
@@ -79,7 +66,7 @@ export async function getAuthenticatedUser(
   if (!response.ok)
     throw new EmbyAuthError("unreachable", "Emby user request failed");
 
-  const parsed = UserDtoSchema.safeParse(await response.json());
+  const parsed = EmbyUserDtoSchema.safeParse(await response.json());
   if (!parsed.success)
     throw new EmbyAuthError(
       "invalid-response",
@@ -88,17 +75,5 @@ export async function getAuthenticatedUser(
   if (parsed.data.Policy?.IsDisabled === true)
     throw new EmbyAuthError("unauthorized", "The Emby user is disabled");
 
-  const isAdministrator = parsed.data.Policy?.IsAdministrator === true;
-
-  return {
-    name: parsed.data.Name,
-    permissions: {
-      canDownload: parsed.data.Policy?.EnableContentDownloading === true,
-      canManageServer: isAdministrator,
-      isAdministrator,
-    },
-    primaryImageTag: parsed.data.PrimaryImageTag ?? undefined,
-    serverId: input.serverId,
-    userId: parsed.data.Id,
-  };
+  return toUserProfile(parsed.data, input.serverId);
 }

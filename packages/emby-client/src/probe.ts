@@ -1,14 +1,8 @@
 import type { ServerSummary } from "@newemby/contracts";
-import { z } from "zod";
 
+import { EmbyPublicInfoDtoSchema, toServerSummary } from "./domain-adapters.js";
 import { EmbyProbeError } from "./errors.js";
 import { embyApiUrl, normalizeEmbyBaseUrl } from "./url.js";
-
-const PublicInfoSchema = z.object({
-  Id: z.string().min(1),
-  ServerName: z.string().min(1),
-  Version: z.string().min(1),
-});
 
 const TLS_ERROR_CODES = new Set([
   "CERT_HAS_EXPIRED",
@@ -116,23 +110,21 @@ export async function probeEmbyServer(
       "Emby public information request failed",
     );
 
-  const parsed = PublicInfoSchema.safeParse(await publicInfoResponse.json());
+  const parsed = EmbyPublicInfoDtoSchema.safeParse(
+    await publicInfoResponse.json(),
+  );
   if (!parsed.success || !isSupportedVersion(parsed.data.Version))
     throw new EmbyProbeError(
       "unsupported-version",
       "Emby server version is unsupported",
     );
 
-  return {
-    serverId: parsed.data.Id,
-    name: parsed.data.ServerName,
-    version: parsed.data.Version,
+  return toServerSummary(parsed.data, {
     baseUrl,
-    latencyMs: Math.round(performance.now() - startedAt),
-    supportsHttps: new URL(baseUrl).protocol === "https:",
     capabilityFlags: {
       publicInfo: true,
       ping: true,
     },
-  };
+    latencyMs: Math.round(performance.now() - startedAt),
+  });
 }
