@@ -124,14 +124,14 @@ function HeaderActions({ user }: { user: UserProfile }) {
     <>
       <Link
         aria-label="全局搜索"
-        className="grid size-10 place-items-center rounded-control text-text-muted hover:bg-surface-hover hover:text-text"
+        className="grid size-8 place-items-center rounded-control text-text-muted transition-colors duration-150 hover:bg-accent/10 hover:text-text"
         search={{ q: "" }}
         title="全局搜索"
         to="/search"
       >
-        <Search aria-hidden="true" size={20} />
+        <Search aria-hidden="true" size={17} />
       </Link>
-      <span className="hidden items-center gap-2 text-small text-text-muted sm:flex">
+      <span className="hidden items-center gap-1.5 text-label text-text-muted lg:flex">
         <span aria-hidden="true" className="size-2 rounded-full bg-warning" />
         Bridge 未连接
       </span>
@@ -139,7 +139,7 @@ function HeaderActions({ user }: { user: UserProfile }) {
         <DropdownMenu.Trigger asChild>
           <button
             aria-label={`打开 ${user.name} 的用户菜单`}
-            className="grid size-9 place-items-center rounded-full bg-surface text-small font-semibold hover:bg-surface-hover"
+            className="grid size-7 place-items-center rounded-full border-2 border-white/10 bg-[#1a1a2e] text-label font-semibold transition-[border-color,background] duration-150 hover:border-accent hover:bg-accent/10"
             title={user.name}
             type="button"
           >
@@ -149,14 +149,14 @@ function HeaderActions({ user }: { user: UserProfile }) {
         <DropdownMenu.Portal>
           <DropdownMenu.Content
             align="end"
-            className="z-50 min-w-44 rounded-control border border-border bg-surface p-2 shadow-panel"
+            className="z-50 min-w-52 overflow-hidden rounded-[16px] border border-white/10 bg-[#141423]/90 p-2 shadow-[0_20px_60px_rgb(0_0_0_/_50%)] backdrop-blur-xl"
             sideOffset={8}
           >
             <DropdownMenu.Label className="px-3 py-2 text-small text-text-muted">
               {user.name}
             </DropdownMenu.Label>
             <DropdownMenu.Item
-              className="cursor-pointer rounded-control px-3 py-2 text-body outline-none hover:bg-surface-hover focus:bg-surface-hover data-disabled:cursor-not-allowed data-disabled:opacity-50"
+              className="cursor-pointer rounded-control px-3 py-2 text-body outline-none transition-colors hover:bg-accent/10 focus:bg-accent/10 data-disabled:cursor-not-allowed data-disabled:opacity-50"
               disabled={logoutMutation.isPending}
               onSelect={() => logoutMutation.mutate()}
             >

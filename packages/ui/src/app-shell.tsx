@@ -27,84 +27,64 @@ export interface SideNavigationProps {
   renderLink?: NavigationLinkRenderer;
 }
 
-export function SideNavigation({
-  expanded = false,
-  items,
-  renderHomeLink,
-  renderLink,
-}: SideNavigationProps) {
-  const homeClassName =
-    "flex h-18 items-center gap-3 px-4 text-text no-underline";
-  const homeContent = (
-    <>
-      <BrandMark className="size-10 shrink-0 text-accent" />
-      {expanded ? <span className="text-h3 font-semibold">NewEmby</span> : null}
-    </>
-  );
-
+export function SideNavigation({ items, renderLink }: SideNavigationProps) {
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-bg/96 lg:flex lg:flex-col ${expanded ? "w-56" : "w-18"}`}
+    <nav
+      aria-label="主导航"
+      className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {renderHomeLink?.(homeContent, homeClassName) ?? (
-        <a aria-label="NewEmby 首页" className={homeClassName} href="/">
-          {homeContent}
-        </a>
-      )}
+      {items.map((item) => {
+        const className =
+          "flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-small " +
+          "font-medium no-underline transition-[color,background,transform] duration-150 " +
+          (item.disabled
+            ? "cursor-not-allowed text-text-muted opacity-35"
+            : item.active
+              ? "bg-[linear-gradient(135deg,#7C5CFF_0%,#764BA2_100%)] text-white shadow-[0_2px_8px_rgb(0_0_0_/_20%),0_0_20px_rgb(124_92_255_/_30%)]"
+              : "text-text-muted hover:bg-accent/10 hover:text-text active:scale-95");
+        const children = (
+          <>
+            <span
+              aria-hidden="true"
+              className="grid size-4 place-items-center [&_svg]:size-4"
+            >
+              {item.icon}
+            </span>
+            <span className="hidden xl:inline">{item.label}</span>
+          </>
+        );
 
-      <nav aria-label="主导航" className="mt-4 flex flex-1 flex-col gap-1 px-3">
-        {items.map((item) => {
-          const className = `flex min-h-12 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors duration-120 ${
-            item.disabled
-              ? "cursor-not-allowed text-text-muted opacity-45"
-              : item.active
-                ? "bg-accent/18 text-text shadow-[inset_3px_0_0_var(--color-accent)]"
-                : "text-text-muted hover:bg-surface-hover hover:text-text"
-          }`;
-          const children = (
-            <>
-              <span
-                aria-hidden="true"
-                className="grid size-6 shrink-0 place-items-center"
-              >
-                {item.icon}
-              </span>
-              {expanded ? <span>{item.label}</span> : null}
-            </>
+        if (item.disabled)
+          return (
+            <span
+              aria-disabled="true"
+              aria-label={item.label}
+              className={className}
+              key={item.href}
+              role="link"
+              title={`${item.label}（尚未开放）`}
+            >
+              {children}
+            </span>
           );
 
-          if (item.disabled)
-            return (
-              <span
-                aria-label={expanded ? undefined : item.label}
-                aria-disabled="true"
+        return (
+          <Fragment key={item.href}>
+            {renderLink?.({ children, className, item }) ?? (
+              <a
+                aria-current={item.active ? "page" : undefined}
+                aria-label={item.label}
                 className={className}
-                key={item.href}
-                role="link"
-                title={`${item.label}（尚未开放）`}
+                href={item.href}
+                title={item.label}
               >
                 {children}
-              </span>
-            );
-
-          return (
-            <Fragment key={item.href}>
-              {renderLink?.({ children, className, item }) ?? (
-                <a
-                  aria-label={expanded ? undefined : item.label}
-                  aria-current={item.active ? "page" : undefined}
-                  className={className}
-                  href={item.href}
-                  title={expanded ? undefined : item.label}
-                >
-                  {children}
-                </a>
-              )}
-            </Fragment>
-          );
-        })}
-      </nav>
-    </aside>
+              </a>
+            )}
+          </Fragment>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -114,20 +94,12 @@ export interface ContextHeaderProps {
   title: string;
 }
 
-export function ContextHeader({
-  actions,
-  expandedNavigation = false,
-  title,
-}: ContextHeaderProps) {
+export function ContextHeader({ actions, title }: ContextHeaderProps) {
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-bg/86 px-4 backdrop-blur-xl sm:px-6 lg:px-10 ${
-        expandedNavigation ? "lg:left-56" : "lg:left-18"
-      }`}
-    >
-      <h1 className="text-h3 font-semibold text-text">{title}</h1>
-      <div className="flex items-center gap-3">{actions}</div>
-    </header>
+    <>
+      <h1 className="sr-only">{title}</h1>
+      <div className="flex shrink-0 items-center gap-2">{actions}</div>
+    </>
   );
 }
 
@@ -143,38 +115,47 @@ export interface AppShellProps {
 
 export function AppShell({
   children,
-  expandedNavigation = false,
   headerActions,
   navigation,
   renderHomeLink,
   renderNavigationLink,
   title,
 }: AppShellProps) {
+  const brandClassName =
+    "flex h-9 shrink-0 items-center gap-1 rounded-control px-2 text-text " +
+    "no-underline transition-colors duration-150 hover:bg-accent/10";
+  const brand = (
+    <>
+      <BrandMark className="size-6 text-accent drop-shadow-[0_0_8px_rgb(124_92_255_/_42%)]" />
+      <span className="hidden bg-[linear-gradient(135deg,#7C5CFF_0%,#A995FF_100%)] bg-clip-text text-small font-bold text-transparent sm:inline">
+        NewEmby
+      </span>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div className="min-h-screen bg-[#0f0f23] text-text">
       <a
-        className="fixed left-4 top-3 z-50 -translate-y-20 rounded-control bg-accent px-4 py-2 text-on-accent transition-transform focus:translate-y-0"
+        className="fixed left-4 top-1 z-[60] -translate-y-16 rounded-control bg-accent px-4 py-2 text-on-accent transition-transform focus:translate-y-0"
         href="#main-content"
       >
         跳到主要内容
       </a>
-      <SideNavigation
-        expanded={expandedNavigation}
-        items={navigation}
-        renderHomeLink={renderHomeLink}
-        renderLink={renderNavigationLink}
-      />
-      <ContextHeader
-        actions={headerActions}
-        expandedNavigation={expandedNavigation}
-        title={title}
-      />
-      <main
-        className={`min-h-screen pt-16 transition-[padding] ${
-          expandedNavigation ? "lg:pl-56" : "lg:pl-18"
-        }`}
-        id="main-content"
-      >
+      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between gap-3 border-b border-white/10 bg-[#141423]/80 px-3 shadow-[0_2px_8px_rgb(0_0_0_/_20%)] backdrop-blur-xl sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          {renderHomeLink?.(brand, brandClassName) ?? (
+            <a aria-label="NewEmby 首页" className={brandClassName} href="/">
+              {brand}
+            </a>
+          )}
+          <SideNavigation
+            items={navigation}
+            renderLink={renderNavigationLink}
+          />
+        </div>
+        <ContextHeader actions={headerActions} title={title} />
+      </header>
+      <main className="min-h-screen pt-12" id="main-content">
         {children}
       </main>
     </div>

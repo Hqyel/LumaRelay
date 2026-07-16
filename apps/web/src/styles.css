@@ -3,7 +3,7 @@
 @source "../../../packages/ui/src";
 
 .home-page {
-  min-height: calc(100vh - 4rem);
+  min-height: calc(100vh - 3rem);
   max-width: 100%;
   overflow-x: hidden;
   padding: 2rem 2rem 3.125rem;
