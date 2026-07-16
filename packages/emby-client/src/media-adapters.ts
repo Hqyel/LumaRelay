@@ -17,7 +17,7 @@ import {
 } from "@newemby/contracts";
 import { z } from "zod";
 
-const EmbyUserDataDtoSchema = z.object({
+export const EmbyUserDataDtoSchema = z.object({
   IsFavorite: z.boolean().optional(),
   Played: z.boolean().optional(),
   PlayedPercentage: z.number().nullish(),
@@ -54,6 +54,14 @@ export const EmbyBaseItemDtoSchema = z.object({
 });
 
 export type EmbyBaseItemDto = z.infer<typeof EmbyBaseItemDtoSchema>;
+export const EmbyMediaDtoSchema = EmbyBaseItemDtoSchema;
+export const EmbySeasonDtoSchema = EmbyBaseItemDtoSchema;
+export const EmbyEpisodeDtoSchema = EmbyBaseItemDtoSchema;
+export const EmbyPersonDtoSchema = EmbyBaseItemDtoSchema;
+export type EmbyMediaDto = EmbyBaseItemDto;
+export type EmbySeasonDto = EmbyBaseItemDto;
+export type EmbyEpisodeDto = EmbyBaseItemDto;
+export type EmbyPersonDto = EmbyBaseItemDto;
 
 export function ticksToSeconds(
   ticks: number | null | undefined,

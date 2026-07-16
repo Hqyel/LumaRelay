@@ -14,6 +14,7 @@ const TLS_ERROR_CODES = new Set([
 
 export interface ProbeEmbyServerOptions {
   fetch?: typeof globalThis.fetch;
+  now?: () => number;
   timeoutMs?: number;
 }
 
@@ -100,8 +101,9 @@ export async function probeEmbyServer(
 ): Promise<ServerSummary> {
   const baseUrl = normalizeEmbyBaseUrl(value);
   const fetcher = options.fetch ?? globalThis.fetch;
+  const now = options.now ?? (() => performance.now());
   const timeoutMs = options.timeoutMs ?? 5000;
-  const startedAt = performance.now();
+  const pingStartedAt = now();
 
   const pingResponse = await fetchWithTimeout(
     fetcher,
@@ -110,6 +112,7 @@ export async function probeEmbyServer(
   );
   if (!pingResponse.ok)
     throw new EmbyProbeError("unreachable", "Emby Ping request failed");
+  const latencyMs = Math.round(now() - pingStartedAt);
 
   const publicInfoResponse = await fetchWithTimeout(
     fetcher,
@@ -153,6 +156,6 @@ export async function probeEmbyServer(
       userItems: true,
       userViews: true,
     },
-    latencyMs: Math.round(performance.now() - startedAt),
+    latencyMs,
   });
 }

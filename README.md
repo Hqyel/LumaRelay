@@ -24,6 +24,13 @@ Corepack has stale signing keys, run commands with
 4. Run the non-Docker startup check with `pnpm smoke:local`.
 5. Run the complete local quality gate with `pnpm verify:local`.
 
+To verify a real Emby server without persisting credentials, set
+`EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and
+`EMBY_SMOKE_PASSWORD` in the command process, then run `pnpm smoke:emby`. The
+authenticated path checks the current user, views, filtered media items, one
+image and logout. It prints only version, status and counts, and always attempts
+logout in `finally`; never place these temporary values in `.env`.
+
 The development Web server is served by Vite. Production uses the same public
 origin for Web and `/api/*`; the browser never receives the Emby access token.
 The smoke command uses isolated ports and a temporary SQLite database, then

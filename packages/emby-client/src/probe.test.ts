@@ -66,6 +66,30 @@ describe("probeEmbyServer", () => {
     expect(result.version).toBe("4.8.11.0");
   });
 
+  it("measures only the Ping request as server latency", async () => {
+    const now = vi.fn().mockReturnValueOnce(100).mockReturnValueOnce(124.6);
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Emby Server", { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          Id: "server-id",
+          ServerName: "Home Emby",
+          Version: "4.8.11.0",
+        }),
+      )
+      .mockResolvedValueOnce(Response.json([]));
+
+    const result = await probeEmbyServer("https://emby.example.com", {
+      fetch: fetcher,
+      now,
+    });
+
+    expect(result.latencyMs).toBe(25);
+    expect(now).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
   it("classifies timeout errors", async () => {
     const timeout = new DOMException("Timed out", "TimeoutError");
     const fetcher = vi.fn<typeof fetch>().mockRejectedValue(timeout);

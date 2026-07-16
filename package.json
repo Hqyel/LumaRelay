@@ -18,6 +18,7 @@
     "storybook": "pnpm --filter @newemby/ui storybook",
     "storybook:build": "pnpm --filter @newemby/ui storybook:build",
     "smoke:local": "node scripts/local-smoke.mjs",
+    "smoke:emby": "pnpm --filter @newemby/emby-client build && node scripts/emby-smoke.mjs",
     "test": "pnpm -r --if-present test",
     "test:e2e": "playwright test -c apps/web/playwright.config.ts",
     "test:visual": "pnpm --filter @newemby/ui test:visual",
