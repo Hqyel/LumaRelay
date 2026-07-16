@@ -85,6 +85,23 @@ async function mockPageApi(page: Page, selected: boolean) {
       await route.fulfill({ json: mediaHome });
       return;
     }
+    if (path === "/api/v1/media/libraries") {
+      await route.fulfill({
+        json: {
+          libraries: [
+            {
+              itemCount: 24,
+              kind: "movies",
+              libraryId: "library-1",
+              name: "我的电影",
+              serverId: "server-1",
+            },
+          ],
+          requestId: "request-libraries",
+        },
+      });
+      return;
+    }
 
     await route.abort();
   });
