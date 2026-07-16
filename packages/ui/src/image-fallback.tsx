@@ -1,4 +1,4 @@
-import { useState, type ImgHTMLAttributes } from "react";
+import { useEffect, useState, type ImgHTMLAttributes } from "react";
 
 import { cn } from "./cn.js";
 
@@ -21,7 +21,13 @@ export function ImageFallback({
 }: ImageFallbackProps) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const hasSource = typeof src === "string" && src.trim().length > 0;
   const initial = alt.trim().charAt(0).toLocaleUpperCase() || "N";
+
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(false);
+  }, [src]);
 
   return (
     <span
@@ -30,13 +36,13 @@ export function ImageFallback({
         containerClassName,
       )}
     >
-      {!loaded && !failed ? (
+      {hasSource && !loaded && !failed ? (
         <span
           aria-hidden="true"
           className="absolute inset-0 animate-pulse bg-surface-hover motion-reduce:animate-none"
         />
       ) : null}
-      {failed ? (
+      {!hasSource || failed ? (
         <span
           aria-label={`${alt} 图片不可用`}
           className="absolute inset-0 grid place-items-center bg-[linear-gradient(145deg,var(--color-surface-hover),rgb(124_92_255_/_18%))] text-h2 font-semibold text-text-muted"

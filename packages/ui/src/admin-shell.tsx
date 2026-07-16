@@ -1,13 +1,18 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { BrandMark } from "./brand-mark.js";
-import type { SideNavigationItem } from "./app-shell.js";
+import type {
+  NavigationLinkRenderer,
+  SideNavigationItem,
+} from "./app-shell.js";
 
 export interface AdminShellProps {
   actions?: ReactNode;
   breadcrumbs?: string[];
   children: ReactNode;
   navigation: SideNavigationItem[];
+  renderHomeLink?: (children: ReactNode, className: string) => ReactNode;
+  renderNavigationLink?: NavigationLinkRenderer;
   title: string;
 }
 
@@ -16,8 +21,19 @@ export function AdminShell({
   breadcrumbs = [],
   children,
   navigation,
+  renderHomeLink,
+  renderNavigationLink,
   title,
 }: AdminShellProps) {
+  const homeClassName =
+    "flex h-18 items-center gap-3 px-6 text-text no-underline";
+  const homeContent = (
+    <>
+      <BrandMark className="size-9 text-accent" />
+      <span className="text-h3 font-semibold">NewEmby</span>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-bg text-text">
       <a
@@ -28,38 +44,66 @@ export function AdminShell({
       </a>
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-bg-elevated lg:flex lg:flex-col">
-        <a
-          aria-label="NewEmby 管理概览"
-          className="flex h-18 items-center gap-3 px-6 text-text no-underline"
-          href="/admin"
-        >
-          <BrandMark className="size-9 text-accent" />
-          <span className="text-h3 font-semibold">NewEmby</span>
-        </a>
-        <span className="px-6 pb-3 text-label font-semibold text-accent">
+        {renderHomeLink?.(homeContent, homeClassName) ?? (
+          <a
+            aria-label="NewEmby 管理概览"
+            className={homeClassName}
+            href="/admin"
+          >
+            {homeContent}
+          </a>
+        )}
+        <span className="px-6 pb-3 text-label font-semibold text-accent-hover">
           管理后台
         </span>
         <nav aria-label="管理导航" className="flex flex-1 flex-col gap-1 px-3">
-          {navigation.map((item) => (
-            <a
-              aria-current={item.active ? "page" : undefined}
-              className={`flex min-h-11 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors ${
-                item.active
+          {navigation.map((item) => {
+            const className = `flex min-h-11 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors ${
+              item.disabled
+                ? "cursor-not-allowed text-text-muted opacity-45"
+                : item.active
                   ? "bg-accent/18 text-text"
                   : "text-text-muted hover:bg-surface-hover hover:text-text"
-              }`}
-              href={item.href}
-              key={item.href}
-            >
-              <span
-                aria-hidden="true"
-                className="grid size-6 place-items-center"
-              >
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-            </a>
-          ))}
+            }`;
+            const children = (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="grid size-6 place-items-center"
+                >
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </>
+            );
+
+            if (item.disabled)
+              return (
+                <span
+                  aria-disabled="true"
+                  className={className}
+                  key={item.href}
+                  role="link"
+                  title={`${item.label}（尚未开放）`}
+                >
+                  {children}
+                </span>
+              );
+
+            return (
+              <Fragment key={item.href}>
+                {renderNavigationLink?.({ children, className, item }) ?? (
+                  <a
+                    aria-current={item.active ? "page" : undefined}
+                    className={className}
+                    href={item.href}
+                  >
+                    {children}
+                  </a>
+                )}
+              </Fragment>
+            );
+          })}
         </nav>
       </aside>
 

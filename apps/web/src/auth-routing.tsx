@@ -26,16 +26,37 @@ export function authRedirectForError(
 export function navigationForUser(user: UserProfile): SideNavigationItem[] {
   const items: SideNavigationItem[] = [
     { active: true, href: "/", icon: <Home size={20} />, label: "首页" },
-    { href: "/movies", icon: <Film size={20} />, label: "电影" },
-    { href: "/series", icon: <Tv size={20} />, label: "剧集" },
-    { href: "/libraries", icon: <Library size={20} />, label: "媒体库" },
-    { href: "/favorites", icon: <Heart size={20} />, label: "收藏" },
     {
+      disabled: true,
+      href: "/movies",
+      icon: <Film size={20} />,
+      label: "电影",
+    },
+    { disabled: true, href: "/series", icon: <Tv size={20} />, label: "剧集" },
+    {
+      disabled: true,
+      href: "/libraries",
+      icon: <Library size={20} />,
+      label: "媒体库",
+    },
+    {
+      disabled: true,
+      href: "/favorites",
+      icon: <Heart size={20} />,
+      label: "收藏",
+    },
+    {
+      disabled: true,
       href: "/playlists",
       icon: <ListVideo size={20} />,
       label: "播放列表",
     },
-    { href: "/search", icon: <Search size={20} />, label: "搜索" },
+    {
+      disabled: true,
+      href: "/search",
+      icon: <Search size={20} />,
+      label: "搜索",
+    },
   ];
 
   if (user.permissions.isAdministrator)
@@ -46,6 +67,7 @@ export function navigationForUser(user: UserProfile): SideNavigationItem[] {
     });
 
   items.push({
+    disabled: true,
     href: "/settings",
     icon: <Settings size={20} />,
     label: "设置",

@@ -58,5 +58,8 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Authentication and page regression
+        run: pnpm test:e2e
+
       - name: Visual regression
         run: pnpm test:visual

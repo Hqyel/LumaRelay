@@ -1,4 +1,9 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import { cn } from "./cn.js";
 
@@ -10,15 +15,20 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, error, hint, id, label, ...props }, ref) => {
-    const inputId = id ?? props.name;
-    const messageId = inputId === undefined ? undefined : `${inputId}-message`;
+    const generatedId = useId();
+    const inputId = id ?? props.name ?? `newemby-input-${generatedId}`;
+    const hintId = hint === undefined ? undefined : `${inputId}-hint`;
+    const errorId = error === undefined ? undefined : `${inputId}-error`;
+    const describedBy =
+      [hintId, errorId].filter(Boolean).join(" ") || undefined;
 
     return (
       <label className="grid gap-2 text-small text-text" htmlFor={inputId}>
         <span className="font-semibold">{label}</span>
         <input
           aria-label={props["aria-label"] ?? label}
-          aria-describedby={messageId}
+          aria-describedby={describedBy}
+          aria-errormessage={errorId}
           aria-invalid={error === undefined ? undefined : true}
           className={cn(
             "h-11 w-full rounded-control border border-border bg-bg-elevated px-3 " +
@@ -31,14 +41,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           {...props}
         />
-        {error !== undefined || hint !== undefined ? (
-          <span
-            className={error === undefined ? "text-text-muted" : "text-danger"}
-            id={messageId}
-          >
-            {error ?? hint}
+        {hint === undefined ? null : (
+          <span className="text-text-muted" id={hintId}>
+            {hint}
           </span>
-        ) : null}
+        )}
+        {error === undefined ? null : (
+          <span
+            aria-live="polite"
+            className="text-danger"
+            id={errorId}
+            role="alert"
+          >
+            {error}
+          </span>
+        )}
       </label>
     );
   },

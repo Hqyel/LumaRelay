@@ -19,6 +19,9 @@ export function MediaRow({
   progress,
   title,
 }: MediaRowProps) {
+  const normalizedProgress =
+    progress === undefined ? undefined : Math.min(100, Math.max(0, progress));
+
   return (
     <article className="grid grid-cols-[8rem_1fr_auto] items-center gap-4 rounded-panel border border-border bg-surface p-3 transition-colors hover:bg-surface-hover sm:grid-cols-[12rem_1fr_auto]">
       <div className="relative aspect-video overflow-hidden rounded-poster">
@@ -28,18 +31,18 @@ export function MediaRow({
           loading="lazy"
           src={imageUrl}
         />
-        {progress === undefined ? null : (
+        {normalizedProgress === undefined ? null : (
           <span
-            aria-label={`播放进度 ${progress}%`}
+            aria-label={`播放进度 ${normalizedProgress}%`}
             aria-valuemax={100}
             aria-valuemin={0}
-            aria-valuenow={progress}
+            aria-valuenow={normalizedProgress}
             className="absolute inset-x-0 bottom-0 h-1 bg-black/60"
             role="progressbar"
           >
             <span
               className="block h-full bg-accent"
-              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              style={{ width: `${normalizedProgress}%` }}
             />
           </span>
         )}

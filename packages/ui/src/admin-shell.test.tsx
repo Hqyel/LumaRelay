@@ -15,6 +15,12 @@ describe("AdminShell", () => {
             icon: <span>A</span>,
             label: "概览",
           },
+          {
+            disabled: true,
+            href: "/admin/users",
+            icon: <span>U</span>,
+            label: "用户",
+          },
         ]}
         title="概览"
       >
@@ -26,5 +32,7 @@ describe("AdminShell", () => {
     expect(html).toContain("管理后台 / 概览");
     expect(html).toContain('id="admin-main-content"');
     expect(html).toContain("max-w-[90rem]");
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).not.toContain('href="/admin/users"');
   });
 });

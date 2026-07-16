@@ -132,7 +132,21 @@ test("connects, signs in, restores the session, and signs out", async ({
   ).toBeVisible();
   expect(sessionReads).toBeGreaterThanOrEqual(2);
 
-  await page.getByRole("button", { name: "打开 Alex 的用户菜单" }).click();
+  const menuTrigger = page.getByRole("button", {
+    name: "打开 Alex 的用户菜单",
+  });
+  await menuTrigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeHidden();
+  await expect(menuTrigger).toBeFocused();
+
+  await menuTrigger.click();
+  await page.mouse.click(400, 400);
+  await expect(page.getByRole("menuitem", { name: "退出登录" })).toBeHidden();
+
+  await menuTrigger.click();
   await page.getByRole("menuitem", { name: "退出登录" }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(

@@ -1,4 +1,4 @@
-import { BrandMark, Button, Input } from "@newemby/ui";
+import { BrandMark, Button, ErrorState, Input } from "@newemby/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Server } from "lucide-react";
@@ -62,7 +62,9 @@ function ConnectPage() {
         <div className="mb-8 flex items-center gap-4">
           <BrandMark className="size-12 text-accent" title="NewEmby" />
           <div>
-            <p className="text-small font-semibold text-accent">NewEmby</p>
+            <p className="text-small font-semibold text-accent-hover">
+              NewEmby
+            </p>
             <h1 className="text-h2 font-semibold">连接媒体服务器</h1>
           </div>
         </div>
@@ -71,6 +73,23 @@ function ConnectPage() {
           首版只连接部署允许列表中的一个 Emby 服务器。
         </p>
 
+        {currentServer.isError ? (
+          <div className="mb-6">
+            <ErrorState
+              action={
+                <Button
+                  onClick={() => currentServer.refetch()}
+                  variant="secondary"
+                >
+                  重试读取
+                </Button>
+              }
+              description="仍可重新输入服务器地址并尝试连接。"
+              title="无法读取当前服务器"
+            />
+          </div>
+        ) : null}
+
         <form className="grid gap-5" onSubmit={handleSubmit}>
           <Input
             autoComplete="url"
@@ -78,8 +97,10 @@ function ConnectPage() {
             error={errorMessage}
             hint="请输入完整的 HTTP 或 HTTPS 地址"
             label="Emby 服务器地址"
+            name="embyBaseUrl"
             onChange={(event) => setBaseUrl(event.target.value)}
             required
+            spellCheck={false}
             type="url"
             value={baseUrl}
           />

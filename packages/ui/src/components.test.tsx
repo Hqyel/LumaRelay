@@ -13,23 +13,27 @@ import {
 } from "./index.js";
 
 describe("base UI components", () => {
-  it("labels inputs and exposes validation errors", () => {
-    render(<Input error="服务器地址无效" label="服务器地址" name="server" />);
+  it("labels inputs and exposes associated validation messages", () => {
+    render(
+      <Input error="服务器地址无效" hint="请输入完整地址" label="服务器地址" />,
+    );
 
-    expect(
-      screen.getByLabelText("服务器地址").getAttribute("aria-invalid"),
-    ).toBe("true");
-    expect(screen.getByText("服务器地址无效")).toBeTruthy();
+    const input = screen.getByLabelText("服务器地址");
+    expect(input.id).not.toBe("");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")?.split(" ")).toHaveLength(2);
+    expect(screen.getByText("请输入完整地址")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toBe("服务器地址无效");
   });
 
   it("renders empty and error states with distinct semantics", () => {
-    const { rerender } = render(
+    const { container, rerender } = render(
       <EmptyState description="没有媒体" title="媒体库为空" />,
     );
     expect(screen.getByText("媒体库为空")).toBeTruthy();
 
     rerender(<ErrorState description="请重试" title="连接失败" />);
-    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(container.querySelector('[role="alert"]')).toBeTruthy();
   });
 
   it("keeps skeletons out of the accessibility tree", () => {

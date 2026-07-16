@@ -23,7 +23,7 @@
     "test:e2e": "playwright test -c apps/web/playwright.config.ts",
     "test:visual": "pnpm --filter @newemby/ui test:visual",
     "typecheck": "pnpm -r --if-present typecheck",
-    "verify:local": "pnpm format:check && pnpm check && pnpm storybook:build && pnpm test:visual"
+    "verify:local": "pnpm format:check && pnpm check && pnpm storybook:build && pnpm test:visual && pnpm test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",

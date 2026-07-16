@@ -15,6 +15,12 @@ describe("AppShell", () => {
             icon: <span>H</span>,
             label: "首页",
           },
+          {
+            disabled: true,
+            href: "/search",
+            icon: <span>S</span>,
+            label: "搜索",
+          },
         ]}
       >
         <p>内容</p>
@@ -25,5 +31,7 @@ describe("AppShell", () => {
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('href="#main-content"');
     expect(html).toContain('id="main-content"');
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).not.toContain('href="/search"');
   });
 });

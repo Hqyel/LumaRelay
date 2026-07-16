@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  ApiError,
   getCurrentServer,
   getCurrentUser,
   getPublicUsers,
@@ -309,5 +310,28 @@ describe("Web Gateway client", () => {
     } finally {
       unsubscribe();
     }
+  });
+
+  it("preserves status and request ID for a non-JSON proxy error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("Bad gateway", {
+          headers: {
+            "content-type": "text/plain",
+            "x-request-id": "proxy-request-1",
+          },
+          status: 502,
+        }),
+      ),
+    );
+
+    const error = await getCurrentServer().catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      code: "HTTP_ERROR",
+      requestId: "proxy-request-1",
+      statusCode: 502,
+    });
   });
 });

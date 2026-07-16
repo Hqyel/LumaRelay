@@ -1,14 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  expect: { timeout: 5000 },
+  expect: {
+    timeout: 5000,
+    toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
+  },
   fullyParallel: false,
   reporter: "line",
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
+  snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
   use: {
     ...devices["Desktop Chrome"],
     baseURL: "http://127.0.0.1:4173",
+    colorScheme: "dark",
+    locale: "zh-CN",
     trace: "retain-on-failure",
   },
   webServer: {

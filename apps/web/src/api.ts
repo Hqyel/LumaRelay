@@ -20,10 +20,38 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly requestId: string,
+    readonly statusCode = 0,
   ) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+async function errorFromResponse(response: Response): Promise<ApiError> {
+  const fallbackRequestId = response.headers.get("x-request-id") ?? "unknown";
+
+  try {
+    const body = (await response.json()) as Partial<ErrorEnvelope>;
+    if (
+      typeof body.error?.code === "string" &&
+      typeof body.error.message === "string"
+    )
+      return new ApiError(
+        body.error.code,
+        body.error.message,
+        body.error.requestId ?? fallbackRequestId,
+        response.status,
+      );
+  } catch {
+    // Reverse proxies may replace JSON API errors with HTML or plain text.
+  }
+
+  return new ApiError(
+    "HTTP_ERROR",
+    `Gateway request failed with HTTP ${response.status}`,
+    fallbackRequestId,
+    response.status,
+  );
 }
 
 async function fetchCsrfToken(): Promise<string> {
@@ -31,14 +59,7 @@ async function fetchCsrfToken(): Promise<string> {
     credentials: "include",
     headers: { accept: "application/json" },
   });
-  if (!response.ok) {
-    const body = (await response.json()) as ErrorEnvelope;
-    throw new ApiError(
-      body.error.code,
-      body.error.message,
-      body.error.requestId,
-    );
-  }
+  if (!response.ok) throw await errorFromResponse(response);
 
   return ((await response.json()) as CsrfResponse).csrfToken;
 }
@@ -69,18 +90,14 @@ async function requestJson<T>(
   });
 
   if (!response.ok) {
-    const body = (await response.json()) as ErrorEnvelope;
-    if (body.error.code === "CSRF_INVALID" && retryCsrf) {
+    const error = await errorFromResponse(response);
+    if (error.code === "CSRF_INVALID" && retryCsrf) {
       csrfTokenPromise = undefined;
       return requestJson(input, init, false);
     }
-    if (body.error.code === "UNAUTHENTICATED")
+    if (error.code === "UNAUTHENTICATED")
       for (const listener of unauthorizedListeners) listener();
-    throw new ApiError(
-      body.error.code,
-      body.error.message,
-      body.error.requestId,
-    );
+    throw error;
   }
 
   return (await response.json()) as T;

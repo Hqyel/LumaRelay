@@ -1,60 +1,108 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { BrandMark } from "./brand-mark.js";
 
 export interface SideNavigationItem {
   active?: boolean;
+  disabled?: boolean;
   href: string;
   icon: ReactNode;
   label: string;
 }
 
+export interface NavigationLinkRenderOptions {
+  children: ReactNode;
+  className: string;
+  item: SideNavigationItem;
+}
+
+export type NavigationLinkRenderer = (
+  options: NavigationLinkRenderOptions,
+) => ReactNode;
+
 export interface SideNavigationProps {
   expanded?: boolean;
   items: SideNavigationItem[];
+  renderHomeLink?: (children: ReactNode, className: string) => ReactNode;
+  renderLink?: NavigationLinkRenderer;
 }
 
 export function SideNavigation({
   expanded = false,
   items,
+  renderHomeLink,
+  renderLink,
 }: SideNavigationProps) {
+  const homeClassName =
+    "flex h-18 items-center gap-3 px-4 text-text no-underline";
+  const homeContent = (
+    <>
+      <BrandMark className="size-10 shrink-0 text-accent" />
+      {expanded ? <span className="text-h3 font-semibold">NewEmby</span> : null}
+    </>
+  );
+
   return (
     <aside
       className={`fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-bg/96 lg:flex lg:flex-col ${expanded ? "w-56" : "w-18"}`}
     >
-      <a
-        className="flex h-18 items-center gap-3 px-4 text-text no-underline"
-        href="/"
-        aria-label="NewEmby 首页"
-      >
-        <BrandMark className="size-10 shrink-0 text-accent" />
-        {expanded ? (
-          <span className="text-h3 font-semibold">NewEmby</span>
-        ) : null}
-      </a>
+      {renderHomeLink?.(homeContent, homeClassName) ?? (
+        <a aria-label="NewEmby 首页" className={homeClassName} href="/">
+          {homeContent}
+        </a>
+      )}
 
       <nav aria-label="主导航" className="mt-4 flex flex-1 flex-col gap-1 px-3">
-        {items.map((item) => (
-          <a
-            aria-current={item.active ? "page" : undefined}
-            className={`flex min-h-12 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors duration-120 ${
-              item.active
+        {items.map((item) => {
+          const className = `flex min-h-12 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors duration-120 ${
+            item.disabled
+              ? "cursor-not-allowed text-text-muted opacity-45"
+              : item.active
                 ? "bg-accent/18 text-text shadow-[inset_3px_0_0_var(--color-accent)]"
                 : "text-text-muted hover:bg-surface-hover hover:text-text"
-            }`}
-            href={item.href}
-            key={item.href}
-            title={expanded ? undefined : item.label}
-          >
-            <span
-              aria-hidden="true"
-              className="grid size-6 shrink-0 place-items-center"
-            >
-              {item.icon}
-            </span>
-            {expanded ? <span>{item.label}</span> : null}
-          </a>
-        ))}
+          }`;
+          const children = (
+            <>
+              <span
+                aria-hidden="true"
+                className="grid size-6 shrink-0 place-items-center"
+              >
+                {item.icon}
+              </span>
+              {expanded ? <span>{item.label}</span> : null}
+            </>
+          );
+
+          if (item.disabled)
+            return (
+              <span
+                aria-label={expanded ? undefined : item.label}
+                aria-disabled="true"
+                className={className}
+                key={item.href}
+                role="link"
+                title={`${item.label}（尚未开放）`}
+              >
+                {children}
+              </span>
+            );
+
+          return (
+            <Fragment key={item.href}>
+              {renderLink?.({ children, className, item }) ?? (
+                <a
+                  aria-label={expanded ? undefined : item.label}
+                  aria-current={item.active ? "page" : undefined}
+                  className={className}
+                  href={item.href}
+                  title={expanded ? undefined : item.label}
+                >
+                  {children}
+                </a>
+              )}
+            </Fragment>
+          );
+        })}
       </nav>
     </aside>
   );
@@ -88,6 +136,8 @@ export interface AppShellProps {
   expandedNavigation?: boolean;
   headerActions?: ReactNode;
   navigation: SideNavigationItem[];
+  renderHomeLink?: SideNavigationProps["renderHomeLink"];
+  renderNavigationLink?: NavigationLinkRenderer;
   title: string;
 }
 
@@ -96,6 +146,8 @@ export function AppShell({
   expandedNavigation = false,
   headerActions,
   navigation,
+  renderHomeLink,
+  renderNavigationLink,
   title,
 }: AppShellProps) {
   return (
@@ -106,7 +158,12 @@ export function AppShell({
       >
         跳到主要内容
       </a>
-      <SideNavigation expanded={expandedNavigation} items={navigation} />
+      <SideNavigation
+        expanded={expandedNavigation}
+        items={navigation}
+        renderHomeLink={renderHomeLink}
+        renderLink={renderNavigationLink}
+      />
       <ContextHeader
         actions={headerActions}
         expandedNavigation={expandedNavigation}
