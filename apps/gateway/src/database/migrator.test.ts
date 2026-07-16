@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -19,10 +19,17 @@ describe("SQLite migrations", () => {
   it("can migrate up, down and up again", async () => {
     const directory = mkdtempSync(join(tmpdir(), "newemby-migration-"));
     temporaryDirectories.push(directory);
-    const database = createDatabase(join(directory, "test.db"));
+    const databasePath = join(directory, "test.db");
+    const backupPath = `${databasePath}.backups`;
+    const database = createDatabase(databasePath);
 
     try {
       await migrateToLatest(database);
+      expect(readdirSync(backupPath)).toHaveLength(1);
+
+      await migrateToLatest(database);
+      expect(readdirSync(backupPath)).toHaveLength(1);
+
       await database
         .insertInto("servers")
         .values({
@@ -41,6 +48,7 @@ describe("SQLite migrations", () => {
       expect(server.id).toBe("server-1");
 
       await migrateDown(database);
+      expect(readdirSync(backupPath)).toHaveLength(2);
       const rolledBack = await database
         .selectFrom("servers")
         .select(["id", "name"])
@@ -48,11 +56,31 @@ describe("SQLite migrations", () => {
       expect(rolledBack.id).toBe("server-1");
 
       await migrateToLatest(database);
+      expect(readdirSync(backupPath)).toHaveLength(3);
       const restored = await database
         .selectFrom("servers")
         .selectAll()
         .executeTakeFirstOrThrow();
       expect(restored.lastLatencyMs).toBe(0);
+    } finally {
+      await database.destroy();
+    }
+  });
+
+  it("retains only the five newest migration backups", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "newemby-backups-"));
+    temporaryDirectories.push(directory);
+    const databasePath = join(directory, "test.db");
+    const database = createDatabase(databasePath);
+
+    try {
+      await migrateToLatest(database);
+      for (let index = 0; index < 3; index++) {
+        await migrateDown(database);
+        await migrateToLatest(database);
+      }
+
+      expect(readdirSync(`${databasePath}.backups`)).toHaveLength(5);
     } finally {
       await database.destroy();
     }

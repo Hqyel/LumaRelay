@@ -8,6 +8,7 @@ import {
 import { InitialMigration } from "./migrations/001-initial.js";
 import { ServerSelectionMigration } from "./migrations/002-server-selection.js";
 import { AuthSessionsMigration } from "./migrations/003-auth-sessions.js";
+import { backupDatabase } from "./database.js";
 import type { DatabaseSchema } from "./types.js";
 
 const migrations: Record<string, Migration> = {
@@ -31,16 +32,36 @@ function assertMigrationResult(result: MigrationResultSet): void {
   if (result.error !== undefined) throw result.error;
 }
 
+async function hasMigration(
+  migrator: Migrator,
+  state: "executed" | "pending",
+): Promise<boolean> {
+  const migrationInfo = await migrator.getMigrations();
+  return migrationInfo.some((migration) =>
+    state === "executed"
+      ? migration.executedAt !== undefined
+      : migration.executedAt === undefined,
+  );
+}
+
 export async function migrateToLatest(
   database: Kysely<DatabaseSchema>,
 ): Promise<void> {
-  const result = await createMigrator(database).migrateToLatest();
+  const migrator = createMigrator(database);
+  if (!(await hasMigration(migrator, "pending"))) return;
+
+  await backupDatabase(database);
+  const result = await migrator.migrateToLatest();
   assertMigrationResult(result);
 }
 
 export async function migrateDown(
   database: Kysely<DatabaseSchema>,
 ): Promise<void> {
-  const result = await createMigrator(database).migrateDown();
+  const migrator = createMigrator(database);
+  if (!(await hasMigration(migrator, "executed"))) return;
+
+  await backupDatabase(database);
+  const result = await migrator.migrateDown();
   assertMigrationResult(result);
 }

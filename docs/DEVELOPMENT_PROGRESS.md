@@ -195,6 +195,15 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M1-011` 实现图片 URL 构造、Image Tag 和尺寸策略。
 - [x] `M1-012` 实现能力探测和 Emby 版本记录。
 
+### 6.2.1 M1-013 前审计收口（独立计数：1/4）
+
+以下任务不计入 M1 原有 28 项，全部完成后才开始 `M1-013`。
+
+- [x] `QA-001` 生产配置、工具链与数据库安全。
+- [ ] `QA-002` CSRF、会话切换与权限守卫。
+- [ ] `QA-003` 领域适配、延迟语义与真实 Emby Smoke。
+- [ ] `QA-004` 前端状态、可访问性与回归测试。
+
 ### 6.3 页面
 
 - [ ] `M1-013` 首页 `/home`。
@@ -475,7 +484,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；下一项为 `M1-013`。
+- 暂无；下一项为 `QA-002`。
 
 ### 阻塞
 
@@ -488,10 +497,10 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 执行 `M1-013` 首页 `/home`。
-2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
-3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
-4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
+1. 完成 `QA-002`，关闭 CSRF、会话切换与权限守卫缺口。
+2. 按顺序完成 `QA-003`、`QA-004`，再开始 `M1-013`。
+3. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
+4. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
 ## 14. 决策与变更日志
 
@@ -512,6 +521,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | QA-001 | 完成 | 已锁定 pnpm 11.13.1 与过观察期依赖，生产模式拒绝开发/占位/无效密钥、HTTP Emby 和清单外 Origin，代理信任仅允许跳数或 IP/CIDR；Compose 固定生产模式，Gateway 镜像预授权 `/data`，实际迁移前一致性备份且仅保留 5 份；冻结安装、106 项单测、构建、Storybook、2 项视觉/axe、本地 smoke、生产依赖审计（0 漏洞）和差异检查通过，Docker 仅静态校验 | 根工具链、`apps/gateway`, Compose/CI/README | QA-002 |
+| 2026-07-16 | QA-001 | 进行中 | 正在升级 pnpm 11.13.1、收紧生产环境密钥/Origin/代理信任校验，并实现迁移前 SQLite 备份与生产依赖审计 | 根工具链、`apps/gateway`, Compose/CI/README | 完成 QA-001 验证与提交 |
 | 2026-07-16 | M1-012 | 完成 | 已扩展公共用户、用户认证、用户视图、用户媒体和图片处理能力标志，公共用户只读探测失败时安全闭合，并验证版本号与能力 JSON 持久化；Emby Client 34 项、Gateway 22 项及根级 format/check/build/smoke 全部通过 | `packages/contracts/src/server.ts`, `packages/emby-client/src/probe.ts`, `apps/gateway/src/database/migrator.test.ts` | M1-013 |
 | 2026-07-16 | M1-012 | 进行中 | 正在扩展只读服务器能力探测，并验证版本号与能力标志随当前服务器持久化 | `packages/contracts`, `packages/emby-client`, `apps/gateway` | 完成能力与版本记录验证 |
 | 2026-07-16 | M1-011 | 完成 | 已实现不携带 Token 的子路径安全图片 URL、必需 Image Tag 缓存键，以及海报 360–480px、背景 1920/2560px、横图、头像和 Logo 的 DPR 尺寸预算；Emby Client 33 项及根级 format/check/build/smoke 全部通过 | `packages/emby-client/src/image.ts` | M1-012 |

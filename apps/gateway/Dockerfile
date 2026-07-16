@@ -1,7 +1,7 @@
 FROM node:22.13-bookworm-slim AS build
 
 WORKDIR /workspace
-RUN npm install --global pnpm@10.13.1
+RUN npm install --global pnpm@11.13.1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY apps/gateway ./apps/gateway
@@ -18,6 +18,7 @@ FROM node:22.13-bookworm-slim
 ENV NODE_ENV=production
 WORKDIR /opt/newemby
 COPY --from=build /opt/newemby ./
+RUN mkdir -p /data && chown node:node /data
 
 USER node
 CMD ["node", "dist/index.js"]

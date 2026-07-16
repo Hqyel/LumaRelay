@@ -4,7 +4,7 @@ ARG VITE_API_BASE_URL=/api/v1
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 WORKDIR /workspace
-RUN npm install --global pnpm@10.13.1
+RUN npm install --global pnpm@11.13.1
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY apps/web ./apps/web
