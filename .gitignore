@@ -1,0 +1,34 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+
+# Build and tool caches
+dist/
+coverage/
+.cache/
+.vite/
+*.tsbuildinfo
+storybook-static/
+playwright-report/
+test-results/
+
+# Local configuration and data
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Editors and temporary files
+.idea/
+.vscode/
+*.orig
+*.swp
+*~
+
+# Operating-system files
+.DS_Store
+Thumbs.db

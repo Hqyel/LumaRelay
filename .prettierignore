@@ -1,0 +1,10 @@
+.agents/
+.git/
+apps/web/src/routeTree.gen.ts
+dist/
+docs/
+images/
+node_modules/
+pnpm-lock.yaml
+storybook-static/
+test-results/

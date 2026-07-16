@@ -1,0 +1,23 @@
+{
+  "name": "@newemby/emby-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "fixtures:check": "vitest run src/fixtures.test.ts",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@newemby/contracts": "workspace:*",
+    "zod": "^4.0.5"
+  }
+}

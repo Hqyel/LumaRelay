@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img">
+  <title>NewEmby</title>
+  <defs>
+    <linearGradient id="newemby-gradient" x1="7" y1="6" x2="41" y2="42">
+      <stop stop-color="#9177ff" />
+      <stop offset="1" stop-color="#5a36ef" />
+    </linearGradient>
+  </defs>
+  <path
+    fill="url(#newemby-gradient)"
+    d="M11 5.75a4 4 0 0 1 4.13.2l25.2 14.57a4 4 0 0 1 0 6.92L15.13 42A4 4 0 0 1 9 38.54V9.42a4 4 0 0 1 2-3.67Z"
+  />
+  <path
+    fill="#f5f7fa"
+    fill-opacity=".94"
+    d="M18 15.5c0-1.2 1.33-1.92 2.34-1.27l14.52 9.36a1.5 1.5 0 0 1 0 2.52l-14.52 9.36A1.5 1.5 0 0 1 18 34.2V15.5Z"
+  />
+</svg>

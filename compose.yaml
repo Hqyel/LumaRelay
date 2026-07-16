@@ -1,0 +1,45 @@
+name: newemby
+
+services:
+  proxy:
+    image: caddy:2.10-alpine
+    depends_on:
+      - gateway
+      - web
+    environment:
+      NEWEMBY_DOMAIN: ${NEWEMBY_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_config:/config
+      - caddy_data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    restart: unless-stopped
+    volumes:
+      - newemby_data:/data
+
+volumes:
+  caddy_config:
+  caddy_data:
+  newemby_data:

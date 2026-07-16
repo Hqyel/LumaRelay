@@ -1,0 +1,7 @@
+{
+  "Id": "fixture-server-0001",
+  "ServerName": "Fixture Emby",
+  "Version": "4.8.11.0",
+  "ProductName": "Emby Server",
+  "OperatingSystem": "Fixture OS"
+}

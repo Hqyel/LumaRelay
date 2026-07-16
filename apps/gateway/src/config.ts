@@ -1,0 +1,116 @@
+import { loadEnvFile } from "node:process";
+import { fileURLToPath } from "node:url";
+
+import { z } from "zod";
+
+const ROOT_ENVIRONMENT_PATH = fileURLToPath(
+  new URL("../../../.env", import.meta.url),
+);
+
+const BooleanStringSchema = z
+  .enum(["true", "false"])
+  .transform((value) => value === "true");
+
+const IntegerStringSchema = z.coerce.number().int().nonnegative();
+
+const EnvironmentSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+    NEWEMBY_PUBLIC_ORIGIN: z.url().default("http://127.0.0.1:5173"),
+    EMBY_BASE_URL: z.url().default("http://127.0.0.1:8096"),
+    EMBY_ALLOWED_SERVER_ORIGINS: z.string().default("http://127.0.0.1:8096"),
+    GATEWAY_HOST: z.string().min(1).default("127.0.0.1"),
+    GATEWAY_PORT: IntegerStringSchema.default(3000),
+    GATEWAY_TRUST_PROXY: IntegerStringSchema.default(0),
+    DATABASE_PATH: z.string().min(1).default("./data/newemby.db"),
+    SESSION_SECRET: z
+      .string()
+      .min(32)
+      .default("development-only-session-secret-32"),
+    TOKEN_ENCRYPTION_KEY: z
+      .string()
+      .min(32)
+      .default("development-only-token-key-32-bytes"),
+    COOKIE_SECURE: BooleanStringSchema.default(false),
+    LOG_LEVEL: z
+      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .default("info"),
+    BRIDGE_ALLOWED_ORIGINS: z.string().default("http://127.0.0.1:5173"),
+  })
+  .superRefine((value, context) => {
+    if (value.NODE_ENV !== "production") return;
+
+    if (new URL(value.NEWEMBY_PUBLIC_ORIGIN).protocol !== "https:") {
+      context.addIssue({
+        code: "custom",
+        message: "Production public origin must use HTTPS",
+        path: ["NEWEMBY_PUBLIC_ORIGIN"],
+      });
+    }
+
+    if (!value.COOKIE_SECURE) {
+      context.addIssue({
+        code: "custom",
+        message: "Production cookies must be secure",
+        path: ["COOKIE_SECURE"],
+      });
+    }
+  });
+
+export interface GatewayConfig {
+  allowedBridgeOrigins: string[];
+  allowedServerOrigins: string[];
+  cookieSecure: boolean;
+  databasePath: string;
+  embyBaseUrl: string;
+  host: string;
+  logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
+  nodeEnv: "development" | "test" | "production";
+  port: number;
+  publicOrigin: string;
+  sessionSecret: string;
+  tokenEncryptionKey: string;
+  trustProxy: number;
+}
+
+function loadRootEnvironment(): void {
+  try {
+    loadEnvFile(ROOT_ENVIRONMENT_PATH);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
+      return;
+
+    throw error;
+  }
+}
+
+function splitOrigins(value: string): string[] {
+  return value
+    .split(",")
+    .map((origin) => new URL(origin.trim()).origin)
+    .filter((origin, index, origins) => origins.indexOf(origin) === index);
+}
+
+export function loadConfig(environment?: NodeJS.ProcessEnv): GatewayConfig {
+  if (environment === undefined) loadRootEnvironment();
+
+  const parsed = EnvironmentSchema.parse(environment ?? process.env);
+
+  return {
+    allowedBridgeOrigins: splitOrigins(parsed.BRIDGE_ALLOWED_ORIGINS),
+    allowedServerOrigins: splitOrigins(parsed.EMBY_ALLOWED_SERVER_ORIGINS),
+    cookieSecure: parsed.COOKIE_SECURE,
+    databasePath: parsed.DATABASE_PATH,
+    embyBaseUrl: new URL(parsed.EMBY_BASE_URL).toString(),
+    host: parsed.GATEWAY_HOST,
+    logLevel: parsed.LOG_LEVEL,
+    nodeEnv: parsed.NODE_ENV,
+    port: parsed.GATEWAY_PORT,
+    publicOrigin: new URL(parsed.NEWEMBY_PUBLIC_ORIGIN).origin,
+    sessionSecret: parsed.SESSION_SECRET,
+    tokenEncryptionKey: parsed.TOKEN_ENCRYPTION_KEY,
+    trustProxy: parsed.GATEWAY_TRUST_PROXY,
+  };
+}

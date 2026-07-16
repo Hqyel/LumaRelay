@@ -1,0 +1,77 @@
+import { describe, expect, it, vi } from "vitest";
+
+import type { EmbyProbeError } from "./index.js";
+import { probeEmbyServer } from "./index.js";
+
+describe("probeEmbyServer", () => {
+  it("maps public server information to ServerSummary", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Emby Server", { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          Id: "server-id",
+          ServerName: "Home Emby",
+          Version: "4.8.11.0",
+        }),
+      );
+
+    const result = await probeEmbyServer("https://emby.example.com/emby", {
+      fetch: fetcher,
+    });
+
+    expect(result).toMatchObject({
+      serverId: "server-id",
+      name: "Home Emby",
+      version: "4.8.11.0",
+      baseUrl: "https://emby.example.com/emby/",
+      supportsHttps: true,
+    });
+    expect(fetcher.mock.calls[0]?.[0].toString()).toBe(
+      "https://emby.example.com/emby/System/Ping",
+    );
+  });
+
+  it("classifies timeout errors", async () => {
+    const timeout = new DOMException("Timed out", "TimeoutError");
+    const fetcher = vi.fn<typeof fetch>().mockRejectedValue(timeout);
+
+    await expect(
+      probeEmbyServer("https://emby.example.com", { fetch: fetcher }),
+    ).rejects.toMatchObject({
+      kind: "timeout",
+    } satisfies Partial<EmbyProbeError>);
+  });
+
+  it("classifies TLS certificate errors", async () => {
+    const cause = Object.assign(new Error("certificate"), {
+      code: "CERT_HAS_EXPIRED",
+    });
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new TypeError("fetch failed", { cause }));
+
+    await expect(
+      probeEmbyServer("https://emby.example.com", { fetch: fetcher }),
+    ).rejects.toMatchObject({ kind: "tls" } satisfies Partial<EmbyProbeError>);
+  });
+
+  it("rejects unsupported Emby versions", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("Emby Server", { status: 200 }))
+      .mockResolvedValueOnce(
+        Response.json({
+          Id: "server-id",
+          ServerName: "Old Emby",
+          Version: "3.6.0.0",
+        }),
+      );
+
+    await expect(
+      probeEmbyServer("https://emby.example.com", { fetch: fetcher }),
+    ).rejects.toMatchObject({
+      kind: "unsupported-version",
+    } satisfies Partial<EmbyProbeError>);
+  });
+});

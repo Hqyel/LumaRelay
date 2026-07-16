@@ -1,0 +1,114 @@
+@theme static {
+  --color-bg: #090b0f;
+  --color-bg-elevated: #10141b;
+  --color-surface: #161b23;
+  --color-surface-hover: #1d2430;
+  --color-border: rgb(255 255 255 / 8%);
+  --color-text: #f5f7fa;
+  --color-text-muted: #9aa4b2;
+  --color-accent: #7c5cff;
+  --color-accent-hover: #9177ff;
+  --color-on-accent: #090b0f;
+  --color-success: #35c78a;
+  --color-warning: #f0b35a;
+  --color-danger: #f06565;
+
+  --font-sans:
+    Inter, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+
+  --text-display: 3rem;
+  --text-display--line-height: 3.5rem;
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 2.75rem;
+  --text-h2: 1.75rem;
+  --text-h2--line-height: 2.25rem;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.75rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.25rem;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1rem;
+
+  --spacing: 0.25rem;
+  --radius-poster: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-panel: 1rem;
+  --shadow-panel: 0 1.5rem 4rem rgb(0 0 0 / 36%);
+  --shadow-card: 0 0.75rem 2rem rgb(0 0 0 / 24%);
+
+  --breakpoint-sm: 40rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-2xl: 100rem;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root {
+  color: var(--color-text);
+  background: var(--color-bg);
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --duration-hover: 120ms;
+  --duration-panel: 200ms;
+  --duration-page: 240ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 20rem;
+  background: var(--color-bg);
+}
+
+body {
+  min-width: 20rem;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(
+      circle at 78% -12%,
+      rgb(124 92 255 / 10%),
+      transparent 32rem
+    ),
+    var(--color-bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: var(--color-text);
+  background: rgb(124 92 255 / 42%);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-hover);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

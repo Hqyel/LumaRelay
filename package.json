@@ -1,0 +1,39 @@
+{
+  "name": "newemby",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "dev": "pnpm --parallel --filter @newemby/web --filter @newemby/gateway dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm -r --if-present lint",
+    "storybook": "pnpm --filter @newemby/ui storybook",
+    "storybook:build": "pnpm --filter @newemby/ui storybook:build",
+    "smoke:local": "node scripts/local-smoke.mjs",
+    "test": "pnpm -r --if-present test",
+    "test:visual": "pnpm --filter @newemby/ui test:visual",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "verify:local": "pnpm format:check && pnpm check && pnpm storybook:build && pnpm test:visual"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^24.0.14",
+    "eslint": "^9.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vitest": "^3.2.4"
+  }
+}
