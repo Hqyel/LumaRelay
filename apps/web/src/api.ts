@@ -1,5 +1,6 @@
 import type {
   CurrentServerResponse,
+  CsrfResponse,
   ErrorEnvelope,
   LoginRequest,
   LoginResponse,
@@ -12,6 +13,7 @@ import type {
 type UnauthorizedListener = () => void;
 
 const unauthorizedListeners = new Set<UnauthorizedListener>();
+let csrfTokenPromise: Promise<string> | undefined;
 
 export class ApiError extends Error {
   constructor(
@@ -24,18 +26,54 @@ export class ApiError extends Error {
   }
 }
 
-async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
+async function fetchCsrfToken(): Promise<string> {
+  const response = await fetch("/api/v1/security/csrf", {
+    credentials: "include",
+    headers: { accept: "application/json" },
+  });
+  if (!response.ok) {
+    const body = (await response.json()) as ErrorEnvelope;
+    throw new ApiError(
+      body.error.code,
+      body.error.message,
+      body.error.requestId,
+    );
+  }
+
+  return ((await response.json()) as CsrfResponse).csrfToken;
+}
+
+function getCsrfToken(): Promise<string> {
+  csrfTokenPromise ??= fetchCsrfToken().catch((error: unknown) => {
+    csrfTokenPromise = undefined;
+    throw error;
+  });
+  return csrfTokenPromise;
+}
+
+async function requestJson<T>(
+  input: string,
+  init?: RequestInit,
+  retryCsrf = true,
+): Promise<T> {
+  const method = init?.method?.toUpperCase() ?? "GET";
+  const headers = new Headers(init?.headers);
+  headers.set("accept", "application/json");
+  if (!["GET", "HEAD", "OPTIONS"].includes(method))
+    headers.set("x-newemby-csrf", await getCsrfToken());
+
   const response = await fetch(input, {
     ...init,
     credentials: "include",
-    headers: {
-      accept: "application/json",
-      ...init?.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
     const body = (await response.json()) as ErrorEnvelope;
+    if (body.error.code === "CSRF_INVALID" && retryCsrf) {
+      csrfTokenPromise = undefined;
+      return requestJson(input, init, false);
+    }
     if (body.error.code === "UNAUTHENTICATED")
       for (const listener of unauthorizedListeners) listener();
     throw new ApiError(
@@ -75,8 +113,12 @@ export function login(credentials: LoginRequest): Promise<LoginResponse> {
   });
 }
 
-export function logout(): Promise<LogoutResponse> {
-  return requestJson("/api/v1/auth/logout", { method: "POST" });
+export async function logout(): Promise<LogoutResponse> {
+  const response = await requestJson<LogoutResponse>("/api/v1/auth/logout", {
+    method: "POST",
+  });
+  csrfTokenPromise = undefined;
+  return response;
 }
 
 export function selectServer(baseUrl: string): Promise<ProbeServerResponse> {

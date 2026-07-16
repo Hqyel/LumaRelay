@@ -8,6 +8,7 @@ import {
   SessionResponseSchema,
 } from "./auth.js";
 import { HealthResponseSchema } from "./health.js";
+import { CsrfResponseSchema } from "./security.js";
 import {
   CurrentServerResponseSchema,
   ProbeServerRequestSchema,
@@ -17,6 +18,15 @@ import {
 export const API_PREFIX = "/api/v1";
 
 export const ApiRoutes = {
+  csrf: {
+    method: "GET",
+    url: `${API_PREFIX}/security/csrf`,
+    schema: {
+      response: {
+        200: CsrfResponseSchema,
+      },
+    },
+  },
   health: {
     method: "GET",
     url: `${API_PREFIX}/health`,

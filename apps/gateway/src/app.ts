@@ -36,6 +36,11 @@ import {
 } from "fastify-type-provider-zod";
 
 import type { GatewayConfig } from "./config.js";
+import {
+  clearCsrfCookie,
+  issueCsrfToken,
+  validateStateChange,
+} from "./csrf.js";
 import type { AuthSessionStore } from "./database/auth-session-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
@@ -198,6 +203,16 @@ export async function buildApp(
     },
   });
 
+  app.get(ApiRoutes.csrf.url, {
+    schema: ApiRoutes.csrf.schema,
+    handler(request, reply) {
+      return {
+        csrfToken: issueCsrfToken(request, reply, options.config),
+        requestId: request.id,
+      };
+    },
+  });
+
   app.get(ApiRoutes.currentServer.url, {
     schema: ApiRoutes.currentServer.schema,
     async handler(request) {
@@ -234,6 +249,8 @@ export async function buildApp(
 
       const session = await options.authSessionStore.find(cookieToken);
       if (session === null || session.user.serverId !== server.serverId) {
+        if (session !== null)
+          await options.authSessionStore.revoke(cookieToken);
         void reply.clearCookie("newemby_session", { path: "/" });
         return reply
           .status(401)
@@ -297,19 +314,11 @@ export async function buildApp(
   app.post(ApiRoutes.logout.url, {
     schema: ApiRoutes.logout.schema,
     async handler(request, reply) {
-      if (request.headers.origin !== options.config.publicOrigin)
-        return reply
-          .status(403)
-          .send(
-            errorEnvelope(
-              "ORIGIN_NOT_ALLOWED",
-              "The request origin is not allowed",
-              request.id,
-            ),
-          );
+      if (!validateStateChange(request, reply, options.config)) return;
 
       const cookieToken = request.cookies.newemby_session;
       void reply.clearCookie("newemby_session", { path: "/" });
+      clearCsrfCookie(reply, options.config);
 
       if (cookieToken === undefined || options.authSessionStore === undefined)
         return { requestId: request.id, success: true as const };
@@ -429,16 +438,7 @@ export async function buildApp(
     },
     schema: ApiRoutes.login.schema,
     async handler(request, reply) {
-      if (request.headers.origin !== options.config.publicOrigin)
-        return reply
-          .status(403)
-          .send(
-            errorEnvelope(
-              "ORIGIN_NOT_ALLOWED",
-              "The request origin is not allowed",
-              request.id,
-            ),
-          );
+      if (!validateStateChange(request, reply, options.config)) return;
 
       const server = await serverStore.getCurrent();
       if (server === null)
@@ -454,28 +454,12 @@ export async function buildApp(
       if (options.authSessionStore === undefined)
         throw new Error("Auth session store is not configured");
 
+      const deviceId = await options.authSessionStore.getDeviceId();
+      let authentication: AuthenticateUserResult;
       try {
-        const deviceId = await options.authSessionStore.getDeviceId();
-        const authentication = await (
+        authentication = await (
           options.authenticateUser ?? authenticateEmbyUser
         )(server.baseUrl, { ...request.body, deviceId });
-        const cookieToken = await options.authSessionStore.create({
-          accessToken: authentication.accessToken,
-          user: authentication.user,
-        });
-
-        void reply.setCookie("newemby_session", cookieToken, {
-          httpOnly: true,
-          maxAge: 7 * 24 * 60 * 60,
-          path: "/",
-          sameSite: "lax",
-          secure: options.config.cookieSecure,
-        });
-        return {
-          requestId: request.id,
-          server,
-          user: authentication.user,
-        };
       } catch (error) {
         const authError =
           error instanceof EmbyAuthError
@@ -490,6 +474,37 @@ export async function buildApp(
           .status(response.statusCode)
           .send(errorEnvelope(response.code, authError.message, request.id));
       }
+
+      let cookieToken: string;
+      try {
+        cookieToken = await options.authSessionStore.create({
+          accessToken: authentication.accessToken,
+          user: authentication.user,
+        });
+      } catch (error) {
+        try {
+          await (options.logoutSession ?? logoutEmbySession)(server.baseUrl, {
+            accessToken: authentication.accessToken,
+            deviceId,
+          });
+        } catch {
+          // The local persistence error remains authoritative.
+        }
+        throw error;
+      }
+
+      void reply.setCookie("newemby_session", cookieToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60,
+        path: "/",
+        sameSite: "lax",
+        secure: options.config.cookieSecure,
+      });
+      return {
+        requestId: request.id,
+        server,
+        user: authentication.user,
+      };
     },
   });
 
@@ -538,6 +553,8 @@ export async function buildApp(
   app.post(ApiRoutes.selectServer.url, {
     schema: ApiRoutes.selectServer.schema,
     async handler(request, reply) {
+      if (!validateStateChange(request, reply, options.config)) return;
+
       const origin = new URL(request.body.baseUrl).origin;
 
       if (!options.config.allowedServerOrigins.includes(origin)) {
@@ -552,12 +569,11 @@ export async function buildApp(
           );
       }
 
+      let server: ServerSummary;
       try {
-        const server = await (options.probeServer ?? probeEmbyServer)(
+        server = await (options.probeServer ?? probeEmbyServer)(
           request.body.baseUrl,
         );
-        await serverStore.select(server);
-        return { requestId: request.id, server };
       } catch (error) {
         const probeError =
           error instanceof EmbyProbeError
@@ -572,6 +588,37 @@ export async function buildApp(
           .status(response.statusCode)
           .send(errorEnvelope(response.code, probeError.message, request.id));
       }
+
+      const currentServer = await serverStore.getCurrent();
+      if (
+        currentServer !== null &&
+        currentServer.serverId !== server.serverId &&
+        options.authSessionStore !== undefined
+      ) {
+        const sessions = await options.authSessionStore.revokeServerSessions(
+          currentServer.serverId,
+        );
+        void reply.clearCookie("newemby_session", { path: "/" });
+
+        try {
+          const deviceId = await options.authSessionStore.getDeviceId();
+          for (const session of sessions) {
+            try {
+              await (options.logoutSession ?? logoutEmbySession)(
+                currentServer.baseUrl,
+                { accessToken: session.accessToken, deviceId },
+              );
+            } catch {
+              // Local server revocation is authoritative.
+            }
+          }
+        } catch {
+          // Sessions remain revoked if device ID access fails.
+        }
+      }
+
+      await serverStore.select(server);
+      return { requestId: request.id, server };
     },
   });
 

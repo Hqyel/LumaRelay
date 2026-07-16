@@ -33,6 +33,15 @@ test("connects, signs in, restores the session, and signs out", async ({
     const path = new URL(request.url()).pathname;
     const method = request.method();
 
+    if (path === "/api/v1/security/csrf" && method === "GET") {
+      await route.fulfill({
+        json: {
+          csrfToken: "test-csrf-token-with-at-least-32-characters",
+          requestId: "request-csrf",
+        },
+      });
+      return;
+    }
     if (path === "/api/v1/servers/current" && method === "GET") {
       await route.fulfill({
         json: {
@@ -44,6 +53,9 @@ test("connects, signs in, restores the session, and signs out", async ({
       return;
     }
     if (path === "/api/v1/servers/select" && method === "POST") {
+      expect(request.headers()["x-newemby-csrf"]).toBe(
+        "test-csrf-token-with-at-least-32-characters",
+      );
       selected = true;
       await route.fulfill({
         json: { requestId: "request-select", server },
@@ -60,6 +72,9 @@ test("connects, signs in, restores the session, and signs out", async ({
       return;
     }
     if (path === "/api/v1/auth/login" && method === "POST") {
+      expect(request.headers()["x-newemby-csrf"]).toBe(
+        "test-csrf-token-with-at-least-32-characters",
+      );
       authenticated = true;
       await route.fulfill({
         json: { requestId: "request-login", server, user },
@@ -87,6 +102,9 @@ test("connects, signs in, restores the session, and signs out", async ({
       return;
     }
     if (path === "/api/v1/auth/logout" && method === "POST") {
+      expect(request.headers()["x-newemby-csrf"]).toBe(
+        "test-csrf-token-with-at-least-32-characters",
+      );
       authenticated = false;
       await route.fulfill({
         json: { requestId: "request-logout", success: true },
@@ -119,5 +137,38 @@ test("connects, signs in, restores the session, and signs out", async ({
   await expect(page).toHaveURL(/\/login$/);
   await expect(
     page.getByRole("heading", { name: "登录媒体服务器" }),
+  ).toBeVisible();
+});
+
+test("redirects a non-administrator away from the admin shell", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/v1/auth/me") {
+      await route.fulfill({
+        json: {
+          requestId: "request-me",
+          server,
+          user: {
+            ...user,
+            permissions: {
+              ...user.permissions,
+              canManageServer: false,
+              isAdministrator: false,
+            },
+          },
+        },
+      });
+      return;
+    }
+
+    await route.abort();
+  });
+
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByRole("heading", { exact: true, name: "NewEmby" }),
   ).toBeVisible();
 });

@@ -20,6 +20,27 @@ async function createTestApp() {
   return app;
 }
 
+async function stateChangeHeaders(
+  app: Awaited<ReturnType<typeof buildApp>>,
+  sessionCookie?: string,
+) {
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/v1/security/csrf",
+  });
+  const setCookie = response.headers["set-cookie"];
+  const csrfCookie = (
+    Array.isArray(setCookie) ? setCookie[0] : setCookie
+  )?.split(";")[0];
+  const cookie = [csrfCookie, sessionCookie].filter(Boolean).join("; ");
+
+  return {
+    cookie,
+    origin: "http://127.0.0.1:5173",
+    "x-newemby-csrf": response.json().csrfToken as string,
+  };
+}
+
 describe("Gateway application", () => {
   it("returns a typed health response and request ID", async () => {
     const app = await createTestApp();
@@ -71,6 +92,68 @@ describe("Gateway application", () => {
 
     expect("openapi" in document ? document.openapi : undefined).toBe("3.1.0");
     expect(document.paths?.["/api/v1/health"]).toBeDefined();
+    expect(document.paths?.["/api/v1/security/csrf"]).toBeDefined();
+  });
+
+  it("issues an HttpOnly signed CSRF cookie", async () => {
+    const app = await createTestApp();
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/security/csrf",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().csrfToken).toHaveLength(43);
+    expect(response.headers["set-cookie"]).toContain("newemby_csrf=");
+    expect(response.headers["set-cookie"]).toContain("HttpOnly");
+    expect(response.headers["set-cookie"]).toContain("SameSite=Lax");
+  });
+
+  it("requires CSRF for state changes but not server probes", async () => {
+    const probeServer = vi.fn().mockResolvedValue({
+      baseUrl: "http://127.0.0.1:8096/",
+      capabilityFlags: { ping: true, publicInfo: true },
+      latencyMs: 15,
+      name: "Home Emby",
+      serverId: "server-id",
+      supportsHttps: false,
+      version: "4.8.11.0",
+    });
+    const app = await buildApp({
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer,
+    });
+    apps.push(app);
+
+    const probe = await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/probe",
+    });
+    const selection = await app.inject({
+      headers: { origin: "http://127.0.0.1:5173" },
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    expect(probe.statusCode).toBe(200);
+    expect(selection.statusCode).toBe(403);
+    expect(selection.json().error.code).toBe("CSRF_INVALID");
+  });
+
+  it("rejects a CSRF header that does not match the signed cookie", async () => {
+    const app = await createTestApp();
+    const headers = await stateChangeHeaders(app);
+    const response = await app.inject({
+      headers: { ...headers, "x-newemby-csrf": "tampered-token" },
+      method: "POST",
+      url: "/api/v1/auth/logout",
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe("CSRF_INVALID");
   });
 
   it("probes an allowed Emby origin", async () => {
@@ -152,6 +235,7 @@ describe("Gateway application", () => {
     apps.push(app);
 
     const selection = await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -165,6 +249,133 @@ describe("Gateway application", () => {
     expect(current.statusCode).toBe(200);
     expect(current.json().server.serverId).toBe("server-id");
     expect(current.json().configuredBaseUrl).toBe("http://127.0.0.1:8096/");
+  });
+
+  it("revokes old server sessions only when the probed server ID changes", async () => {
+    const oldServer = {
+      baseUrl: "http://127.0.0.1:8096/",
+      capabilityFlags: { ping: true, publicInfo: true },
+      latencyMs: 15,
+      name: "Old Emby",
+      serverId: "server-old",
+      supportsHttps: false,
+      version: "4.8.11.0",
+    };
+    const newServer = {
+      ...oldServer,
+      name: "New Emby",
+      serverId: "server-new",
+    };
+    const session = {
+      accessToken: "old-emby-token",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      sessionId: "session-id",
+      user: {
+        name: "Alex",
+        permissions: {
+          canDownload: true,
+          canManageServer: false,
+          isAdministrator: false,
+        },
+        serverId: "server-old",
+        userId: "user-1",
+      },
+    };
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn(),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
+      revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([session]),
+      updateUser: vi.fn(),
+    };
+    const logoutSession = vi.fn();
+    const probeServer = vi
+      .fn()
+      .mockResolvedValueOnce(oldServer)
+      .mockResolvedValueOnce(oldServer)
+      .mockResolvedValueOnce(newServer);
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      logoutSession,
+      probeServer,
+    });
+    apps.push(app);
+
+    for (let index = 0; index < 3; index++) {
+      const response = await app.inject({
+        headers: await stateChangeHeaders(app),
+        method: "POST",
+        payload: { baseUrl: "http://127.0.0.1:8096" },
+        url: "/api/v1/servers/select",
+      });
+      expect(response.statusCode).toBe(200);
+    }
+
+    expect(authSessionStore.revokeServerSessions).toHaveBeenCalledOnce();
+    expect(authSessionStore.revokeServerSessions).toHaveBeenCalledWith(
+      "server-old",
+    );
+    expect(logoutSession).toHaveBeenCalledWith(
+      oldServer.baseUrl,
+      expect.objectContaining({ accessToken: "old-emby-token" }),
+    );
+  });
+
+  it("preserves the current session when a replacement probe fails", async () => {
+    const server = {
+      baseUrl: "http://127.0.0.1:8096/",
+      capabilityFlags: { ping: true, publicInfo: true },
+      latencyMs: 15,
+      name: "Home Emby",
+      serverId: "server-id",
+      supportsHttps: false,
+      version: "4.8.11.0",
+    };
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn(),
+      getDeviceId: vi.fn(),
+      pruneInactive: vi.fn(),
+      revoke: vi.fn(),
+      revokeServerSessions: vi.fn(),
+      updateUser: vi.fn(),
+    };
+    const probeServer = vi
+      .fn()
+      .mockResolvedValueOnce(server)
+      .mockRejectedValueOnce(new EmbyProbeError("timeout", "Timed out"));
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer,
+    });
+    apps.push(app);
+
+    await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+    const failed = await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+    const current = await app.inject({
+      method: "GET",
+      url: "/api/v1/servers/current",
+    });
+
+    expect(failed.statusCode).toBe(408);
+    expect(current.json().server.serverId).toBe("server-id");
+    expect(authSessionStore.revokeServerSessions).not.toHaveBeenCalled();
   });
 
   it("returns public users and proxies avatar bytes", async () => {
@@ -199,6 +410,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -238,7 +450,9 @@ describe("Gateway application", () => {
       create: vi.fn().mockResolvedValue("browser-session-token"),
       find: vi.fn(),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
       revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
       updateUser: vi.fn(),
     };
     const app = await buildApp({
@@ -258,13 +472,14 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
     });
 
     const response = await app.inject({
-      headers: { origin: "http://127.0.0.1:5173" },
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { password: "correct-password", username: "Alex" },
       url: "/api/v1/auth/login",
@@ -281,6 +496,70 @@ describe("Gateway application", () => {
     expect(authSessionStore.create).toHaveBeenCalledWith(
       expect.objectContaining({ accessToken: "emby-secret-token" }),
     );
+  });
+
+  it("logs out the upstream session when local persistence fails", async () => {
+    const authentication = {
+      accessToken: "emby-secret-token",
+      user: {
+        name: "Alex",
+        permissions: {
+          canDownload: true,
+          canManageServer: false,
+          isAdministrator: false,
+        },
+        serverId: "server-id",
+        userId: "user-1",
+      },
+    };
+    const authSessionStore = {
+      create: vi.fn().mockRejectedValue(new Error("SQLite write failed")),
+      find: vi.fn(),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
+      revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
+      updateUser: vi.fn(),
+    };
+    const logoutSession = vi.fn();
+    const app = await buildApp({
+      authSessionStore,
+      authenticateUser: vi.fn().mockResolvedValue(authentication),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      logoutSession,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "POST",
+      payload: { password: "correct-password", username: "Alex" },
+      url: "/api/v1/auth/login",
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json().error.code).toBe("INTERNAL_ERROR");
+    expect(JSON.stringify(response.json())).not.toContain("emby-secret-token");
+    expect(logoutSession).toHaveBeenCalledWith("http://127.0.0.1:8096/", {
+      accessToken: "emby-secret-token",
+      deviceId: "gateway-device-id",
+    });
   });
 
   it("refreshes the current user without exposing session secrets", async () => {
@@ -303,7 +582,9 @@ describe("Gateway application", () => {
         user: refreshedUser,
       }),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
       revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
       updateUser: vi.fn(),
     };
     const getAuthenticatedUser = vi.fn().mockResolvedValue(refreshedUser);
@@ -324,6 +605,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -349,6 +631,64 @@ describe("Gateway application", () => {
     );
   });
 
+  it("revokes a cookie session that belongs to another server", async () => {
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn().mockResolvedValue({
+        accessToken: "old-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        sessionId: "session-id",
+        user: {
+          name: "Alex",
+          permissions: {
+            canDownload: true,
+            canManageServer: false,
+            isAdministrator: false,
+          },
+          serverId: "server-old",
+          userId: "user-1",
+        },
+      }),
+      getDeviceId: vi.fn(),
+      pruneInactive: vi.fn(),
+      revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
+      updateUser: vi.fn(),
+    };
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-current",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=browser-session-token" },
+      method: "GET",
+      url: "/api/v1/auth/me",
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(authSessionStore.revoke).toHaveBeenCalledWith(
+      "browser-session-token",
+    );
+  });
+
   it("rejects an absent NewEmby session", async () => {
     const app = await buildApp({
       config: loadConfig({ NODE_ENV: "test" }),
@@ -365,6 +705,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -411,9 +752,11 @@ describe("Gateway application", () => {
         user,
       }),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
       revoke: vi.fn().mockImplementation(() => {
         events.push("local-revoke");
       }),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
       updateUser: vi.fn(),
     };
     const logoutSession = vi.fn().mockImplementation(() => {
@@ -436,6 +779,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -443,8 +787,10 @@ describe("Gateway application", () => {
 
     const response = await app.inject({
       headers: {
-        cookie: "newemby_session=browser-session-token",
-        origin: "http://127.0.0.1:5173",
+        ...(await stateChangeHeaders(
+          app,
+          "newemby_session=browser-session-token",
+        )),
       },
       method: "POST",
       url: "/api/v1/auth/logout",
@@ -452,8 +798,10 @@ describe("Gateway application", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ success: true });
-    expect(response.headers["set-cookie"]).toContain("newemby_session=");
-    expect(response.headers["set-cookie"]).toContain("Max-Age=0");
+    const clearedCookies = String(response.headers["set-cookie"]);
+    expect(clearedCookies).toContain("newemby_session=");
+    expect(clearedCookies).toContain("newemby_csrf=");
+    expect(clearedCookies).toContain("Max-Age=0");
     expect(events).toEqual(["local-revoke", "upstream-logout"]);
     expect(JSON.stringify(response.json())).not.toContain("emby-secret-token");
   });
@@ -477,7 +825,9 @@ describe("Gateway application", () => {
         },
       }),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
       revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
       updateUser: vi.fn(),
     };
     const app = await buildApp({
@@ -497,6 +847,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -504,8 +855,10 @@ describe("Gateway application", () => {
 
     const response = await app.inject({
       headers: {
-        cookie: "newemby_session=browser-session-token",
-        origin: "http://127.0.0.1:5173",
+        ...(await stateChangeHeaders(
+          app,
+          "newemby_session=browser-session-token",
+        )),
       },
       method: "POST",
       url: "/api/v1/auth/logout",
@@ -546,7 +899,9 @@ describe("Gateway application", () => {
         },
       }),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      pruneInactive: vi.fn(),
       revoke: vi.fn(),
+      revokeServerSessions: vi.fn().mockResolvedValue([]),
       updateUser: vi.fn(),
     };
     const app = await buildApp({
@@ -568,6 +923,7 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
@@ -619,7 +975,9 @@ describe("Gateway application", () => {
         create: vi.fn(),
         find: vi.fn(),
         getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+        pruneInactive: vi.fn(),
         revoke: vi.fn(),
+        revokeServerSessions: vi.fn().mockResolvedValue([]),
         updateUser: vi.fn(),
       },
       authenticateUser,
@@ -637,14 +995,16 @@ describe("Gateway application", () => {
     });
     apps.push(app);
     await app.inject({
+      headers: await stateChangeHeaders(app),
       method: "POST",
       payload: { baseUrl: "http://127.0.0.1:8096" },
       url: "/api/v1/servers/select",
     });
 
+    const loginHeaders = await stateChangeHeaders(app);
     for (let i = 0; i < 5; i++) {
       const response = await app.inject({
-        headers: { origin: "http://127.0.0.1:5173" },
+        headers: loginHeaders,
         method: "POST",
         payload: { password: "wrong", username: "Alex" },
         remoteAddress: "192.0.2.10",
@@ -656,7 +1016,7 @@ describe("Gateway application", () => {
     }
 
     const limited = await app.inject({
-      headers: { origin: "http://127.0.0.1:5173" },
+      headers: loginHeaders,
       method: "POST",
       payload: { password: "wrong", username: "Alex" },
       remoteAddress: "192.0.2.10",

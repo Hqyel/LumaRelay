@@ -2,7 +2,11 @@ import type { UserProfile } from "@newemby/contracts";
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "./api.js";
-import { authRedirectForError, navigationForUser } from "./auth-routing.js";
+import {
+  adminRedirectForUser,
+  authRedirectForError,
+  navigationForUser,
+} from "./auth-routing.js";
 
 function user(isAdministrator: boolean): UserProfile {
   return {
@@ -39,5 +43,10 @@ describe("authenticated application navigation", () => {
       ),
     ).toBe("/login");
     expect(authRedirectForError(new Error("Network error"))).toBeNull();
+  });
+
+  it("redirects non-administrators away from the management shell", () => {
+    expect(adminRedirectForUser(user(false))).toBe("/");
+    expect(adminRedirectForUser(user(true))).toBeNull();
   });
 });

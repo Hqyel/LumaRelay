@@ -16,6 +16,7 @@ export const ErrorCodeSchema = z.enum([
   "UNAUTHENTICATED",
   "RATE_LIMITED",
   "ORIGIN_NOT_ALLOWED",
+  "CSRF_INVALID",
   "INTERNAL_ERROR",
 ]);
 

@@ -5,16 +5,10 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
-import { getCurrentUser, logout } from "../api.js";
+import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
+import { sessionQuery } from "../session-query.js";
 import { useUiStore } from "../stores/ui-store.js";
-
-const sessionQuery = {
-  queryFn: getCurrentUser,
-  queryKey: ["auth", "me"],
-  retry: false,
-  staleTime: 30_000,
-} as const;
 
 function HeaderActions({ user }: { user: UserProfile }) {
   const initials = user.name.slice(0, 2).toUpperCase();

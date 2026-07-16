@@ -36,7 +36,9 @@ export interface AuthSessionStore {
   create(input: CreateAuthSessionInput): Promise<string>;
   find(cookieToken: string): Promise<StoredAuthSession | null>;
   getDeviceId(): Promise<string>;
+  pruneInactive(): Promise<number>;
   revoke(cookieToken: string): Promise<void>;
+  revokeServerSessions(serverId: string): Promise<StoredAuthSession[]>;
   updateUser(sessionId: string, user: UserProfile): Promise<void>;
 }
 
@@ -80,6 +82,44 @@ function decrypt(value: EncryptedValue, key: Buffer): string {
 
 function hashSecret(value: string, secret: string): string {
   return createHmac("sha256", secret).update(value).digest("hex");
+}
+
+function decodeSession(
+  session: {
+    accessTokenCiphertext: string;
+    accessTokenIv: string;
+    accessTokenTag: string;
+    embyUserId: string;
+    expiresAt: string;
+    id: string;
+    permissionsJson: string;
+    primaryImageTag: string | null;
+    serverId: string;
+    userName: string;
+  },
+  key: Buffer,
+): StoredAuthSession {
+  return {
+    accessToken: decrypt(
+      {
+        ciphertext: session.accessTokenCiphertext,
+        iv: session.accessTokenIv,
+        tag: session.accessTokenTag,
+      },
+      key,
+    ),
+    expiresAt: session.expiresAt,
+    sessionId: session.id,
+    user: {
+      name: session.userName,
+      permissions: UserPermissionsSchema.parse(
+        JSON.parse(session.permissionsJson),
+      ),
+      primaryImageTag: session.primaryImageTag ?? undefined,
+      serverId: session.serverId,
+      userId: session.embyUserId,
+    },
+  };
 }
 
 export function createAuthSessionStore(
@@ -131,33 +171,25 @@ export function createAuthSessionStore(
 
       if (session === undefined) return null;
 
+      let decoded: StoredAuthSession;
+      try {
+        decoded = decodeSession(session, key);
+      } catch {
+        await database
+          .updateTable("authSessions")
+          .set({ revokedAt: now })
+          .where("id", "=", session.id)
+          .execute();
+        return null;
+      }
+
       await database
         .updateTable("authSessions")
         .set({ lastSeenAt: now })
         .where("id", "=", session.id)
         .execute();
 
-      return {
-        accessToken: decrypt(
-          {
-            ciphertext: session.accessTokenCiphertext,
-            iv: session.accessTokenIv,
-            tag: session.accessTokenTag,
-          },
-          key,
-        ),
-        expiresAt: session.expiresAt,
-        sessionId: session.id,
-        user: {
-          name: session.userName,
-          permissions: UserPermissionsSchema.parse(
-            JSON.parse(session.permissionsJson),
-          ),
-          primaryImageTag: session.primaryImageTag ?? undefined,
-          serverId: session.serverId,
-          userId: session.embyUserId,
-        },
-      };
+      return decoded;
     },
 
     async getDeviceId(): Promise<string> {
@@ -184,12 +216,53 @@ export function createAuthSessionStore(
       return stored.value;
     },
 
+    async pruneInactive(): Promise<number> {
+      const result = await database
+        .deleteFrom("authSessions")
+        .where(({ eb, or }) =>
+          or([
+            eb("expiresAt", "<=", new Date().toISOString()),
+            eb("revokedAt", "is not", null),
+          ]),
+        )
+        .executeTakeFirst();
+      return Number(result.numDeletedRows);
+    },
+
     async revoke(cookieToken: string): Promise<void> {
       await database
         .updateTable("authSessions")
         .set({ revokedAt: new Date().toISOString() })
         .where("secretHash", "=", hashSecret(cookieToken, config.sessionSecret))
         .execute();
+    },
+
+    async revokeServerSessions(serverId: string): Promise<StoredAuthSession[]> {
+      const now = new Date().toISOString();
+      const sessions = await database
+        .selectFrom("authSessions")
+        .selectAll()
+        .where("serverId", "=", serverId)
+        .where("revokedAt", "is", null)
+        .where("expiresAt", ">", now)
+        .execute();
+      const decoded: StoredAuthSession[] = [];
+
+      for (const session of sessions) {
+        try {
+          decoded.push(decodeSession(session, key));
+        } catch {
+          // A damaged encrypted value is revoked with the rest of the server.
+        }
+      }
+
+      await database
+        .updateTable("authSessions")
+        .set({ revokedAt: now })
+        .where("serverId", "=", serverId)
+        .where("revokedAt", "is", null)
+        .execute();
+      return decoded;
     },
 
     async updateUser(sessionId: string, user: UserProfile): Promise<void> {

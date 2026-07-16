@@ -1,5 +1,5 @@
 import { AdminShell, type SideNavigationItem } from "@newemby/ui";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   Activity,
   BookOpen,
@@ -12,6 +12,9 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+
+import { adminRedirectForUser, authRedirectForError } from "../auth-routing.js";
+import { sessionQuery } from "../session-query.js";
 
 const navigation: SideNavigationItem[] = [
   { active: true, href: "/admin", icon: <Gauge size={19} />, label: "概览" },
@@ -65,5 +68,16 @@ function AdminFoundationPage() {
 }
 
 export const Route = createFileRoute("/admin")({
+  beforeLoad: async ({ context }) => {
+    try {
+      const session = await context.queryClient.ensureQueryData(sessionQuery);
+      const target = adminRedirectForUser(session.user);
+      if (target !== null) throw redirect({ to: target });
+    } catch (error) {
+      const target = authRedirectForError(error);
+      if (target !== null) throw redirect({ to: target });
+      throw error;
+    }
+  },
   component: AdminFoundationPage,
 });

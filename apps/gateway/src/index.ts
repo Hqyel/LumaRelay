@@ -8,9 +8,11 @@ import { createAuthSessionStore } from "./database/auth-session-store.js";
 const config = loadConfig();
 const database = createDatabase(config.databasePath);
 await migrateToLatest(database);
+const authSessionStore = createAuthSessionStore(database, config);
+await authSessionStore.pruneInactive();
 
 const app = await buildApp({
-  authSessionStore: createAuthSessionStore(database, config),
+  authSessionStore,
   config,
   serverStore: createServerStore(database),
 });

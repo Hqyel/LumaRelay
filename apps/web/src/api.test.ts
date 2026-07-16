@@ -15,8 +15,24 @@ afterEach(() => {
 });
 
 describe("Web Gateway client", () => {
+  function csrfAwareFetcher(response: Response) {
+    return vi.fn().mockImplementation((input: string) =>
+      Promise.resolve(
+        input === "/api/v1/security/csrf"
+          ? new Response(
+              JSON.stringify({
+                csrfToken: "test-csrf-token-with-at-least-32-characters",
+                requestId: "csrf-request",
+              }),
+              { status: 200 },
+            )
+          : response.clone(),
+      ),
+    );
+  }
+
   it("reads the current server with credentials", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
+    const fetcher = csrfAwareFetcher(
       new Response(
         JSON.stringify({
           configuredBaseUrl: "http://127.0.0.1:8096/",
@@ -36,7 +52,7 @@ describe("Web Gateway client", () => {
   });
 
   it("reads the authenticated user only through the Gateway", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
+    const fetcher = csrfAwareFetcher(
       new Response(
         JSON.stringify({
           requestId: "request-2",
@@ -75,7 +91,7 @@ describe("Web Gateway client", () => {
   });
 
   it("posts a server selection as JSON", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
+    const fetcher = csrfAwareFetcher(
       new Response(
         JSON.stringify({
           requestId: "request-2",
@@ -103,6 +119,12 @@ describe("Web Gateway client", () => {
         method: "POST",
       }),
     );
+    const selectionCall = fetcher.mock.calls.find(
+      ([input]) => input === "/api/v1/servers/select",
+    );
+    expect(new Headers(selectionCall?.[1]?.headers).get("x-newemby-csrf")).toBe(
+      "test-csrf-token-with-at-least-32-characters",
+    );
   });
 
   it("reads public users through the Gateway", async () => {
@@ -129,7 +151,7 @@ describe("Web Gateway client", () => {
   });
 
   it("posts credentials only to the Gateway login endpoint", async () => {
-    const fetcher = vi.fn().mockResolvedValue(
+    const fetcher = csrfAwareFetcher(
       new Response(
         JSON.stringify({
           requestId: "request-4",
@@ -167,14 +189,11 @@ describe("Web Gateway client", () => {
   });
 
   it("posts logout only to the Gateway", async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({ requestId: "request-5", success: true }),
-          { status: 200 },
-        ),
-      );
+    const fetcher = csrfAwareFetcher(
+      new Response(JSON.stringify({ requestId: "request-5", success: true }), {
+        status: 200,
+      }),
+    );
     vi.stubGlobal("fetch", fetcher);
 
     await expect(logout()).resolves.toMatchObject({ success: true });
@@ -182,6 +201,65 @@ describe("Web Gateway client", () => {
       "/api/v1/auth/logout",
       expect.objectContaining({ credentials: "include", method: "POST" }),
     );
+  });
+
+  it("refreshes the CSRF token once when the Gateway rejects it", async () => {
+    let csrfReads = 0;
+    let selectionWrites = 0;
+    const fetcher = vi.fn().mockImplementation((input: string) => {
+      if (input === "/api/v1/security/csrf") {
+        csrfReads++;
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              csrfToken: `refreshed-csrf-token-${csrfReads}-with-padding`,
+              requestId: `csrf-${csrfReads}`,
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+
+      selectionWrites++;
+      if (selectionWrites === 1)
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "CSRF_INVALID",
+                message: "Refresh CSRF",
+                requestId: "selection-1",
+              },
+            }),
+            { status: 403 },
+          ),
+        );
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            requestId: "selection-2",
+            server: {
+              baseUrl: "http://127.0.0.1:8096/",
+              capabilityFlags: { ping: true, publicInfo: true },
+              latencyMs: 10,
+              name: "Home Emby",
+              serverId: "server-id",
+              supportsHttps: false,
+              version: "4.8.11.0",
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    });
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(selectServer("http://127.0.0.1:8096")).resolves.toMatchObject({
+      server: { serverId: "server-id" },
+    });
+    expect(csrfReads).toBeGreaterThanOrEqual(1);
+    expect(selectionWrites).toBe(2);
   });
 
   it("notifies recovery only for an unauthenticated session", async () => {
@@ -211,7 +289,7 @@ describe("Web Gateway client", () => {
 
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValue(
+        csrfAwareFetcher(
           new Response(
             JSON.stringify({
               error: {

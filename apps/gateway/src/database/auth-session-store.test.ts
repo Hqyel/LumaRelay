@@ -66,4 +66,107 @@ describe("Auth session store", () => {
       await database.destroy();
     }
   });
+
+  it("revokes damaged encrypted sessions instead of repeatedly throwing", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "newemby-damaged-session-"));
+    temporaryDirectories.push(directory);
+    const database = createDatabase(join(directory, "test.db"));
+
+    try {
+      await migrateToLatest(database);
+      await createServerStore(database).select({
+        baseUrl: "https://emby.example.com/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 20,
+        name: "Home Emby",
+        serverId: "server-1",
+        supportsHttps: true,
+        version: "4.8.11.0",
+      });
+      const store = createAuthSessionStore(database, {
+        sessionSecret: "test-session-secret-with-32-characters",
+        tokenEncryptionKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      });
+      const cookieToken = await store.create({
+        accessToken: "emby-secret-token",
+        user: {
+          name: "Alex",
+          permissions: {
+            canDownload: true,
+            canManageServer: false,
+            isAdministrator: false,
+          },
+          serverId: "server-1",
+          userId: "user-1",
+        },
+      });
+      await database
+        .updateTable("authSessions")
+        .set({ accessTokenTag: "damaged" })
+        .execute();
+
+      await expect(store.find(cookieToken)).resolves.toBeNull();
+      const stored = await database
+        .selectFrom("authSessions")
+        .select("revokedAt")
+        .executeTakeFirstOrThrow();
+      expect(stored.revokedAt).not.toBeNull();
+    } finally {
+      await database.destroy();
+    }
+  });
+
+  it("revokes all server sessions and prunes inactive rows", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "newemby-prune-session-"));
+    temporaryDirectories.push(directory);
+    const database = createDatabase(join(directory, "test.db"));
+
+    try {
+      await migrateToLatest(database);
+      await createServerStore(database).select({
+        baseUrl: "https://emby.example.com/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 20,
+        name: "Home Emby",
+        serverId: "server-1",
+        supportsHttps: true,
+        version: "4.8.11.0",
+      });
+      const store = createAuthSessionStore(database, {
+        sessionSecret: "test-session-secret-with-32-characters",
+        tokenEncryptionKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      });
+      const user = {
+        name: "Alex",
+        permissions: {
+          canDownload: true,
+          canManageServer: false,
+          isAdministrator: false,
+        },
+        serverId: "server-1",
+        userId: "user-1",
+      };
+      await store.create({ accessToken: "token-1", user });
+      await store.create({ accessToken: "token-2", user });
+
+      const revoked = await store.revokeServerSessions("server-1");
+      expect(revoked.map((session) => session.accessToken)).toEqual([
+        "token-1",
+        "token-2",
+      ]);
+      await store.create({ accessToken: "expired-token", user });
+      await database
+        .updateTable("authSessions")
+        .set({ expiresAt: "2000-01-01T00:00:00.000Z" })
+        .where("revokedAt", "is", null)
+        .execute();
+
+      await expect(store.pruneInactive()).resolves.toBe(3);
+      await expect(
+        database.selectFrom("authSessions").selectAll().execute(),
+      ).resolves.toEqual([]);
+    } finally {
+      await database.destroy();
+    }
+  });
 });

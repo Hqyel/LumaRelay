@@ -52,3 +52,7 @@ export function navigationForUser(user: UserProfile): SideNavigationItem[] {
   });
   return items;
 }
+
+export function adminRedirectForUser(user: UserProfile): "/" | null {
+  return user.permissions.isAdministrator ? null : "/";
+}
