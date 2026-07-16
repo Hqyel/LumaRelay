@@ -10,16 +10,19 @@ import {
   type LoginRequest,
   type PublicUser,
   type ServerSummary,
+  type UserProfile,
 } from "@newemby/contracts";
 import {
   EmbyAuthError,
   EmbyProbeError,
   authenticateUser as authenticateEmbyUser,
+  getAuthenticatedUser as getEmbyAuthenticatedUser,
   listPublicUsers,
   loadPublicUserAvatar,
   probeEmbyServer,
   type PublicUserAvatar,
   type AuthenticateUserResult,
+  type CurrentUserRequest,
 } from "@newemby/emby-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
@@ -49,6 +52,10 @@ export interface BuildAppOptions {
     userId: string,
   ) => Promise<PublicUserAvatar>;
   getPublicUsers?: (baseUrl: string) => Promise<PublicUser[]>;
+  getAuthenticatedUser?: (
+    baseUrl: string,
+    input: CurrentUserRequest,
+  ) => Promise<UserProfile>;
   logger?: boolean;
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
@@ -193,6 +200,91 @@ export async function buildApp(
         requestId: request.id,
         server: await serverStore.getCurrent(),
       };
+    },
+  });
+
+  app.get(ApiRoutes.currentUser.url, {
+    schema: ApiRoutes.currentUser.schema,
+    async handler(request, reply) {
+      const server = await serverStore.getCurrent();
+      if (server === null)
+        return reply
+          .status(409)
+          .send(
+            errorEnvelope(
+              "SERVER_NOT_SELECTED",
+              "Select an Emby server before loading a session",
+              request.id,
+            ),
+          );
+
+      const cookieToken = request.cookies.newemby_session;
+      if (cookieToken === undefined || options.authSessionStore === undefined)
+        return reply
+          .status(401)
+          .send(
+            errorEnvelope("UNAUTHENTICATED", "Sign in to continue", request.id),
+          );
+
+      const session = await options.authSessionStore.find(cookieToken);
+      if (session === null || session.user.serverId !== server.serverId) {
+        void reply.clearCookie("newemby_session", { path: "/" });
+        return reply
+          .status(401)
+          .send(
+            errorEnvelope(
+              "UNAUTHENTICATED",
+              "The NewEmby session has expired",
+              request.id,
+            ),
+          );
+      }
+
+      try {
+        const deviceId = await options.authSessionStore.getDeviceId();
+        const user = await (
+          options.getAuthenticatedUser ?? getEmbyAuthenticatedUser
+        )(server.baseUrl, {
+          accessToken: session.accessToken,
+          deviceId,
+          serverId: server.serverId,
+          userId: session.user.userId,
+        });
+        await options.authSessionStore.updateUser(session.sessionId, user);
+
+        return { requestId: request.id, server, user };
+      } catch (error) {
+        const authError =
+          error instanceof EmbyAuthError
+            ? error
+            : new EmbyAuthError(
+                "unreachable",
+                "Emby user refresh failed unexpectedly",
+                { cause: error },
+              );
+
+        if (authError.kind === "unauthorized") {
+          await options.authSessionStore.revoke(cookieToken);
+          void reply.clearCookie("newemby_session", { path: "/" });
+          return reply
+            .status(401)
+            .send(
+              errorEnvelope(
+                "UNAUTHENTICATED",
+                "The Emby session has expired",
+                request.id,
+              ),
+            );
+        }
+
+        const response =
+          authError.kind === "timeout"
+            ? ({ code: "SERVER_TIMEOUT", statusCode: 408 } as const)
+            : ({ code: "AUTH_UPSTREAM_ERROR", statusCode: 502 } as const);
+        return reply
+          .status(response.statusCode)
+          .send(errorEnvelope(response.code, authError.message, request.id));
+      }
     },
   });
 

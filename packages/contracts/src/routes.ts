@@ -4,6 +4,7 @@ import {
   LoginResponseSchema,
   PublicUserAvatarParamsSchema,
   PublicUsersResponseSchema,
+  SessionResponseSchema,
 } from "./auth.js";
 import { HealthResponseSchema } from "./health.js";
 import {
@@ -37,6 +38,19 @@ export const ApiRoutes = {
         408: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,
         429: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  currentUser: {
+    method: "GET",
+    url: `${API_PREFIX}/auth/me`,
+    schema: {
+      response: {
+        200: SessionResponseSchema,
+        401: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
         502: ErrorEnvelopeSchema,
       },
     },

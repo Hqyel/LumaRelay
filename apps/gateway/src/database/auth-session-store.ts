@@ -37,6 +37,7 @@ export interface AuthSessionStore {
   find(cookieToken: string): Promise<StoredAuthSession | null>;
   getDeviceId(): Promise<string>;
   revoke(cookieToken: string): Promise<void>;
+  updateUser(sessionId: string, user: UserProfile): Promise<void>;
 }
 
 function encryptionKey(value: string): Buffer {
@@ -188,6 +189,18 @@ export function createAuthSessionStore(
         .updateTable("authSessions")
         .set({ revokedAt: new Date().toISOString() })
         .where("secretHash", "=", hashSecret(cookieToken, config.sessionSecret))
+        .execute();
+    },
+
+    async updateUser(sessionId: string, user: UserProfile): Promise<void> {
+      await database
+        .updateTable("authSessions")
+        .set({
+          permissionsJson: JSON.stringify(user.permissions),
+          primaryImageTag: user.primaryImageTag ?? null,
+          userName: user.name,
+        })
+        .where("id", "=", sessionId)
         .execute();
     },
   };

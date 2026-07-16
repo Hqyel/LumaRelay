@@ -239,6 +239,7 @@ describe("Gateway application", () => {
       find: vi.fn(),
       getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
       revoke: vi.fn(),
+      updateUser: vi.fn(),
     };
     const app = await buildApp({
       authSessionStore,
@@ -282,6 +283,113 @@ describe("Gateway application", () => {
     );
   });
 
+  it("refreshes the current user without exposing session secrets", async () => {
+    const refreshedUser = {
+      name: "Alex",
+      permissions: {
+        canDownload: true,
+        canManageServer: true,
+        isAdministrator: true,
+      },
+      serverId: "server-id",
+      userId: "user-1",
+    };
+    const authSessionStore = {
+      create: vi.fn(),
+      find: vi.fn().mockResolvedValue({
+        accessToken: "emby-secret-token",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        sessionId: "session-id",
+        user: refreshedUser,
+      }),
+      getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
+      revoke: vi.fn(),
+      updateUser: vi.fn(),
+    };
+    const getAuthenticatedUser = vi.fn().mockResolvedValue(refreshedUser);
+    const app = await buildApp({
+      authSessionStore,
+      config: loadConfig({ NODE_ENV: "test" }),
+      getAuthenticatedUser,
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=browser-session-token" },
+      method: "GET",
+      url: "/api/v1/auth/me",
+    });
+    const serialized = JSON.stringify(response.json());
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().user.permissions.isAdministrator).toBe(true);
+    expect(serialized).not.toContain("emby-secret-token");
+    expect(getAuthenticatedUser).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ accessToken: "emby-secret-token" }),
+    );
+    expect(authSessionStore.updateUser).toHaveBeenCalledWith(
+      "session-id",
+      refreshedUser,
+    );
+  });
+
+  it("rejects an absent NewEmby session", async () => {
+    const app = await buildApp({
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/me",
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().error.code).toBe("UNAUTHENTICATED");
+  });
+
+  it("requires a selected server before reading the current user", async () => {
+    const app = await createTestApp();
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/me",
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe("SERVER_NOT_SELECTED");
+  });
+
   it("rejects login requests from an untrusted origin", async () => {
     const authenticateUser = vi.fn();
     const app = await buildApp({
@@ -315,6 +423,7 @@ describe("Gateway application", () => {
         find: vi.fn(),
         getDeviceId: vi.fn().mockResolvedValue("gateway-device-id"),
         revoke: vi.fn(),
+        updateUser: vi.fn(),
       },
       authenticateUser,
       config: loadConfig({ NODE_ENV: "test" }),

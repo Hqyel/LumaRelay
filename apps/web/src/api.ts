@@ -5,6 +5,7 @@ import type {
   LoginResponse,
   ProbeServerResponse,
   PublicUsersResponse,
+  SessionResponse,
 } from "@newemby/contracts";
 
 export class ApiError extends Error {
@@ -42,6 +43,10 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
 
 export function getCurrentServer(): Promise<CurrentServerResponse> {
   return requestJson("/api/v1/servers/current");
+}
+
+export function getCurrentUser(): Promise<SessionResponse> {
+  return requestJson("/api/v1/auth/me");
 }
 
 export function getPublicUsers(): Promise<PublicUsersResponse> {

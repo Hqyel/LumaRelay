@@ -1,32 +1,23 @@
-import { AppShell, type SideNavigationItem } from "@newemby/ui";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import {
-  Film,
-  Heart,
-  Home,
-  Library,
-  ListVideo,
-  Search,
-  Settings,
-  Shield,
-  Tv,
-} from "lucide-react";
+import type { UserProfile } from "@newemby/contracts";
+import { AppShell } from "@newemby/ui";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Search } from "lucide-react";
 
+import { getCurrentUser } from "../api.js";
+import { authRedirectForError, navigationForUser } from "../auth-routing.js";
 import { useUiStore } from "../stores/ui-store.js";
 
-const navigation: SideNavigationItem[] = [
-  { active: true, href: "/", icon: <Home size={20} />, label: "首页" },
-  { href: "/movies", icon: <Film size={20} />, label: "电影" },
-  { href: "/series", icon: <Tv size={20} />, label: "剧集" },
-  { href: "/libraries", icon: <Library size={20} />, label: "媒体库" },
-  { href: "/favorites", icon: <Heart size={20} />, label: "收藏" },
-  { href: "/playlists", icon: <ListVideo size={20} />, label: "播放列表" },
-  { href: "/search", icon: <Search size={20} />, label: "搜索" },
-  { href: "/admin", icon: <Shield size={20} />, label: "管理后台" },
-  { href: "/settings", icon: <Settings size={20} />, label: "设置" },
-];
+const sessionQuery = {
+  queryFn: getCurrentUser,
+  queryKey: ["auth", "me"],
+  retry: false,
+  staleTime: 30_000,
+} as const;
 
-function HeaderActions() {
+function HeaderActions({ user }: { user: UserProfile }) {
+  const initials = user.name.slice(0, 2).toUpperCase();
+
   return (
     <>
       <button
@@ -41,11 +32,12 @@ function HeaderActions() {
         Bridge 未连接
       </span>
       <button
-        aria-label="打开用户菜单"
+        aria-label={`打开 ${user.name} 的用户菜单`}
         className="grid size-9 place-items-center rounded-full bg-surface text-small font-semibold"
+        title={user.name}
         type="button"
       >
-        NE
+        {initials}
       </button>
     </>
   );
@@ -53,12 +45,15 @@ function HeaderActions() {
 
 function FrontAppLayout() {
   const expandedNavigation = useUiStore((state) => state.navigationExpanded);
+  const { data: session } = useQuery(sessionQuery);
+
+  if (session === undefined) return null;
 
   return (
     <AppShell
       expandedNavigation={expandedNavigation}
-      headerActions={<HeaderActions />}
-      navigation={navigation}
+      headerActions={<HeaderActions user={session.user} />}
+      navigation={navigationForUser(session.user)}
       title="首页"
     >
       <Outlet />
@@ -67,5 +62,14 @@ function FrontAppLayout() {
 }
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: async ({ context }) => {
+    try {
+      await context.queryClient.ensureQueryData(sessionQuery);
+    } catch (error) {
+      const target = authRedirectForError(error);
+      if (target !== null) throw redirect({ to: target });
+      throw error;
+    }
+  },
   component: FrontAppLayout,
 });

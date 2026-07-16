@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getCurrentServer,
+  getCurrentUser,
   getPublicUsers,
   login,
   selectServer,
@@ -28,6 +29,45 @@ describe("Web Gateway client", () => {
     await expect(getCurrentServer()).resolves.toMatchObject({ server: null });
     expect(fetcher).toHaveBeenCalledWith(
       "/api/v1/servers/current",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("reads the authenticated user only through the Gateway", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          requestId: "request-2",
+          server: {
+            baseUrl: "https://emby.example.com/",
+            capabilityFlags: { ping: true, publicInfo: true },
+            latencyMs: 10,
+            name: "Home Emby",
+            serverId: "server-1",
+            supportsHttps: true,
+            version: "4.8.11.0",
+          },
+          user: {
+            name: "Alex",
+            permissions: {
+              canDownload: true,
+              canManageServer: true,
+              isAdministrator: true,
+            },
+            serverId: "server-1",
+            userId: "user-1",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(getCurrentUser()).resolves.toMatchObject({
+      user: { userId: "user-1" },
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/v1/auth/me",
       expect.objectContaining({ credentials: "include" }),
     );
   });

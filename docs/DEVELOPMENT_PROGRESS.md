@@ -33,7 +33,7 @@
 |---|---|---:|---:|---|
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
-| M1 | 媒体浏览 MVP | 进行中 | 5/28 | 带 M0 外部阻塞进入 |
+| M1 | 媒体浏览 MVP | 进行中 | 6/28 | 带 M0 外部阻塞进入 |
 | M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
@@ -184,7 +184,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M1-003` Gateway 实现用户名密码认证代理。
 - [x] `M1-004` 使用 HttpOnly Cookie 建立 NewEmby 会话。
 - [x] `M1-005` 加密保存 Emby AccessToken。
-- [ ] `M1-006` 实现当前用户、权限和管理员能力探测。
+- [x] `M1-006` 实现当前用户、权限和管理员能力探测。
 - [ ] `M1-007` 实现退出、Token 撤销和 401 统一恢复流程。
 
 ### 6.2 Emby 领域适配
@@ -475,7 +475,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；下一项为 `M1-006`。
+- 暂无；下一项为 `M1-007`。
 
 ### 阻塞
 
@@ -488,7 +488,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 执行 `M1-006` 当前用户、权限和管理员能力探测。
+1. 执行 `M1-007` 退出、Token 撤销和 401 统一恢复流程。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
@@ -512,6 +512,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | M1-006 | 完成 | 已实现 `/auth/me`、Emby 用户与权限刷新、会话权限持久化、未选服务器/未登录路由守卫和管理员能力导航；Emby Client 15 项、Gateway 18 项、Web 8 项测试及根级 format/check/build/smoke 全部通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-007 |
+| 2026-07-16 | M1-006 | 进行中 | 正在实现会话读取、Emby 用户状态刷新、路由守卫和管理员能力导航 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | 完成当前用户能力验证 |
 | 2026-07-16 | M1-003～M1-005 | 完成 | 已实现 Emby 认证代理、精确 Origin 校验、IP/用户名十分钟五次限流、HttpOnly 会话、Cookie HMAC 摘要及 AES-256-GCM Token 存储；Contracts 5 项、Emby Client 12 项、Gateway 15 项、Web 5 项测试及类型/lint/格式检查通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-006 |
 | 2026-07-16 | M1-003～M1-005 | 进行中 | 正在原子实现 Emby 认证代理、限流、Origin 校验、HttpOnly Cookie 与 AES-256-GCM Token 存储 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | 完成安全认证闭环验证 |
 | 2026-07-16 | M1-002 | 完成 | 已实现公共用户领域映射、头像二进制代理、服务器状态、用户卡片及登录表单的加载/空/错误状态；Emby Client 10 项、Gateway 11 项、Web 4 项及根级 check/build 通过 | `packages/contracts/src/auth.ts`, `packages/emby-client/src/public-users.ts`, `apps/web/src/routes/login.tsx` | M1-003～M1-005 |
