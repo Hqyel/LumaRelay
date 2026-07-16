@@ -1,10 +1,11 @@
-import { BrandMark, Button, ErrorState, Input } from "@newemby/ui";
+import { Button, ErrorState, Input } from "@newemby/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Server } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { ApiError, getCurrentServer, selectServer } from "../api.js";
+import { AuthShell } from "../components/auth-shell.js";
 
 const ERROR_MESSAGES: Record<string, string> = {
   SERVER_NOT_ALLOWED: "该服务器不在部署允许列表中。",
@@ -57,24 +58,15 @@ function ConnectPage() {
         : undefined;
 
   return (
-    <main className="grid min-h-screen place-items-center bg-bg px-5 py-12 text-text">
-      <section className="w-full max-w-xl rounded-panel border border-border bg-surface p-6 shadow-panel sm:p-10">
-        <div className="mb-8 flex items-center gap-4">
-          <BrandMark className="size-12 text-accent" title="NewEmby" />
-          <div>
-            <p className="text-small font-semibold text-accent-hover">
-              NewEmby
-            </p>
-            <h1 className="text-h2 font-semibold">连接媒体服务器</h1>
-          </div>
-        </div>
-
-        <p className="mb-7 text-body text-text-muted">
+    <AuthShell>
+      <div className="auth-form">
+        <h1 className="auth-form-title">连接媒体服务器</h1>
+        <p className="auth-form-description">
           首版只连接部署允许列表中的一个 Emby 服务器。
         </p>
 
         {currentServer.isError ? (
-          <div className="mb-6">
+          <div className="auth-inline-state">
             <ErrorState
               action={
                 <Button
@@ -90,7 +82,7 @@ function ConnectPage() {
           </div>
         ) : null}
 
-        <form className="grid gap-5" onSubmit={handleSubmit}>
+        <form className="grid gap-4" onSubmit={handleSubmit}>
           <Input
             autoComplete="url"
             disabled={currentServer.isLoading || selection.isPending}
@@ -101,10 +93,15 @@ function ConnectPage() {
             onChange={(event) => setBaseUrl(event.target.value)}
             required
             spellCheck={false}
+            className="auth-input"
             type="url"
             value={baseUrl}
           />
-          <Button disabled={selection.isPending} type="submit">
+          <Button
+            className="auth-primary-button w-full"
+            disabled={selection.isPending}
+            type="submit"
+          >
             <Server aria-hidden="true" size={18} />
             {selection.isPending ? "正在探测…" : "连接服务器"}
           </Button>
@@ -112,7 +109,7 @@ function ConnectPage() {
 
         {currentServer.data?.server === undefined ||
         currentServer.data.server === null ? null : (
-          <div className="mt-6 flex gap-3 rounded-control border border-success/25 bg-success/10 p-4">
+          <div className="auth-server-success">
             <CheckCircle2
               aria-hidden="true"
               className="mt-0.5 shrink-0 text-success"
@@ -127,8 +124,8 @@ function ConnectPage() {
             </div>
           </div>
         )}
-      </section>
-    </main>
+      </div>
+    </AuthShell>
   );
 }
 

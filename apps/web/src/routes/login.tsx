@@ -1,17 +1,11 @@
-import {
-  BrandMark,
-  Button,
-  EmptyState,
-  ErrorState,
-  Input,
-  Skeleton,
-} from "@newemby/ui";
+import { Button, ErrorState, Input, Skeleton } from "@newemby/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LogIn, Server, UserRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { ApiError, getCurrentServer, getPublicUsers, login } from "../api.js";
+import { AuthShell } from "../components/auth-shell.js";
 
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   AUTH_INVALID_CREDENTIALS: "用户名或密码不正确。",
@@ -26,16 +20,16 @@ function UserAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }) {
     return (
       <img
         alt=""
-        className="size-14 rounded-full object-cover"
+        className="size-11 rounded-full object-cover"
         loading="lazy"
         src={avatarUrl}
-        height={56}
-        width={56}
+        height={44}
+        width={44}
       />
     );
 
   return (
-    <span className="grid size-14 place-items-center rounded-full bg-surface-hover text-h3 font-semibold text-text-muted">
+    <span className="grid size-11 place-items-center rounded-full bg-white/5 text-body font-semibold text-text-muted">
       {name.slice(0, 1).toUpperCase()}
     </span>
   );
@@ -78,22 +72,17 @@ function LoginPage() {
         : undefined;
 
   return (
-    <main className="min-h-screen bg-bg px-5 py-10 text-text">
-      <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="rounded-panel border border-border bg-surface p-6 shadow-panel sm:p-9">
-          <div className="mb-8 flex items-center gap-4">
-            <BrandMark className="size-12 text-accent" title="NewEmby" />
-            <div>
-              <p className="text-small font-semibold text-accent-hover">
-                NewEmby
-              </p>
-              <h1 className="text-h2 font-semibold">登录媒体服务器</h1>
-            </div>
-          </div>
+    <AuthShell>
+      <div className="auth-form">
+        <h1 className="auth-form-title">登录媒体服务器</h1>
+        <p className="auth-form-description">
+          选择公共用户，或直接输入 Emby 用户名和密码。
+        </p>
 
-          {currentServer.isLoading ? (
-            <Skeleton className="mb-7 h-16" />
-          ) : currentServer.isError ? (
+        {currentServer.isLoading ? (
+          <Skeleton className="h-16 rounded-[12px]" />
+        ) : currentServer.isError ? (
+          <div className="auth-inline-state">
             <ErrorState
               action={
                 <Button
@@ -106,7 +95,9 @@ function LoginPage() {
               description="请检查 Gateway 是否可用。"
               title="无法读取当前服务器"
             />
-          ) : server === null || server === undefined ? (
+          </div>
+        ) : server === null || server === undefined ? (
+          <div className="auth-inline-state">
             <ErrorState
               action={
                 <Button asChild variant="secondary">
@@ -117,111 +108,109 @@ function LoginPage() {
               icon={<Server size={22} />}
               title="尚未连接服务器"
             />
-          ) : (
-            <>
-              <div className="mb-7 rounded-control border border-border bg-bg-elevated p-4">
-                <p className="font-semibold">{server.name}</p>
-                <p className="mt-1 text-small text-text-muted">
-                  Emby {server.version} · {server.baseUrl}
-                </p>
-              </div>
-
-              <form className="grid gap-5" onSubmit={handleSubmit}>
-                <Input
-                  autoComplete="username"
-                  disabled={authentication.isPending}
-                  label="用户名"
-                  name="username"
-                  onChange={(event) => setUsername(event.target.value)}
-                  required
-                  spellCheck={false}
-                  value={username}
-                />
-                <Input
-                  autoComplete="current-password"
-                  disabled={authentication.isPending}
-                  error={loginError}
-                  label="密码"
-                  name="password"
-                  onChange={(event) => setPassword(event.target.value)}
-                  type="password"
-                  value={password}
-                />
-                <Button
-                  disabled={authentication.isPending || username.trim() === ""}
-                  type="submit"
-                >
-                  <LogIn aria-hidden="true" size={18} />
-                  {authentication.isPending ? "正在登录…" : "登录"}
-                </Button>
-              </form>
-            </>
-          )}
-        </section>
-
-        <section className="rounded-panel border border-border bg-surface p-6 shadow-panel sm:p-9">
-          <div className="mb-6">
-            <h2 className="text-h3 font-semibold">选择公共用户</h2>
-            <p className="mt-2 text-body text-text-muted">
-              这里只显示服务器管理员允许公开展示的用户。
-            </p>
           </div>
+        ) : (
+          <>
+            <Link className="auth-server-info" to="/connect">
+              <Server aria-hidden="true" className="text-accent" size={24} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">
+                  {server.name}
+                </span>
+                <span className="block truncate text-label text-text-muted">
+                  Emby {server.version} · {server.baseUrl}
+                </span>
+              </span>
+              <span className="text-small font-medium text-accent-hover">
+                更换
+              </span>
+            </Link>
 
-          {currentServer.isError ? (
-            <ErrorState
-              description="恢复服务器状态后再读取公共用户。"
-              title="公共用户暂不可用"
-            />
-          ) : server === null || server === undefined ? (
-            <EmptyState
-              description="连接服务器后会显示允许公开展示的用户。"
-              icon={<UserRound size={22} />}
-              title="等待连接服务器"
-            />
-          ) : publicUsers.isLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              {Array.from({ length: 4 }, (_, index) => (
-                <Skeleton className="h-28" key={index} />
-              ))}
+            <div>
+              <p className="mb-2 text-small font-medium text-text-muted">
+                公共用户
+              </p>
+              {publicUsers.isLoading ? (
+                <div className="flex gap-3">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <Skeleton
+                      className="size-20 shrink-0 rounded-[12px]"
+                      key={index}
+                    />
+                  ))}
+                </div>
+              ) : publicUsers.isError ? (
+                <div className="auth-compact-error" role="alert">
+                  无法读取公共用户，请检查服务器连接。
+                  <button
+                    className="font-semibold text-accent-hover"
+                    onClick={() => void publicUsers.refetch()}
+                    type="button"
+                  >
+                    重试
+                  </button>
+                </div>
+              ) : publicUsers.data?.users.length === 0 ? (
+                <div className="auth-empty-users">
+                  <UserRound aria-hidden="true" size={18} />
+                  没有公开用户，请直接输入用户名。
+                </div>
+              ) : (
+                <div className="auth-user-list">
+                  {publicUsers.data?.users.map((user) => (
+                    <button
+                      aria-pressed={username === user.name}
+                      className="auth-user-button"
+                      key={user.userId}
+                      onClick={() => setUsername(user.name)}
+                      type="button"
+                    >
+                      <UserAvatar avatarUrl={user.avatarUrl} name={user.name} />
+                      <span className="max-w-20 truncate text-small font-medium">
+                        {user.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : publicUsers.isError ? (
-            <ErrorState
-              action={
-                <Button
-                  onClick={() => publicUsers.refetch()}
-                  variant="secondary"
-                >
-                  重试
-                </Button>
-              }
-              description="请检查 Gateway 与 Emby 服务器连接。"
-              title="无法读取公共用户"
-            />
-          ) : publicUsers.data?.users.length === 0 ? (
-            <EmptyState
-              description="可以直接在左侧输入用户名和密码。"
-              icon={<UserRound size={22} />}
-              title="没有公开用户"
-            />
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {publicUsers.data?.users.map((user) => (
-                <button
-                  aria-pressed={username === user.name}
-                  className="grid min-h-32 place-items-center gap-3 rounded-control border border-border bg-bg-elevated p-4 text-center hover:border-accent/55 hover:bg-surface-hover aria-pressed:border-accent aria-pressed:bg-accent/10"
-                  key={user.userId}
-                  onClick={() => setUsername(user.name)}
-                  type="button"
-                >
-                  <UserAvatar avatarUrl={user.avatarUrl} name={user.name} />
-                  <span className="font-semibold">{user.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+
+            <form className="grid gap-4" onSubmit={handleSubmit}>
+              <Input
+                autoComplete="username"
+                className="auth-input"
+                disabled={authentication.isPending}
+                label="用户名"
+                name="username"
+                onChange={(event) => setUsername(event.target.value)}
+                required
+                spellCheck={false}
+                value={username}
+              />
+              <Input
+                autoComplete="current-password"
+                className="auth-input"
+                disabled={authentication.isPending}
+                error={loginError}
+                label="密码"
+                name="password"
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                value={password}
+              />
+              <Button
+                className="auth-primary-button w-full"
+                disabled={authentication.isPending || username.trim() === ""}
+                type="submit"
+              >
+                <LogIn aria-hidden="true" size={18} />
+                {authentication.isPending ? "正在登录…" : "登录"}
+              </Button>
+            </form>
+          </>
+        )}
       </div>
-    </main>
+    </AuthShell>
   );
 }
 

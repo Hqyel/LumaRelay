@@ -142,6 +142,10 @@ test("login page is accessible by keyboard and matches its baseline", async ({
   await expect(page.getByRole("button", { name: "Alex" })).toBeVisible();
 
   await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: /Home Emby/ })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Alex" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByLabel("用户名")).toBeFocused();
   await page
     .getByLabel("用户名")
