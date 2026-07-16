@@ -2,11 +2,18 @@ import {
   MediaCardSchema,
   MediaDetailSchema,
   MediaLibrarySchema,
+  EpisodeSummarySchema,
+  PersonSummarySchema,
+  SeasonSummarySchema,
+  type EpisodeSummary,
   type MediaCard,
   type MediaDetail,
   type MediaKind,
   type MediaLibrary,
   type MediaLibraryKind,
+  type PersonKind,
+  type PersonSummary,
+  type SeasonSummary,
 } from "@newemby/contracts";
 import { z } from "zod";
 
@@ -27,14 +34,20 @@ export const EmbyBaseItemDtoSchema = z.object({
   Id: z.string().min(1),
   ImageTags: z.record(z.string(), z.string()).nullish(),
   Name: z.string().min(1),
+  IndexNumber: z.number().int().nonnegative().nullish(),
   OfficialRating: z.string().nullish(),
   OriginalTitle: z.string().nullish(),
   Overview: z.string().nullish(),
   ParentId: z.string().nullish(),
+  ParentIndexNumber: z.number().int().nonnegative().nullish(),
   PremiereDate: z.string().nullish(),
   ProductionYear: z.number().int().nonnegative().nullish(),
+  PrimaryImageTag: z.string().nullish(),
+  Role: z.string().nullish(),
   RunTimeTicks: z.number().int().nonnegative().nullish(),
   SeriesName: z.string().nullish(),
+  SeriesId: z.string().nullish(),
+  SeasonId: z.string().nullish(),
   Taglines: z.array(z.string()).nullish(),
   Type: z.string().min(1),
   UserData: EmbyUserDataDtoSchema.nullish(),
@@ -87,6 +100,25 @@ function libraryKind(type: string | null | undefined): MediaLibraryKind {
       return "photos";
     case "books":
       return "books";
+    default:
+      return "unknown";
+  }
+}
+
+function personKind(type: string): PersonKind {
+  switch (type.toLowerCase()) {
+    case "actor":
+      return "actor";
+    case "director":
+      return "director";
+    case "writer":
+      return "writer";
+    case "producer":
+      return "producer";
+    case "composer":
+      return "composer";
+    case "gueststar":
+      return "guestStar";
     default:
       return "unknown";
   }
@@ -150,5 +182,59 @@ export function toMediaDetail(
     overview: nonEmpty(dto.Overview),
     premiereDate: nonEmpty(dto.PremiereDate),
     tagline: nonEmpty(dto.Taglines?.find((tagline) => tagline.trim() !== "")),
+  });
+}
+
+export function toSeasonSummary(
+  dto: EmbyBaseItemDto,
+  serverId: string,
+): SeasonSummary {
+  return SeasonSummarySchema.parse({
+    indexNumber: dto.IndexNumber ?? undefined,
+    isPlayed: dto.UserData?.Played === true,
+    name: dto.Name,
+    primaryImageTag: nonEmpty(dto.ImageTags?.Primary),
+    seasonId: dto.Id,
+    seriesId: nonEmpty(dto.SeriesId),
+    serverId,
+    unplayedEpisodeCount: dto.UserData?.UnplayedItemCount ?? 0,
+  });
+}
+
+export function toEpisodeSummary(
+  dto: EmbyBaseItemDto,
+  serverId: string,
+): EpisodeSummary {
+  return EpisodeSummarySchema.parse({
+    episodeId: dto.Id,
+    episodeNumber: dto.IndexNumber ?? undefined,
+    isPlayed: dto.UserData?.Played === true,
+    name: dto.Name,
+    overview: nonEmpty(dto.Overview),
+    playbackPositionSeconds:
+      ticksToSeconds(dto.UserData?.PlaybackPositionTicks) ?? 0,
+    premiereDate: nonEmpty(dto.PremiereDate),
+    primaryImageTag: nonEmpty(dto.ImageTags?.Primary),
+    runtimeSeconds: ticksToSeconds(dto.RunTimeTicks),
+    seasonId: nonEmpty(dto.SeasonId),
+    seasonNumber: dto.ParentIndexNumber ?? undefined,
+    seriesId: nonEmpty(dto.SeriesId),
+    seriesName: nonEmpty(dto.SeriesName),
+    serverId,
+  });
+}
+
+export function toPersonSummary(
+  dto: EmbyBaseItemDto,
+  serverId: string,
+): PersonSummary {
+  return PersonSummarySchema.parse({
+    kind: personKind(dto.Type),
+    name: dto.Name,
+    personId: dto.Id,
+    primaryImageTag:
+      nonEmpty(dto.PrimaryImageTag) ?? nonEmpty(dto.ImageTags?.Primary),
+    role: nonEmpty(dto.Role),
+    serverId,
   });
 }

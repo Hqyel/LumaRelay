@@ -58,8 +58,59 @@ export const MediaDetailSchema = MediaCardSchema.extend({
   tagline: z.string().min(1).optional(),
 });
 
+export const SeasonSummarySchema = z.object({
+  indexNumber: z.number().int().nonnegative().optional(),
+  isPlayed: z.boolean(),
+  name: z.string().min(1),
+  primaryImageTag: z.string().min(1).optional(),
+  seasonId: z.string().min(1),
+  seriesId: z.string().min(1).optional(),
+  serverId: z.string().min(1),
+  unplayedEpisodeCount: z.number().int().nonnegative(),
+});
+
+export const EpisodeSummarySchema = z.object({
+  episodeId: z.string().min(1),
+  episodeNumber: z.number().int().nonnegative().optional(),
+  isPlayed: z.boolean(),
+  name: z.string().min(1),
+  overview: z.string().min(1).optional(),
+  playbackPositionSeconds: z.number().int().nonnegative(),
+  premiereDate: z.iso.datetime().optional(),
+  primaryImageTag: z.string().min(1).optional(),
+  runtimeSeconds: z.number().int().nonnegative().optional(),
+  seasonId: z.string().min(1).optional(),
+  seasonNumber: z.number().int().nonnegative().optional(),
+  seriesId: z.string().min(1).optional(),
+  seriesName: z.string().min(1).optional(),
+  serverId: z.string().min(1),
+});
+
+export const PersonKindSchema = z.enum([
+  "actor",
+  "director",
+  "writer",
+  "producer",
+  "composer",
+  "guestStar",
+  "unknown",
+]);
+
+export const PersonSummarySchema = z.object({
+  kind: PersonKindSchema,
+  name: z.string().min(1),
+  personId: z.string().min(1),
+  primaryImageTag: z.string().min(1).optional(),
+  role: z.string().min(1).optional(),
+  serverId: z.string().min(1),
+});
+
 export type MediaKind = z.infer<typeof MediaKindSchema>;
 export type MediaLibraryKind = z.infer<typeof MediaLibraryKindSchema>;
 export type MediaLibrary = z.infer<typeof MediaLibrarySchema>;
 export type MediaCard = z.infer<typeof MediaCardSchema>;
 export type MediaDetail = z.infer<typeof MediaDetailSchema>;
+export type SeasonSummary = z.infer<typeof SeasonSummarySchema>;
+export type EpisodeSummary = z.infer<typeof EpisodeSummarySchema>;
+export type PersonKind = z.infer<typeof PersonKindSchema>;
+export type PersonSummary = z.infer<typeof PersonSummarySchema>;

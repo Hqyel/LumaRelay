@@ -2,15 +2,21 @@ import {
   MediaCardSchema,
   MediaDetailSchema,
   MediaLibrarySchema,
+  EpisodeSummarySchema,
+  PersonSummarySchema,
+  SeasonSummarySchema,
 } from "@newemby/contracts";
 import { describe, expect, it } from "vitest";
 
 import {
   EmbyBaseItemDtoSchema,
   ticksToSeconds,
+  toEpisodeSummary,
   toMediaCard,
   toMediaDetail,
   toMediaLibrary,
+  toPersonSummary,
+  toSeasonSummary,
 } from "./media-adapters.js";
 
 describe("Emby media domain adapters", () => {
@@ -107,5 +113,77 @@ describe("Emby media domain adapters", () => {
       playbackPositionSeconds: 0,
     });
     expect(ticksToSeconds(undefined)).toBeUndefined();
+  });
+
+  it("maps season state and unplayed episode count", () => {
+    const dto = EmbyBaseItemDtoSchema.parse({
+      Id: "season-1",
+      ImageTags: { Primary: "season-poster" },
+      IndexNumber: 1,
+      Name: "Season 1",
+      SeriesId: "series-1",
+      Type: "Season",
+      UserData: { Played: false, UnplayedItemCount: 3 },
+    });
+    const season = toSeasonSummary(dto, "server-1");
+
+    expect(season).toMatchObject({
+      indexNumber: 1,
+      seasonId: "season-1",
+      seriesId: "series-1",
+      unplayedEpisodeCount: 3,
+    });
+    expect(SeasonSummarySchema.safeParse(season).success).toBe(true);
+  });
+
+  it("maps episode numbering, duration, and playback position", () => {
+    const dto = EmbyBaseItemDtoSchema.parse({
+      Id: "episode-1",
+      IndexNumber: 4,
+      Name: "Fixture Episode",
+      Overview: "Episode overview.",
+      ParentIndexNumber: 2,
+      PlaybackPositionTicks: 1_000_000_000,
+      RunTimeTicks: 3_600_000_000,
+      SeasonId: "season-2",
+      SeriesId: "series-1",
+      SeriesName: "Fixture Series",
+      Type: "Episode",
+      UserData: {
+        Played: false,
+        PlaybackPositionTicks: 1_000_000_000,
+      },
+    });
+    const episode = toEpisodeSummary(dto, "server-1");
+
+    expect(episode).toMatchObject({
+      episodeNumber: 4,
+      playbackPositionSeconds: 100,
+      runtimeSeconds: 360,
+      seasonNumber: 2,
+      seriesName: "Fixture Series",
+    });
+    expect(EpisodeSummarySchema.safeParse(episode).success).toBe(true);
+  });
+
+  it("maps person role and primary image tag", () => {
+    const dto = EmbyBaseItemDtoSchema.parse({
+      Id: "person-1",
+      Name: "Fixture Actor",
+      PrimaryImageTag: "person-image",
+      Role: "Lead",
+      Type: "Actor",
+    });
+    const person = toPersonSummary(dto, "server-1");
+
+    expect(person).toEqual({
+      kind: "actor",
+      name: "Fixture Actor",
+      personId: "person-1",
+      primaryImageTag: "person-image",
+      role: "Lead",
+      serverId: "server-1",
+    });
+    expect(PersonSummarySchema.safeParse(person).success).toBe(true);
   });
 });
