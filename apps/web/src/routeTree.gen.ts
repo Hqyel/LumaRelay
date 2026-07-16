@@ -16,7 +16,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppSeriesRouteImport } from './routes/_app.series'
 import { Route as AppMoviesRouteImport } from './routes/_app.movies'
+import { Route as AppLibrariesRouteImport } from './routes/_app.libraries'
 import { Route as AppHomeRouteImport } from './routes/_app.home'
+import { Route as AppLibraryLibraryIdRouteImport } from './routes/_app.library.$libraryId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -52,9 +54,19 @@ const AppMoviesRoute = AppMoviesRouteImport.update({
   path: '/movies',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLibrariesRoute = AppLibrariesRouteImport.update({
+  id: '/libraries',
+  path: '/libraries',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppHomeRoute = AppHomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLibraryLibraryIdRoute = AppLibraryLibraryIdRouteImport.update({
+  id: '/library/$libraryId',
+  path: '/library/$libraryId',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -64,17 +76,21 @@ export interface FileRoutesByFullPath {
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/home': typeof AppHomeRoute
+  '/libraries': typeof AppLibrariesRoute
   '/movies': typeof AppMoviesRoute
   '/series': typeof AppSeriesRoute
+  '/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/home': typeof AppHomeRoute
+  '/libraries': typeof AppLibrariesRoute
   '/movies': typeof AppMoviesRoute
   '/series': typeof AppSeriesRoute
   '/': typeof AppIndexRoute
+  '/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,16 +99,35 @@ export interface FileRoutesById {
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
   '/_app/home': typeof AppHomeRoute
+  '/_app/libraries': typeof AppLibrariesRoute
   '/_app/movies': typeof AppMoviesRoute
   '/_app/series': typeof AppSeriesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/library/$libraryId': typeof AppLibraryLibraryIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/connect' | '/login' | '/home' | '/movies' | '/series'
+    | '/'
+    | '/admin'
+    | '/connect'
+    | '/login'
+    | '/home'
+    | '/libraries'
+    | '/movies'
+    | '/series'
+    | '/library/$libraryId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/admin' | '/connect' | '/login' | '/home' | '/movies' | '/series' | '/'
+  to:
+    | '/admin'
+    | '/connect'
+    | '/login'
+    | '/home'
+    | '/libraries'
+    | '/movies'
+    | '/series'
+    | '/'
+    | '/library/$libraryId'
   id:
     | '__root__'
     | '/_app'
@@ -100,9 +135,11 @@ export interface FileRouteTypes {
     | '/connect'
     | '/login'
     | '/_app/home'
+    | '/_app/libraries'
     | '/_app/movies'
     | '/_app/series'
     | '/_app/'
+    | '/_app/library/$libraryId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoviesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/libraries': {
+      id: '/_app/libraries'
+      path: '/libraries'
+      fullPath: '/libraries'
+      preLoaderRoute: typeof AppLibrariesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/home': {
       id: '/_app/home'
       path: '/home'
@@ -170,21 +214,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHomeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/library/$libraryId': {
+      id: '/_app/library/$libraryId'
+      path: '/library/$libraryId'
+      fullPath: '/library/$libraryId'
+      preLoaderRoute: typeof AppLibraryLibraryIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppHomeRoute: typeof AppHomeRoute
+  AppLibrariesRoute: typeof AppLibrariesRoute
   AppMoviesRoute: typeof AppMoviesRoute
   AppSeriesRoute: typeof AppSeriesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppLibraryLibraryIdRoute: typeof AppLibraryLibraryIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
+  AppLibrariesRoute: AppLibrariesRoute,
   AppMoviesRoute: AppMoviesRoute,
   AppSeriesRoute: AppSeriesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppLibraryLibraryIdRoute: AppLibraryLibraryIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

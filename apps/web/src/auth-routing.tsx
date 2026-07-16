@@ -47,7 +47,7 @@ export function navigationForUser(
       label: "剧集",
     },
     {
-      disabled: true,
+      active: pathname === "/libraries" || pathname.startsWith("/library/"),
       href: "/libraries",
       icon: <Library size={20} />,
       label: "媒体库",

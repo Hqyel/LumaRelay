@@ -45,3 +45,20 @@ export function seriesQuery(page: number) {
     staleTime: 60_000,
   });
 }
+
+export function libraryItemsQuery(libraryId: string, page: number) {
+  const limit = 40;
+  return queryOptions({
+    queryFn: () =>
+      getMediaItems({
+        kind: ["movie", "series", "video"],
+        libraryId,
+        limit,
+        sortBy: "name",
+        sortOrder: "ascending",
+        startIndex: (page - 1) * limit,
+      }),
+    queryKey: ["media", "library", libraryId, { page }],
+    staleTime: 60_000,
+  });
+}

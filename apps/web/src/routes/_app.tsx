@@ -80,6 +80,18 @@ function renderNavigationLink({
       </Link>
     );
 
+  if (item.href === "/libraries")
+    return (
+      <Link
+        aria-current={item.active ? "page" : undefined}
+        aria-label={item.label}
+        className={className}
+        to="/libraries"
+      >
+        {children}
+      </Link>
+    );
+
   return <span className={className}>{children}</span>;
 }
 
@@ -162,7 +174,13 @@ function FrontAppLayout() {
 
   if (session === undefined) return null;
   const title =
-    pathname === "/movies" ? "电影" : pathname === "/series" ? "剧集" : "首页";
+    pathname === "/movies"
+      ? "电影"
+      : pathname === "/series"
+        ? "剧集"
+        : pathname === "/libraries" || pathname.startsWith("/library/")
+          ? "媒体库"
+          : "首页";
 
   return (
     <AppShell

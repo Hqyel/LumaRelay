@@ -206,13 +206,32 @@ export function registerMediaRoutes(
     async handler(request, reply) {
       const context = await mediaContext(request, reply, dependencies);
       if (context === null) return;
+      const query = request.query as MediaItemsQuery;
 
       try {
+        if (query.libraryId !== undefined) {
+          const libraries = await (
+            dependencies.getLibraries ?? getMediaLibraries
+          )(context.baseUrl, context.input);
+          if (
+            !libraries.some((library) => library.libraryId === query.libraryId)
+          )
+            return reply
+              .status(403)
+              .send(
+                errorEnvelope(
+                  "ACCESS_DENIED",
+                  "This media library is not available",
+                  request.id,
+                ),
+              );
+        }
+
         return {
           ...(await (dependencies.getItems ?? getMediaItems)(
             context.baseUrl,
             context.input,
-            request.query as MediaItemsQuery,
+            query,
           )),
           requestId: request.id,
         };

@@ -151,4 +151,40 @@ describe("authenticated media routes", () => {
       expect.objectContaining({ kind: "movie", startIndex: 40 }),
     );
   });
+
+  it("rejects a library ID outside the current user's views", async () => {
+    const getItems = vi.fn();
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: {
+        getItems,
+        getLibraries: vi.fn().mockResolvedValue([]),
+      },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=session-cookie" },
+      method: "GET",
+      url: "/api/v1/media/items?libraryId=hidden-library",
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe("ACCESS_DENIED");
+    expect(getItems).not.toHaveBeenCalled();
+  });
 });
