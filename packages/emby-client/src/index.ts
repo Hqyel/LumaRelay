@@ -3,6 +3,7 @@ export * from "./authentication.js";
 export * from "./current-user.js";
 export * from "./errors.js";
 export * from "./fixture-safety.js";
+export * from "./image.js";
 export * from "./logout.js";
 export * from "./probe.js";
 export * from "./public-users.js";
