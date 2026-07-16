@@ -5,9 +5,17 @@ import {
   ApiRoutes,
   OpenApiInfo,
   type HealthResponse,
+  type PublicUser,
   type ServerSummary,
 } from "@newemby/contracts";
-import { EmbyProbeError, probeEmbyServer } from "@newemby/emby-client";
+import {
+  EmbyAuthError,
+  EmbyProbeError,
+  listPublicUsers,
+  loadPublicUserAvatar,
+  probeEmbyServer,
+  type PublicUserAvatar,
+} from "@newemby/emby-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -25,10 +33,31 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export interface BuildAppOptions {
   config: GatewayConfig;
+  getPublicUserAvatar?: (
+    baseUrl: string,
+    userId: string,
+  ) => Promise<PublicUserAvatar>;
+  getPublicUsers?: (baseUrl: string) => Promise<PublicUser[]>;
   logger?: boolean;
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
   version?: string;
+}
+
+function authErrorResponse(error: EmbyAuthError): {
+  code: "AUTH_UPSTREAM_ERROR" | "NOT_FOUND" | "SERVER_TIMEOUT";
+  statusCode: 404 | 408 | 502;
+} {
+  switch (error.kind) {
+    case "not-found":
+      return { code: "NOT_FOUND", statusCode: 404 };
+    case "timeout":
+      return { code: "SERVER_TIMEOUT", statusCode: 408 };
+    case "invalid-response":
+    case "unauthorized":
+    case "unreachable":
+      return { code: "AUTH_UPSTREAM_ERROR", statusCode: 502 };
+  }
 }
 
 function probeErrorResponse(error: EmbyProbeError): {
@@ -130,6 +159,87 @@ export async function buildApp(
         requestId: request.id,
         server: await serverStore.getCurrent(),
       };
+    },
+  });
+
+  app.get(ApiRoutes.publicUsers.url, {
+    schema: ApiRoutes.publicUsers.schema,
+    async handler(request, reply) {
+      const server = await serverStore.getCurrent();
+
+      if (server === null)
+        return reply
+          .status(409)
+          .send(
+            errorEnvelope(
+              "SERVER_NOT_SELECTED",
+              "Select an Emby server before loading users",
+              request.id,
+            ),
+          );
+
+      try {
+        const users = await (options.getPublicUsers ?? listPublicUsers)(
+          server.baseUrl,
+        );
+        return { requestId: request.id, users };
+      } catch (error) {
+        const authError =
+          error instanceof EmbyAuthError
+            ? error
+            : new EmbyAuthError(
+                "unreachable",
+                "Emby public user request failed unexpectedly",
+                { cause: error },
+              );
+        const response = authErrorResponse(authError);
+        return reply
+          .status(response.statusCode)
+          .send(errorEnvelope(response.code, authError.message, request.id));
+      }
+    },
+  });
+
+  app.get(ApiRoutes.publicUserAvatar.url, {
+    schema: ApiRoutes.publicUserAvatar.schema,
+    async handler(request, reply) {
+      const server = await serverStore.getCurrent();
+
+      if (server === null)
+        return reply
+          .status(409)
+          .send(
+            errorEnvelope(
+              "SERVER_NOT_SELECTED",
+              "Select an Emby server before loading an avatar",
+              request.id,
+            ),
+          );
+
+      try {
+        const avatar = await (
+          options.getPublicUserAvatar ?? loadPublicUserAvatar
+        )(server.baseUrl, request.params.userId);
+
+        void reply.type(avatar.contentType);
+        if (avatar.cacheControl !== undefined)
+          void reply.header("cache-control", avatar.cacheControl);
+        if (avatar.etag !== undefined) void reply.header("etag", avatar.etag);
+        return reply.send(Buffer.from(avatar.body));
+      } catch (error) {
+        const authError =
+          error instanceof EmbyAuthError
+            ? error
+            : new EmbyAuthError(
+                "unreachable",
+                "Emby avatar request failed unexpectedly",
+                { cause: error },
+              );
+        const response = authErrorResponse(authError);
+        return reply
+          .status(response.statusCode)
+          .send(errorEnvelope(response.code, authError.message, request.id));
+      }
     },
   });
 

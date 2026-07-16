@@ -2,6 +2,7 @@ import type {
   CurrentServerResponse,
   ErrorEnvelope,
   ProbeServerResponse,
+  PublicUsersResponse,
 } from "@newemby/contracts";
 
 export class ApiError extends Error {
@@ -39,6 +40,10 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
 
 export function getCurrentServer(): Promise<CurrentServerResponse> {
   return requestJson("/api/v1/servers/current");
+}
+
+export function getPublicUsers(): Promise<PublicUsersResponse> {
+  return requestJson("/api/v1/auth/public-users");
 }
 
 export function selectServer(baseUrl: string): Promise<ProbeServerResponse> {

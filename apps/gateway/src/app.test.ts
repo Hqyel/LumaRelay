@@ -166,4 +166,57 @@ describe("Gateway application", () => {
     expect(current.json().server.serverId).toBe("server-id");
     expect(current.json().configuredBaseUrl).toBe("http://127.0.0.1:8096/");
   });
+
+  it("returns public users and proxies avatar bytes", async () => {
+    const getPublicUsers = vi.fn().mockResolvedValue([
+      {
+        avatarUrl: "/api/v1/auth/public-users/user-1/avatar",
+        hasPassword: true,
+        name: "Alex",
+        primaryImageTag: "image-tag",
+        userId: "user-1",
+      },
+    ]);
+    const getPublicUserAvatar = vi.fn().mockResolvedValue({
+      body: new Uint8Array([1, 2, 3]),
+      contentType: "image/png",
+      etag: "image-tag",
+    });
+    const app = await buildApp({
+      config: loadConfig({ NODE_ENV: "test" }),
+      getPublicUserAvatar,
+      getPublicUsers,
+      logger: false,
+      probeServer: vi.fn().mockResolvedValue({
+        baseUrl: "http://127.0.0.1:8096/",
+        capabilityFlags: { ping: true, publicInfo: true },
+        latencyMs: 15,
+        name: "Home Emby",
+        serverId: "server-id",
+        supportsHttps: false,
+        version: "4.8.11.0",
+      }),
+    });
+    apps.push(app);
+    await app.inject({
+      method: "POST",
+      payload: { baseUrl: "http://127.0.0.1:8096" },
+      url: "/api/v1/servers/select",
+    });
+
+    const users = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/public-users",
+    });
+    const avatar = await app.inject({
+      method: "GET",
+      url: "/api/v1/auth/public-users/user-1/avatar",
+    });
+
+    expect(users.statusCode).toBe(200);
+    expect(users.json().users[0].name).toBe("Alex");
+    expect(avatar.statusCode).toBe(200);
+    expect(avatar.headers["content-type"]).toBe("image/png");
+    expect(avatar.rawPayload).toEqual(Buffer.from([1, 2, 3]));
+  });
 });

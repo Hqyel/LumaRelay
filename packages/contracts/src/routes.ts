@@ -18,6 +18,26 @@ export const ApiRoutes = {
       },
     },
   },
+  publicUsers: {
+    method: "GET",
+    url: `${API_PREFIX}/auth/public-users`,
+    schema: {
+      response: {
+        200: PublicUsersResponseSchema,
+        404: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  publicUserAvatar: {
+    method: "GET",
+    url: `${API_PREFIX}/auth/public-users/:userId/avatar`,
+    schema: {
+      params: PublicUserAvatarParamsSchema,
+    },
+  },
   currentServer: {
     method: "GET",
     url: `${API_PREFIX}/servers/current`,
@@ -67,3 +87,7 @@ export const OpenApiInfo = {
     description: "Shared API contract for NewEmby Web and Player Bridge.",
   },
 } as const;
+import {
+  PublicUserAvatarParamsSchema,
+  PublicUsersResponseSchema,
+} from "./auth.js";
