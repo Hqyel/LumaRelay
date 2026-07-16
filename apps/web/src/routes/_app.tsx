@@ -7,6 +7,7 @@ import {
   Link,
   Outlet,
   redirect,
+  useRouterState,
 } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import type { ReactNode } from "react";
@@ -18,7 +19,7 @@ import { useUiStore } from "../stores/ui-store.js";
 
 function renderHomeLink(children: ReactNode, className: string) {
   return (
-    <Link aria-label="NewEmby 首页" className={className} to="/">
+    <Link aria-label="NewEmby 首页" className={className} to="/home">
       {children}
     </Link>
   );
@@ -41,16 +42,19 @@ function renderNavigationLink({
       </Link>
     );
 
-  return (
-    <Link
-      aria-current={item.active ? "page" : undefined}
-      aria-label={item.label}
-      className={className}
-      to="/"
-    >
-      {children}
-    </Link>
-  );
+  if (item.href === "/home")
+    return (
+      <Link
+        aria-current={item.active ? "page" : undefined}
+        aria-label={item.label}
+        className={className}
+        to="/home"
+      >
+        {children}
+      </Link>
+    );
+
+  return <span className={className}>{children}</span>;
 }
 
 function HeaderActions({ user }: { user: UserProfile }) {
@@ -126,6 +130,9 @@ function HeaderActions({ user }: { user: UserProfile }) {
 function FrontAppLayout() {
   const expandedNavigation = useUiStore((state) => state.navigationExpanded);
   const { data: session } = useQuery(sessionQuery);
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
 
   if (session === undefined) return null;
 
@@ -133,7 +140,7 @@ function FrontAppLayout() {
     <AppShell
       expandedNavigation={expandedNavigation}
       headerActions={<HeaderActions user={session.user} />}
-      navigation={navigationForUser(session.user)}
+      navigation={navigationForUser(session.user, pathname)}
       renderHomeLink={renderHomeLink}
       renderNavigationLink={renderNavigationLink}
       title="首页"

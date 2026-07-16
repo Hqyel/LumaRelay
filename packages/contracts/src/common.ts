@@ -17,6 +17,9 @@ export const ErrorCodeSchema = z.enum([
   "RATE_LIMITED",
   "ORIGIN_NOT_ALLOWED",
   "CSRF_INVALID",
+  "ACCESS_DENIED",
+  "MEDIA_NOT_FOUND",
+  "EMBY_WRITE_FAILED",
   "INTERNAL_ERROR",
 ]);
 

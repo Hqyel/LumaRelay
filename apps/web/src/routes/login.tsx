@@ -59,7 +59,7 @@ function LoginPage() {
   const authentication = useMutation({
     mutationFn: login,
     async onSuccess() {
-      await navigate({ to: "/" });
+      await navigate({ to: "/home" });
     },
   });
 

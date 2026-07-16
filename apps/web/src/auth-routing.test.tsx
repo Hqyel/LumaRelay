@@ -46,7 +46,7 @@ describe("authenticated application navigation", () => {
   });
 
   it("redirects non-administrators away from the management shell", () => {
-    expect(adminRedirectForUser(user(false))).toBe("/");
+    expect(adminRedirectForUser(user(false))).toBe("/home");
     expect(adminRedirectForUser(user(true))).toBeNull();
   });
 });

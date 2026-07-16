@@ -4,6 +4,7 @@ import {
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
   HealthResponseSchema,
+  MediaHomeResponseSchema,
   ProbeServerRequestSchema,
   ProbeServerResponseSchema,
 } from "./index.js";
@@ -67,5 +68,19 @@ describe("shared API contracts", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty authenticated media home", () => {
+    expect(
+      MediaHomeResponseSchema.safeParse({
+        favoriteItems: [],
+        genreRows: [],
+        hero: null,
+        latestMovies: [],
+        latestSeries: [],
+        requestId: "request-media-home",
+        resumeItems: [],
+      }).success,
+    ).toBe(true);
   });
 });

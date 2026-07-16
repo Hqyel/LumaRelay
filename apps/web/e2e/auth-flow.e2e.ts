@@ -21,6 +21,16 @@ const user = {
   userId: "user-1",
 };
 
+const mediaHome = {
+  favoriteItems: [],
+  genreRows: [],
+  hero: null,
+  latestMovies: [],
+  latestSeries: [],
+  requestId: "request-home",
+  resumeItems: [],
+};
+
 test("connects, signs in, restores the session, and signs out", async ({
   page,
 }) => {
@@ -111,6 +121,10 @@ test("connects, signs in, restores the session, and signs out", async ({
       });
       return;
     }
+    if (path === "/api/v1/media/home" && method === "GET") {
+      await route.fulfill({ json: mediaHome });
+      return;
+    }
 
     await route.abort();
   });
@@ -123,7 +137,7 @@ test("connects, signs in, restores the session, and signs out", async ({
   await page.getByRole("button", { name: "Alex" }).click();
   await page.getByLabel("密码").fill("correct-password");
   await page.getByRole("button", { exact: true, name: "登录" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/home$/);
   await expect(page.getByRole("heading", { name: "首页" })).toBeVisible();
 
   await page.reload();
@@ -181,8 +195,8 @@ test("redirects a non-administrator away from the admin shell", async ({
   });
 
   await page.goto("/admin");
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/home$/);
   await expect(
-    page.getByRole("heading", { exact: true, name: "NewEmby" }),
+    page.getByRole("heading", { exact: true, name: "首页" }),
   ).toBeVisible();
 });

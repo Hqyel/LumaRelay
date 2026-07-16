@@ -44,6 +44,10 @@ import {
 import type { AuthSessionStore } from "./database/auth-session-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
+import {
+  registerMediaRoutes,
+  type MediaRouteDependencies,
+} from "./media-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -71,6 +75,10 @@ export interface BuildAppOptions {
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
   version?: string;
+  media?: Omit<
+    MediaRouteDependencies,
+    "authSessionStore" | "config" | "serverStore"
+  >;
 }
 
 function loginErrorResponse(error: EmbyAuthError): {
@@ -620,6 +628,13 @@ export async function buildApp(
       await serverStore.select(server);
       return { requestId: request.id, server };
     },
+  });
+
+  registerMediaRoutes(app, {
+    ...options.media,
+    authSessionStore: options.authSessionStore,
+    config: options.config,
+    serverStore,
   });
 
   registerNotFoundHandler(app);

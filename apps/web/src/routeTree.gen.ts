@@ -14,6 +14,7 @@ import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppHomeRouteImport } from './routes/_app.home'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -39,17 +40,24 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppHomeRoute = AppHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/admin': typeof AdminRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
+  '/home': typeof AppHomeRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
+  '/home': typeof AppHomeRoute
   '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -58,14 +66,22 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/connect': typeof ConnectRoute
   '/login': typeof LoginRoute
+  '/_app/home': typeof AppHomeRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/connect' | '/login'
+  fullPaths: '/' | '/admin' | '/connect' | '/login' | '/home'
   fileRoutesByTo: FileRoutesByTo
-  to: '/admin' | '/connect' | '/login' | '/'
-  id: '__root__' | '/_app' | '/admin' | '/connect' | '/login' | '/_app/'
+  to: '/admin' | '/connect' | '/login' | '/home' | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/admin'
+    | '/connect'
+    | '/login'
+    | '/_app/home'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -112,14 +128,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/home': {
+      id: '/_app/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppHomeRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppHomeRoute: typeof AppHomeRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppHomeRoute: AppHomeRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

@@ -22,6 +22,36 @@ const user = {
   userId: "user-1",
 };
 
+const mediaItem = {
+  backdropImageTag: undefined,
+  communityRating: 8.4,
+  isFavorite: true,
+  isPlayed: false,
+  itemId: "movie-1",
+  kind: "movie",
+  officialRating: "PG-13",
+  playbackPositionSeconds: 0,
+  primaryImageTag: undefined,
+  productionYear: 2026,
+  runtimeSeconds: 7200,
+  serverId: "server-1",
+  title: "星海归途",
+};
+
+const mediaHome = {
+  favoriteItems: [mediaItem],
+  genreRows: [],
+  hero: {
+    ...mediaItem,
+    genres: ["科幻"],
+    overview: "穿越群星之后，一名旅人重新寻找属于自己的家园。",
+  },
+  latestMovies: [mediaItem],
+  latestSeries: [],
+  requestId: "request-home",
+  resumeItems: [],
+};
+
 async function mockPageApi(page: Page, selected: boolean) {
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -49,6 +79,10 @@ async function mockPageApi(page: Page, selected: boolean) {
       await route.fulfill({
         json: { requestId: "request-me", server, user },
       });
+      return;
+    }
+    if (path === "/api/v1/media/home") {
+      await route.fulfill({ json: mediaHome });
       return;
     }
 
@@ -104,7 +138,7 @@ test("application shell is accessible and matches its baseline", async ({
   page,
 }) => {
   await mockPageApi(page, true);
-  await page.goto("/");
+  await page.goto("/home");
   await expect(page.getByRole("heading", { name: "首页" })).toBeVisible();
 
   await page.keyboard.press("Tab");

@@ -1,0 +1,234 @@
+import {
+  ApiRoutes,
+  type MediaHomeResponse,
+  type MediaLibrary,
+} from "@newemby/contracts";
+import {
+  EmbyMediaError,
+  getMediaHome,
+  getMediaLibraries,
+  loadAuthenticatedImage,
+  type AuthenticatedImage,
+  type AuthenticatedImageRequest,
+  type AuthenticatedMediaRequest,
+} from "@newemby/emby-client";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+
+import type { GatewayConfig } from "./config.js";
+import type { AuthSessionStore } from "./database/auth-session-store.js";
+import type { ServerStore } from "./database/server-store.js";
+import { errorEnvelope } from "./errors.js";
+
+interface MediaContext {
+  baseUrl: string;
+  input: AuthenticatedMediaRequest;
+}
+
+export interface MediaRouteDependencies {
+  authSessionStore?: AuthSessionStore;
+  config: GatewayConfig;
+  getHome?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+  ) => Promise<Omit<MediaHomeResponse, "requestId">>;
+  getLibraries?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+  ) => Promise<MediaLibrary[]>;
+  loadImage?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    request: AuthenticatedImageRequest,
+  ) => Promise<AuthenticatedImage>;
+  serverStore: ServerStore;
+}
+
+async function mediaContext(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  dependencies: MediaRouteDependencies,
+): Promise<MediaContext | null> {
+  const server = await dependencies.serverStore.getCurrent();
+  if (server === null) {
+    await reply
+      .status(409)
+      .send(
+        errorEnvelope(
+          "SERVER_NOT_SELECTED",
+          "Select an Emby server before loading media",
+          request.id,
+        ),
+      );
+    return null;
+  }
+
+  const cookieToken = request.cookies.newemby_session;
+  if (
+    cookieToken === undefined ||
+    dependencies.authSessionStore === undefined
+  ) {
+    await reply
+      .status(401)
+      .send(
+        errorEnvelope("UNAUTHENTICATED", "Sign in to continue", request.id),
+      );
+    return null;
+  }
+
+  const session = await dependencies.authSessionStore.find(cookieToken);
+  if (session === null || session.user.serverId !== server.serverId) {
+    if (session !== null)
+      await dependencies.authSessionStore.revoke(cookieToken);
+    void reply.clearCookie("newemby_session", { path: "/" });
+    await reply
+      .status(401)
+      .send(
+        errorEnvelope(
+          "UNAUTHENTICATED",
+          "The NewEmby session has expired",
+          request.id,
+        ),
+      );
+    return null;
+  }
+
+  return {
+    baseUrl: server.baseUrl,
+    input: {
+      accessToken: session.accessToken,
+      deviceId: await dependencies.authSessionStore.getDeviceId(),
+      serverId: server.serverId,
+      userId: session.user.userId,
+    },
+  };
+}
+
+async function mediaFailure(
+  error: unknown,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  dependencies: MediaRouteDependencies,
+): Promise<void> {
+  const mediaError =
+    error instanceof EmbyMediaError
+      ? error
+      : new EmbyMediaError("unreachable", "The Emby media request failed", {
+          cause: error,
+        });
+
+  if (mediaError.kind === "unauthorized") {
+    const cookieToken = request.cookies.newemby_session;
+    if (
+      cookieToken !== undefined &&
+      dependencies.authSessionStore !== undefined
+    )
+      await dependencies.authSessionStore.revoke(cookieToken);
+    void reply.clearCookie("newemby_session", { path: "/" });
+    await reply
+      .status(401)
+      .send(
+        errorEnvelope(
+          "UNAUTHENTICATED",
+          "The Emby session has expired",
+          request.id,
+        ),
+      );
+    return;
+  }
+
+  const response =
+    mediaError.kind === "forbidden"
+      ? ({ code: "ACCESS_DENIED", status: 403 } as const)
+      : mediaError.kind === "not-found"
+        ? ({ code: "MEDIA_NOT_FOUND", status: 404 } as const)
+        : mediaError.kind === "timeout"
+          ? ({ code: "SERVER_TIMEOUT", status: 408 } as const)
+          : ({ code: "SERVER_UNREACHABLE", status: 502 } as const);
+  await reply
+    .status(response.status)
+    .send(errorEnvelope(response.code, mediaError.message, request.id));
+}
+
+export function registerMediaRoutes(
+  app: FastifyInstance,
+  dependencies: MediaRouteDependencies,
+): void {
+  app.get(ApiRoutes.mediaLibraries.url, {
+    schema: ApiRoutes.mediaLibraries.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          libraries: await (dependencies.getLibraries ?? getMediaLibraries)(
+            context.baseUrl,
+            context.input,
+          ),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.mediaHome.url, {
+    schema: ApiRoutes.mediaHome.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.getHome ?? getMediaHome)(
+            context.baseUrl,
+            context.input,
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.mediaImage.url, {
+    schema: ApiRoutes.mediaImage.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+      const params = request.params as {
+        imageType: AuthenticatedImageRequest["imageType"];
+        itemId: string;
+      };
+      const query = request.query as {
+        dpr: 1 | 2;
+        index?: number;
+        preset: AuthenticatedImageRequest["preset"];
+        tag: string;
+      };
+
+      try {
+        const image = await (dependencies.loadImage ?? loadAuthenticatedImage)(
+          context.baseUrl,
+          context.input,
+          {
+            ...params,
+            ...query,
+            imageTag: query.tag,
+          },
+        );
+        void reply.type(image.contentType);
+        void reply.header(
+          "cache-control",
+          "private, max-age=31536000, immutable",
+        );
+        if (image.etag !== undefined) void reply.header("etag", image.etag);
+        return reply.send(Buffer.from(image.body));
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+}

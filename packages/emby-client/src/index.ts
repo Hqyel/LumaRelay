@@ -7,6 +7,7 @@ export * from "./fixture-safety.js";
 export * from "./image.js";
 export * from "./logout.js";
 export * from "./media-adapters.js";
+export * from "./media-api.js";
 export * from "./probe.js";
 export * from "./public-users.js";
 export * from "./url.js";

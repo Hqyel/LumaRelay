@@ -23,9 +23,17 @@ export function authRedirectForError(
   return null;
 }
 
-export function navigationForUser(user: UserProfile): SideNavigationItem[] {
+export function navigationForUser(
+  user: UserProfile,
+  pathname = "/home",
+): SideNavigationItem[] {
   const items: SideNavigationItem[] = [
-    { active: true, href: "/", icon: <Home size={20} />, label: "首页" },
+    {
+      active: pathname === "/home",
+      href: "/home",
+      icon: <Home size={20} />,
+      label: "首页",
+    },
     {
       disabled: true,
       href: "/movies",
@@ -75,6 +83,6 @@ export function navigationForUser(user: UserProfile): SideNavigationItem[] {
   return items;
 }
 
-export function adminRedirectForUser(user: UserProfile): "/" | null {
-  return user.permissions.isAdministrator ? null : "/";
+export function adminRedirectForUser(user: UserProfile): "/home" | null {
+  return user.permissions.isAdministrator ? null : "/home";
 }

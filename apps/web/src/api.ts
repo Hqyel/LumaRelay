@@ -5,6 +5,8 @@ import type {
   LoginRequest,
   LoginResponse,
   LogoutResponse,
+  MediaHomeResponse,
+  MediaLibrariesResponse,
   ProbeServerResponse,
   PublicUsersResponse,
   SessionResponse,
@@ -120,6 +122,32 @@ export function getCurrentUser(): Promise<SessionResponse> {
 
 export function getPublicUsers(): Promise<PublicUsersResponse> {
   return requestJson("/api/v1/auth/public-users");
+}
+
+export function getMediaHome(): Promise<MediaHomeResponse> {
+  return requestJson("/api/v1/media/home");
+}
+
+export function getMediaLibraries(): Promise<MediaLibrariesResponse> {
+  return requestJson("/api/v1/media/libraries");
+}
+
+export function mediaImageUrl(input: {
+  dpr?: 1 | 2;
+  imageType: "primary" | "backdrop" | "logo" | "thumb";
+  itemId: string;
+  preset: "poster" | "card" | "hero" | "avatar" | "logo";
+  tag?: string;
+}): string | undefined {
+  if (input.tag === undefined) return undefined;
+  const url = new URL(
+    `/api/v1/media/items/${encodeURIComponent(input.itemId)}/images/${input.imageType}`,
+    window.location.origin,
+  );
+  url.searchParams.set("dpr", String(input.dpr ?? 1));
+  url.searchParams.set("preset", input.preset);
+  url.searchParams.set("tag", input.tag);
+  return `${url.pathname}${url.search}`;
 }
 
 export function login(credentials: LoginRequest): Promise<LoginResponse> {

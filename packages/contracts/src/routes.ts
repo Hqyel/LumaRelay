@@ -10,6 +10,25 @@ import {
 import { HealthResponseSchema } from "./health.js";
 import { CsrfResponseSchema } from "./security.js";
 import {
+  EpisodesResponseSchema,
+  FavoriteRequestSchema,
+  MediaHomeResponseSchema,
+  MediaImageParamsSchema,
+  MediaImageQuerySchema,
+  MediaItemParamsSchema,
+  MediaItemResponseSchema,
+  MediaItemsQuerySchema,
+  MediaLibrariesResponseSchema,
+  MediaSearchQuerySchema,
+  MediaSearchResponseSchema,
+  MediaUserStateResponseSchema,
+  PlayedRequestSchema,
+  SeriesEpisodesQuerySchema,
+  SeriesParamsSchema,
+  SeasonsResponseSchema,
+  PagedMediaResponseSchema,
+} from "./media-api.js";
+import {
   CurrentServerResponseSchema,
   ProbeServerRequestSchema,
   ProbeServerResponseSchema,
@@ -33,6 +52,151 @@ export const ApiRoutes = {
     schema: {
       response: {
         200: HealthResponseSchema,
+      },
+    },
+  },
+  mediaLibraries: {
+    method: "GET",
+    url: `${API_PREFIX}/media/libraries`,
+    schema: {
+      response: {
+        200: MediaLibrariesResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaHome: {
+    method: "GET",
+    url: `${API_PREFIX}/media/home`,
+    schema: {
+      response: {
+        200: MediaHomeResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaItems: {
+    method: "GET",
+    url: `${API_PREFIX}/media/items`,
+    schema: {
+      querystring: MediaItemsQuerySchema,
+      response: {
+        200: PagedMediaResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaSearch: {
+    method: "GET",
+    url: `${API_PREFIX}/media/search`,
+    schema: {
+      querystring: MediaSearchQuerySchema,
+      response: {
+        200: MediaSearchResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaItem: {
+    method: "GET",
+    url: `${API_PREFIX}/media/items/:itemId`,
+    schema: {
+      params: MediaItemParamsSchema,
+      response: {
+        200: MediaItemResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaImage: {
+    method: "GET",
+    url: `${API_PREFIX}/media/items/:itemId/images/:imageType`,
+    schema: {
+      params: MediaImageParamsSchema,
+      querystring: MediaImageQuerySchema,
+    },
+  },
+  mediaFavorite: {
+    method: "PUT",
+    url: `${API_PREFIX}/media/items/:itemId/favorite`,
+    schema: {
+      body: FavoriteRequestSchema,
+      params: MediaItemParamsSchema,
+      response: {
+        200: MediaUserStateResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  mediaPlayed: {
+    method: "PUT",
+    url: `${API_PREFIX}/media/items/:itemId/played`,
+    schema: {
+      body: PlayedRequestSchema,
+      params: MediaItemParamsSchema,
+      response: {
+        200: MediaUserStateResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  seriesSeasons: {
+    method: "GET",
+    url: `${API_PREFIX}/media/series/:seriesId/seasons`,
+    schema: {
+      params: SeriesParamsSchema,
+      response: {
+        200: SeasonsResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  seriesEpisodes: {
+    method: "GET",
+    url: `${API_PREFIX}/media/series/:seriesId/episodes`,
+    schema: {
+      params: SeriesParamsSchema,
+      querystring: SeriesEpisodesQuerySchema,
+      response: {
+        200: EpisodesResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
       },
     },
   },
