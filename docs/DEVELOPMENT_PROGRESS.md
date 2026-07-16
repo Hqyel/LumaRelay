@@ -33,7 +33,7 @@
 |---|---|---:|---:|---|
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
-| M1 | 媒体浏览 MVP | 进行中 | 8/28 | 带 M0 外部阻塞进入 |
+| M1 | 媒体浏览 MVP | 进行中 | 9/28 | 带 M0 外部阻塞进入 |
 | M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
@@ -190,7 +190,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 ### 6.2 Emby 领域适配
 
 - [x] `M1-008` 实现 UserProfile 和 ServerSummary 适配。
-- [ ] `M1-009` 实现 MediaLibrary、MediaCard 和 MediaDetail 适配。
+- [x] `M1-009` 实现 MediaLibrary、MediaCard 和 MediaDetail 适配。
 - [ ] `M1-010` 实现 SeasonSummary、EpisodeSummary 和 PersonSummary 适配。
 - [ ] `M1-011` 实现图片 URL 构造、Image Tag 和尺寸策略。
 - [ ] `M1-012` 实现能力探测和 Emby 版本记录。
@@ -475,7 +475,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 暂无；下一项为 `M1-009`。
+- 暂无；下一项为 `M1-010`。
 
 ### 阻塞
 
@@ -488,7 +488,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 执行 `M1-009` MediaLibrary、MediaCard 和 MediaDetail 适配。
+1. 执行 `M1-010` SeasonSummary、EpisodeSummary 和 PersonSummary 适配。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 4. 提供目标 Emby 公网地址，执行只读探测 smoke test。
@@ -512,6 +512,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-16 | M1-009 | 完成 | 已新增 `MediaLibrary`、`MediaCard`、`MediaDetail` 共享契约及 BaseItemDto 纯适配器，稳定映射媒体类型、图片标签、用户观看状态、评分、年份、时长、简介与流派并隔离 Emby 原始字段；Emby Client 25 项及根级 format/check/build/smoke 全部通过 | `packages/contracts/src/media.ts`, `packages/emby-client/src/media-adapters.ts` | M1-010 |
+| 2026-07-16 | M1-009 | 进行中 | 正在定义媒体库、媒体卡和媒体详情领域契约，并实现 BaseItemDto 到稳定模型的转换 | `packages/contracts`, `packages/emby-client` | 完成媒体领域适配验证 |
 | 2026-07-16 | M1-008 | 完成 | 已抽取统一 Emby PublicInfo/User DTO Schema 与纯领域适配器，探测、登录和会话刷新共用 `ServerSummary`/`UserProfile` 转换；覆盖 URL、HTTPS、延迟取整、管理员/下载能力、空策略和原始字段隔离，Emby Client 21 项及根级 format/check/build/smoke 全部通过 | `packages/emby-client/src/domain-adapters.ts`, `probe.ts`, `authentication.ts`, `current-user.ts` | M1-009 |
 | 2026-07-16 | M1-008 | 进行中 | 正在抽取可复用的 Emby Server/User DTO 校验与领域模型转换，统一探测、登录和会话刷新路径 | `packages/contracts`, `packages/emby-client` | 完成领域适配验证 |
 | 2026-07-16 | M1-007 | 完成 | 已实现本地优先会话撤销、Emby `/Sessions/Logout` 尽力注销、上游 401/403 会话失效、精确 Origin 校验、前端用户菜单与统一未认证恢复；Emby Client 17 项、Gateway 22 项、Web 10 项单测、Playwright 认证闭环 1/1、`verify:local`、smoke 和迁移 up/down/up 全部通过 | `packages/contracts`, `packages/emby-client`, `apps/gateway`, `apps/web` | M1-008 |
