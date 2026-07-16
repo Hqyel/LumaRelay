@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getMediaHome, getMediaLibraries } from "./media-api.js";
+import { getMediaHome, getMediaItems, getMediaLibraries } from "./media-api.js";
 
 const input = {
   accessToken: "gateway-only-token",
@@ -75,5 +75,46 @@ describe("authenticated media client", () => {
     expect(libraries).toEqual([
       expect.objectContaining({ libraryId: "library-1", serverId: "server-1" }),
     ]);
+  });
+
+  it("queries paged movies through the user-scoped endpoint", async () => {
+    const fetcher = vi.fn(async (request: string | URL | Request) => {
+      const url = new URL(String(request));
+      expect(url.pathname).toBe("/Users/user-1/Items");
+      expect(url.searchParams.get("IncludeItemTypes")).toBe("Movie");
+      expect(url.searchParams.get("StartIndex")).toBe("40");
+      expect(url.searchParams.get("SortBy")).toBe("DateCreated");
+      return new Response(
+        JSON.stringify({
+          Items: [movie],
+          StartIndex: 40,
+          TotalRecordCount: 81,
+        }),
+      );
+    });
+
+    const result = await getMediaItems(
+      "https://emby.example.com",
+      input,
+      {
+        favorite: undefined,
+        genre: undefined,
+        kind: "movie",
+        libraryId: undefined,
+        limit: 40,
+        minCommunityRating: undefined,
+        officialRating: undefined,
+        playState: "any",
+        seriesStatus: "any",
+        sortBy: "dateAdded",
+        sortOrder: "descending",
+        startIndex: 40,
+        year: undefined,
+      },
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(result.total).toBe(81);
+    expect(result.items[0]?.kind).toBe("movie");
   });
 });

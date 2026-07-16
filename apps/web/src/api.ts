@@ -6,7 +6,9 @@ import type {
   LoginResponse,
   LogoutResponse,
   MediaHomeResponse,
+  MediaItemsQuery,
   MediaLibrariesResponse,
+  PagedMediaResponse,
   ProbeServerResponse,
   PublicUsersResponse,
   SessionResponse,
@@ -130,6 +132,18 @@ export function getMediaHome(): Promise<MediaHomeResponse> {
 
 export function getMediaLibraries(): Promise<MediaLibrariesResponse> {
   return requestJson("/api/v1/media/libraries");
+}
+
+export function getMediaItems(
+  query: Partial<MediaItemsQuery>,
+): Promise<PagedMediaResponse> {
+  const params = new URLSearchParams();
+  for (const [key, rawValue] of Object.entries(query)) {
+    if (rawValue === undefined) continue;
+    for (const value of Array.isArray(rawValue) ? rawValue : [rawValue])
+      params.append(key, String(value));
+  }
+  return requestJson(`/api/v1/media/items?${params.toString()}`);
 }
 
 export function mediaImageUrl(input: {

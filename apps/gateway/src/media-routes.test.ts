@@ -110,4 +110,45 @@ describe("authenticated media routes", () => {
     expect(response.statusCode).toBe(401);
     expect(response.json().error.code).toBe("UNAUTHENTICATED");
   });
+
+  it("passes validated pagination to the authenticated media client", async () => {
+    const getItems = vi.fn().mockResolvedValue({
+      items: [],
+      limit: 40,
+      startIndex: 40,
+      total: 80,
+    });
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: { getItems },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { cookie: "newemby_session=session-cookie" },
+      method: "GET",
+      url: "/api/v1/media/items?kind=movie&startIndex=40&limit=40&sortBy=dateAdded&sortOrder=descending",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(getItems).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.any(Object),
+      expect.objectContaining({ kind: "movie", startIndex: 40 }),
+    );
+  });
 });

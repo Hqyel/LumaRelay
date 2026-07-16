@@ -54,6 +54,19 @@ function renderNavigationLink({
       </Link>
     );
 
+  if (item.href === "/movies")
+    return (
+      <Link
+        aria-current={item.active ? "page" : undefined}
+        aria-label={item.label}
+        className={className}
+        search={{ page: 1 }}
+        to="/movies"
+      >
+        {children}
+      </Link>
+    );
+
   return <span className={className}>{children}</span>;
 }
 
@@ -135,6 +148,7 @@ function FrontAppLayout() {
   });
 
   if (session === undefined) return null;
+  const title = pathname === "/movies" ? "电影" : "首页";
 
   return (
     <AppShell
@@ -143,7 +157,7 @@ function FrontAppLayout() {
       navigation={navigationForUser(session.user, pathname)}
       renderHomeLink={renderHomeLink}
       renderNavigationLink={renderNavigationLink}
-      title="首页"
+      title={title}
     >
       <Outlet />
     </AppShell>

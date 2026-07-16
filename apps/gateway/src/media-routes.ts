@@ -1,11 +1,14 @@
 import {
   ApiRoutes,
   type MediaHomeResponse,
+  type MediaItemsQuery,
   type MediaLibrary,
+  type PagedMediaResponse,
 } from "@newemby/contracts";
 import {
   EmbyMediaError,
   getMediaHome,
+  getMediaItems,
   getMediaLibraries,
   loadAuthenticatedImage,
   type AuthenticatedImage,
@@ -35,6 +38,11 @@ export interface MediaRouteDependencies {
     baseUrl: string,
     input: AuthenticatedMediaRequest,
   ) => Promise<MediaLibrary[]>;
+  getItems?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    query: MediaItemsQuery,
+  ) => Promise<Omit<PagedMediaResponse, "requestId">>;
   loadImage?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
@@ -184,6 +192,27 @@ export function registerMediaRoutes(
           ...(await (dependencies.getHome ?? getMediaHome)(
             context.baseUrl,
             context.input,
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.mediaItems.url, {
+    schema: ApiRoutes.mediaItems.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.getItems ?? getMediaItems)(
+            context.baseUrl,
+            context.input,
+            request.query as MediaItemsQuery,
           )),
           requestId: request.id,
         };

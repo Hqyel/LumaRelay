@@ -3,7 +3,9 @@ import {
   type MediaCard,
   type MediaDetail,
   type MediaHomeResponse,
+  type MediaItemsQuery,
   type MediaLibrary,
+  type PagedMediaResponse,
 } from "@newemby/contracts";
 import { z } from "zod";
 
@@ -88,6 +90,33 @@ export interface AuthenticatedImage {
   cacheControl?: string;
   contentType: string;
   etag?: string;
+}
+
+function values<T>(value: T | T[] | undefined): T[] {
+  if (value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function embyItemType(kind: string): string | undefined {
+  const types: Record<string, string> = {
+    boxSet: "BoxSet",
+    episode: "Episode",
+    movie: "Movie",
+    playlist: "Playlist",
+    series: "Series",
+    video: "Video",
+  };
+  return types[kind];
+}
+
+function embySortBy(sortBy: MediaItemsQuery["sortBy"]): string {
+  return {
+    communityRating: "CommunityRating",
+    dateAdded: "DateCreated",
+    name: "SortName",
+    premiereDate: "PremiereDate",
+    productionYear: "ProductionYear",
+  }[sortBy];
 }
 
 function authorizationHeader(deviceId: string): string {
@@ -302,6 +331,70 @@ export async function getMediaLibraries(
   url.searchParams.set("EnableImages", "true");
   const items = await readItemsResponse(await fetchEmby(url, input, options));
   return items.map((item) => toMediaLibrary(item, input.serverId));
+}
+
+export async function getMediaItems(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  query: MediaItemsQuery,
+  options: MediaClientOptions = {},
+): Promise<Omit<PagedMediaResponse, "requestId">> {
+  const kinds = values(query.kind)
+    .map(embyItemType)
+    .filter((value): value is string => value !== undefined);
+  const filters: string[] = [];
+  if (query.favorite === true) filters.push("IsFavorite");
+  if (query.playState === "played") filters.push("IsPlayed");
+  if (query.playState === "unplayed") filters.push("IsUnplayed");
+  const url = listUrl(baseUrl, input.userId, "", {
+    EnableImages: "true",
+    EnableTotalRecordCount: "true",
+    EnableUserData: "true",
+    Fields: HOME_FIELDS,
+    ImageTypeLimit: "2",
+    Limit: String(query.limit),
+    Recursive: "true",
+    SortBy: embySortBy(query.sortBy),
+    SortOrder: query.sortOrder === "ascending" ? "Ascending" : "Descending",
+    StartIndex: String(query.startIndex),
+  });
+  if (kinds.length > 0)
+    url.searchParams.set("IncludeItemTypes", kinds.join(","));
+  if (query.libraryId !== undefined)
+    url.searchParams.set("ParentId", query.libraryId);
+  if (filters.length > 0) url.searchParams.set("Filters", filters.join(","));
+  const genres = values(query.genre);
+  if (genres.length > 0) url.searchParams.set("Genres", genres.join("|"));
+  const years = values(query.year);
+  if (years.length > 0) url.searchParams.set("Years", years.join(","));
+  const ratings = values(query.officialRating);
+  if (ratings.length > 0)
+    url.searchParams.set("OfficialRatings", ratings.join("|"));
+  if (query.minCommunityRating !== undefined)
+    url.searchParams.set(
+      "MinCommunityRating",
+      String(query.minCommunityRating),
+    );
+  if (query.seriesStatus !== "any")
+    url.searchParams.set(
+      "SeriesStatus",
+      query.seriesStatus === "continuing" ? "Continuing" : "Ended",
+    );
+
+  const response = await fetchEmby(url, input, options);
+  const parsed = EmbyItemsResponseSchema.safeParse(await response.json());
+  if (!parsed.success)
+    throw new EmbyMediaError(
+      "invalid-response",
+      "The Emby media response is invalid",
+    );
+
+  return {
+    items: parsed.data.Items.map((item) => toMediaCard(item, input.serverId)),
+    limit: query.limit,
+    startIndex: parsed.data.StartIndex ?? query.startIndex,
+    total: parsed.data.TotalRecordCount ?? parsed.data.Items.length,
+  };
 }
 
 function imageType(

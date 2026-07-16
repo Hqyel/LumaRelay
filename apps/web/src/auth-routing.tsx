@@ -35,7 +35,7 @@ export function navigationForUser(
       label: "首页",
     },
     {
-      disabled: true,
+      active: pathname === "/movies",
       href: "/movies",
       icon: <Film size={20} />,
       label: "电影",
