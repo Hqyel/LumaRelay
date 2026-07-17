@@ -14,6 +14,7 @@ import {
   toSeasonSummary,
   toServerSummary,
   toUserProfile,
+  ticksToSeconds,
 } from "@newemby/emby-client";
 import { describe, expect, it } from "vitest";
 
@@ -39,5 +40,6 @@ describe("public package entry", () => {
       toPersonSummary,
     ];
     for (const adapter of adapters) expect(adapter).toBeTypeOf("function");
+    expect(ticksToSeconds(10_000_000)).toBe(1);
   });
 });

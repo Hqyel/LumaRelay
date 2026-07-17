@@ -115,6 +115,116 @@ describe("Emby media domain adapters", () => {
     expect(ticksToSeconds(undefined)).toBeUndefined();
   });
 
+  it.each([
+    [0, 0],
+    [9_999_999, 0],
+    [10_000_000, 1],
+    [19_999_999, 1],
+    [Number.MAX_SAFE_INTEGER, 900_719_925],
+  ])("converts the Ticks boundary %s to %s seconds", (ticks, seconds) => {
+    expect(ticksToSeconds(ticks)).toBe(seconds);
+  });
+
+  it("rejects invalid Ticks at the DTO boundary", () => {
+    expect(
+      EmbyBaseItemDtoSchema.safeParse({
+        Id: "negative-ticks",
+        Name: "Invalid",
+        RunTimeTicks: -1,
+        Type: "Movie",
+      }).success,
+    ).toBe(false);
+    expect(
+      EmbyBaseItemDtoSchema.safeParse({
+        Id: "fractional-ticks",
+        Name: "Invalid",
+        RunTimeTicks: 1.5,
+        Type: "Movie",
+      }).success,
+    ).toBe(false);
+    expect(ticksToSeconds(null)).toBeUndefined();
+  });
+
+  it.each([
+    [-12.5, 0],
+    [25.5, 25.5],
+    [120, 100],
+  ])("clamps playback percentage %s to %s", (input, expected) => {
+    const card = toMediaCard(
+      EmbyBaseItemDtoSchema.parse({
+        Id: `progress-${input}`,
+        Name: "Progress Fixture",
+        Type: "Movie",
+        UserData: { PlayedPercentage: input },
+      }),
+      "server-1",
+    );
+
+    expect(card.playedPercentage).toBe(expected);
+  });
+
+  it("normalizes nullable and whitespace-only optional fields", () => {
+    const detail = toMediaDetail(
+      EmbyBaseItemDtoSchema.parse({
+        BackdropImageTags: [""],
+        Genres: ["", "  ", " Drama "],
+        Id: "sparse-item",
+        ImageTags: { Logo: "  ", Primary: "" },
+        Name: "Sparse Item",
+        OfficialRating: " ",
+        OriginalTitle: null,
+        Overview: "  ",
+        PremiereDate: null,
+        RunTimeTicks: null,
+        SeriesName: " ",
+        Taglines: ["", "  "],
+        Type: "Movie",
+        UserData: null,
+      }),
+      "server-1",
+    );
+
+    expect(detail).toEqual({
+      genres: ["Drama"],
+      isFavorite: false,
+      isPlayed: false,
+      itemId: "sparse-item",
+      kind: "movie",
+      playbackPositionSeconds: 0,
+      serverId: "server-1",
+      title: "Sparse Item",
+    });
+  });
+
+  it("falls back safely for unknown library and person types", () => {
+    const library = toMediaLibrary(
+      EmbyBaseItemDtoSchema.parse({
+        CollectionType: "games",
+        Id: "library-unknown",
+        Name: "Other",
+        Type: "CollectionFolder",
+      }),
+      "server-1",
+    );
+    const person = toPersonSummary(
+      EmbyBaseItemDtoSchema.parse({
+        Id: "person-unknown",
+        Name: "Contributor",
+        Role: " ",
+        Type: "Consultant",
+      }),
+      "server-1",
+    );
+
+    expect(library.kind).toBe("unknown");
+    expect(person).toEqual({
+      kind: "unknown",
+      name: "Contributor",
+      personId: "person-unknown",
+      serverId: "server-1",
+    });
+  });
+
   it("maps series lifecycle and latest episode date", () => {
     const card = toMediaCard(
       EmbyBaseItemDtoSchema.parse({

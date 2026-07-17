@@ -128,6 +128,49 @@ describe("authenticated media client", () => {
     expect(result.items[0]?.kind).toBe("movie");
   });
 
+  it("encodes array filters and sorting for the Emby user endpoint", async () => {
+    const fetcher = vi.fn(async (request: string | URL | Request) => {
+      const url = new URL(String(request));
+      expect(url.pathname).toBe("/Users/user-1/Items");
+      expect(url.searchParams.get("ParentId")).toBe("library-1");
+      expect(url.searchParams.get("IncludeItemTypes")).toBe("Movie,Series");
+      expect(url.searchParams.get("Genres")).toBe("Drama|Sci-Fi");
+      expect(url.searchParams.get("Years")).toBe("2024,2026");
+      expect(url.searchParams.get("OfficialRatings")).toBe("PG-13|R");
+      expect(url.searchParams.get("MinCommunityRating")).toBe("8.5");
+      expect(url.searchParams.get("Filters")).toBe("IsFavorite,IsPlayed");
+      expect(url.searchParams.get("SeriesStatus")).toBe("Continuing");
+      expect(url.searchParams.get("SortBy")).toBe("CommunityRating");
+      expect(url.searchParams.get("SortOrder")).toBe("Ascending");
+      return new Response(
+        JSON.stringify({ Items: [], StartIndex: 80, TotalRecordCount: 0 }),
+      );
+    });
+
+    await getMediaItems(
+      "https://emby.example.com",
+      input,
+      {
+        favorite: true,
+        genre: ["Drama", "Sci-Fi"],
+        kind: ["movie", "series"],
+        libraryId: "library-1",
+        limit: 40,
+        minCommunityRating: 8.5,
+        officialRating: ["PG-13", "R"],
+        playState: "played",
+        seriesStatus: "continuing",
+        sortBy: "communityRating",
+        sortOrder: "ascending",
+        startIndex: 80,
+        year: [2024, 2026],
+      },
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
   it("groups user-scoped search results and people", async () => {
     const fetcher = vi.fn(async (request: string | URL | Request) => {
       const url = new URL(String(request));
