@@ -25,3 +25,7 @@ pnpm bridge:publish
 The publish command targets `win-x64` and produces a self-contained single-file
 executable under `artifacts/win-x64`. End users do not need a separately
 installed .NET Runtime.
+
+The HTTP host always binds directly to `127.0.0.1` and, when available, `::1`.
+It never honors wildcard URL bindings. The default port is `58080`; override it
+with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.

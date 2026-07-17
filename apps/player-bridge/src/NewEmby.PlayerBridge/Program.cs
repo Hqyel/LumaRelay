@@ -1,15 +1,14 @@
-using System.Reflection;
+using NewEmby.PlayerBridge.Hosting;
 
 namespace NewEmby.PlayerBridge;
 
 internal static class Program
 {
-  private static int Main()
+  private static async Task<int> Main(string[] args)
   {
-    var version = Assembly.GetExecutingAssembly().GetName().Version;
-    var displayVersion = version?.ToString(3) ?? "0.0.0";
+    await using var application = BridgeHost.Build(args);
 
-    Console.WriteLine($"{BridgeIdentity.DisplayName} {displayVersion}");
+    await application.RunAsync();
     return 0;
   }
 }
