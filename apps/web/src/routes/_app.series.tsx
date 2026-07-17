@@ -1,14 +1,15 @@
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  PosterCard,
-  Skeleton,
-} from "@newemby/ui";
+import { Button, EmptyState, ErrorState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { mediaImageUrl } from "../api.js";
+import { HomeMediaCard } from "../components/home-media.js";
+import {
+  MediaBrowserGrid,
+  MediaBrowserHeader,
+  MediaBrowserLoading,
+  MediaBrowserPage,
+  MediaBrowserPagination,
+} from "../components/media-browser.js";
 import { seriesQuery } from "../media-query.js";
 
 export interface SeriesSearch {
@@ -30,17 +31,22 @@ function formatLatest(value: string | undefined): string | undefined {
 }
 
 function SeriesLoading() {
-  return (
-    <div
-      aria-label="正在加载剧集"
-      className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-      role="status"
-    >
-      {Array.from({ length: 12 }, (_, index) => (
-        <Skeleton className="aspect-[2/3] rounded-poster" key={index} />
-      ))}
-    </div>
-  );
+  return <MediaBrowserLoading label="正在加载剧集" />;
+}
+
+function seriesSubtitle(
+  status: "continuing" | "ended" | undefined,
+  latest: string | undefined,
+): string | undefined {
+  const values = [
+    status === undefined
+      ? undefined
+      : status === "continuing"
+        ? "连载中"
+        : "已完结",
+    formatLatest(latest),
+  ].filter((value): value is string => value !== undefined);
+  return values.length === 0 ? undefined : values.join(" · ");
 }
 
 function SeriesPage() {
@@ -72,79 +78,35 @@ function SeriesPage() {
     );
 
   return (
-    <div className="space-y-8 pb-12">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-label font-semibold uppercase tracking-[0.16em] text-accent">
-            剧集库
-          </p>
-          <h1 className="mt-2 text-h1 font-semibold">全部剧集</h1>
-          <p className="mt-2 text-body text-text-muted">
-            当前账户可浏览 {result.total} 部剧集
-          </p>
-        </div>
-        <p className="text-small text-text-muted">
-          第 {page} / {pageCount} 页
-        </p>
-      </header>
-
-      <section
-        aria-label="剧集列表"
-        className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-      >
+    <MediaBrowserPage>
+      <MediaBrowserHeader
+        eyebrow="剧集库"
+        page={page}
+        pageCount={pageCount}
+        title="全部剧集"
+        total={result.total}
+        unit="部"
+      />
+      <MediaBrowserGrid label="剧集列表">
         {result.items.map((item) => (
-          <div className="relative" key={item.itemId}>
-            {item.seriesStatus === undefined ? null : (
-              <span className="absolute left-2 top-2 z-10 rounded-full bg-black/75 px-2 py-1 text-label font-semibold text-text">
-                {item.seriesStatus === "continuing" ? "连载中" : "已完结"}
-              </span>
+          <HomeMediaCard
+            item={item}
+            key={item.itemId}
+            secondaryText={seriesSubtitle(
+              item.seriesStatus,
+              item.latestEpisodeDate,
             )}
-            <PosterCard
-              action={
-                <Button
-                  disabled
-                  size="small"
-                  title="详情将在 M1-019 开放"
-                  variant="secondary"
-                >
-                  查看详情
-                </Button>
-              }
-              favorite={item.isFavorite}
-              imageUrl={mediaImageUrl({
-                imageType: "primary",
-                itemId: item.itemId,
-                preset: "poster",
-                tag: item.primaryImageTag,
-              })}
-              subtitle={formatLatest(item.latestEpisodeDate)}
-              title={item.title}
-              unwatchedCount={item.unplayedItemCount}
-            />
-          </div>
+          />
         ))}
-      </section>
-
-      <nav
-        aria-label="剧集分页"
-        className="flex items-center justify-center gap-3"
-      >
-        <Button
-          disabled={page <= 1 || query.isFetching}
-          onClick={() => void navigate({ search: { page: page - 1 } })}
-          variant="secondary"
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= pageCount || query.isFetching}
-          onClick={() => void navigate({ search: { page: page + 1 } })}
-          variant="secondary"
-        >
-          下一页
-        </Button>
-      </nav>
-    </div>
+      </MediaBrowserGrid>
+      <MediaBrowserPagination
+        busy={query.isFetching}
+        onNext={() => void navigate({ search: { page: page + 1 } })}
+        onPrevious={() => void navigate({ search: { page: page - 1 } })}
+        page={page}
+        pageCount={pageCount}
+      />
+    </MediaBrowserPage>
   );
 }
 

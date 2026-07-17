@@ -172,10 +172,12 @@ function cardSubtitle(item: MediaCard): string | undefined {
 export function HomeMediaCard({
   item,
   landscape = false,
+  secondaryText,
   showPlay = false,
 }: {
   item: MediaCard;
   landscape?: boolean;
+  secondaryText?: string;
   showPlay?: boolean;
 }) {
   const imageType =
@@ -244,8 +246,10 @@ export function HomeMediaCard({
           <span className="home-card-title" title={item.title}>
             {item.title}
           </span>
-          {cardSubtitle(item) === undefined ? null : (
-            <span className="home-card-subtitle">{cardSubtitle(item)}</span>
+          {(secondaryText ?? cardSubtitle(item)) === undefined ? null : (
+            <span className="home-card-subtitle">
+              {secondaryText ?? cardSubtitle(item)}
+            </span>
           )}
         </span>
       </Link>

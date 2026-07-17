@@ -1,14 +1,15 @@
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  PosterCard,
-  Skeleton,
-} from "@newemby/ui";
+import { Button, EmptyState, ErrorState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { mediaImageUrl } from "../api.js";
+import { HomeMediaCard } from "../components/home-media.js";
+import {
+  MediaBrowserGrid,
+  MediaBrowserHeader,
+  MediaBrowserLoading,
+  MediaBrowserPage,
+  MediaBrowserPagination,
+} from "../components/media-browser.js";
 import { libraryItemsQuery, mediaLibrariesQuery } from "../media-query.js";
 
 export interface LibrarySearch {
@@ -23,17 +24,7 @@ function parseSearch(search: Record<string, unknown>): LibrarySearch {
 }
 
 function Loading() {
-  return (
-    <div
-      aria-label="正在加载媒体库条目"
-      className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-      role="status"
-    >
-      {Array.from({ length: 12 }, (_, index) => (
-        <Skeleton className="aspect-[2/3] rounded-poster" key={index} />
-      ))}
-    </div>
-  );
+  return <MediaBrowserLoading label="正在加载媒体库条目" />;
 }
 
 function LibraryPage() {
@@ -91,61 +82,28 @@ function LibraryPage() {
 
   const pageCount = Math.max(1, Math.ceil(items.data.total / items.data.limit));
   return (
-    <div className="space-y-8 pb-12">
-      <header>
-        <p className="text-label font-semibold uppercase tracking-[0.16em] text-accent">
-          媒体库
-        </p>
-        <h1 className="mt-2 text-h1 font-semibold">{library.name}</h1>
-        <p className="mt-2 text-body text-text-muted">
-          {items.data.total} 个可浏览条目 · 第 {page} / {pageCount} 页
-        </p>
-      </header>
-      <section
-        aria-label={`${library.name} 条目`}
-        className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6"
-      >
+    <MediaBrowserPage>
+      <MediaBrowserHeader
+        eyebrow="媒体库"
+        page={page}
+        pageCount={pageCount}
+        title={library.name}
+        total={items.data.total}
+        unit="项"
+      />
+      <MediaBrowserGrid label={`${library.name} 条目`}>
         {items.data.items.map((item) => (
-          <PosterCard
-            action={
-              <Button asChild size="small" variant="secondary">
-                <Link params={{ id: item.itemId }} to="/item/$id">
-                  查看详情
-                </Link>
-              </Button>
-            }
-            favorite={item.isFavorite}
-            imageUrl={mediaImageUrl({
-              imageType: "primary",
-              itemId: item.itemId,
-              preset: "poster",
-              tag: item.primaryImageTag,
-            })}
-            key={item.itemId}
-            progress={item.playedPercentage}
-            subtitle={item.productionYear?.toString() ?? item.subtitle}
-            title={item.title}
-            unwatchedCount={item.unplayedItemCount}
-          />
+          <HomeMediaCard item={item} key={item.itemId} />
         ))}
-      </section>
-      <nav aria-label="媒体库分页" className="flex justify-center gap-3">
-        <Button
-          disabled={page <= 1 || items.isFetching}
-          onClick={() => void navigate({ search: { page: page - 1 } })}
-          variant="secondary"
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= pageCount || items.isFetching}
-          onClick={() => void navigate({ search: { page: page + 1 } })}
-          variant="secondary"
-        >
-          下一页
-        </Button>
-      </nav>
-    </div>
+      </MediaBrowserGrid>
+      <MediaBrowserPagination
+        busy={items.isFetching}
+        onNext={() => void navigate({ search: { page: page + 1 } })}
+        onPrevious={() => void navigate({ search: { page: page - 1 } })}
+        page={page}
+        pageCount={pageCount}
+      />
+    </MediaBrowserPage>
   );
 }
 
