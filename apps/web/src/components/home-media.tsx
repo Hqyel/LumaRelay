@@ -189,6 +189,7 @@ function cardSubtitle(item: MediaCard): string | undefined {
 export interface HomeMediaCardProps {
   item: MediaCard;
   landscape?: boolean;
+  priority?: boolean;
   secondaryText?: string;
   showPlay?: boolean;
 }
@@ -196,6 +197,7 @@ export interface HomeMediaCardProps {
 export function HomeMediaCard({
   item,
   landscape = false,
+  priority = false,
   secondaryText,
   showPlay = false,
 }: HomeMediaCardProps) {
@@ -218,13 +220,16 @@ export function HomeMediaCard({
             className="home-poster-image"
             containerClassName="size-full"
             draggable={false}
-            loading="lazy"
+            fetchPriority={priority ? "high" : "low"}
+            height={360}
+            loading={priority ? "eager" : "lazy"}
             src={mediaImageUrl({
               imageType,
               itemId: item.itemId,
               preset: landscape ? "card" : "poster",
               tag: imageTag,
             })}
+            width={landscape ? 640 : 240}
           />
           <span aria-hidden="true" className="home-poster-overlay" />
           {showPlay ? (
@@ -303,6 +308,7 @@ export function HomeLibraryCard({ library }: { library: MediaLibrary }) {
             className="home-poster-image"
             containerClassName="size-full"
             draggable={false}
+            height={360}
             loading="lazy"
             src={mediaImageUrl({
               imageType: "primary",
@@ -310,6 +316,7 @@ export function HomeLibraryCard({ library }: { library: MediaLibrary }) {
               preset: "card",
               tag: library.primaryImageTag,
             })}
+            width={640}
           />
           <span aria-hidden="true" className="home-poster-overlay" />
         </span>

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const production = process.env.NEWEMBY_E2E_PRODUCTION === "true";
+
 export default defineConfig({
   expect: {
     timeout: 5000,
@@ -18,7 +20,9 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm --filter @newemby/web dev --host 127.0.0.1 --port 4173",
+    command: production
+      ? "pnpm --filter @newemby/web exec vite preview --host 127.0.0.1 --port 4173"
+      : "pnpm --filter @newemby/web dev --host 127.0.0.1 --port 4173",
     reuseExistingServer: process.env.CI !== "true",
     timeout: 120_000,
     url: "http://127.0.0.1:4173",

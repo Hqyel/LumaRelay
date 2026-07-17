@@ -44,6 +44,7 @@ export function MediaDetailHero({
         className="detail-hero-image"
         containerClassName="detail-hero-backdrop"
         fetchPriority="high"
+        height={720}
         loading="eager"
         src={mediaImageUrl({
           imageType: "backdrop",
@@ -51,6 +52,7 @@ export function MediaDetailHero({
           preset: "hero",
           tag: item.backdropImageTag,
         })}
+        width={1280}
       />
       <span aria-hidden="true" className="detail-hero-shade" />
       <div className="detail-hero-content">
@@ -68,6 +70,7 @@ export function MediaDetailHero({
             alt={item.title}
             className="detail-logo-image"
             containerClassName="detail-logo"
+            height={112}
             loading="eager"
             src={mediaImageUrl({
               imageType: "logo",
@@ -75,6 +78,7 @@ export function MediaDetailHero({
               preset: "logo",
               tag: item.logoImageTag,
             })}
+            width={480}
           />
         )}
         <div className="detail-meta">
@@ -179,6 +183,7 @@ export function PeopleScroller({ people }: { people: PersonSummary[] }) {
             alt={person.name}
             className="detail-person-image"
             containerClassName="detail-person-avatar"
+            height={192}
             loading="lazy"
             src={mediaImageUrl({
               imageType: "primary",
@@ -186,6 +191,7 @@ export function PeopleScroller({ people }: { people: PersonSummary[] }) {
               preset: "avatar",
               tag: person.primaryImageTag,
             })}
+            width={192}
           />
           <h3>{person.name}</h3>
           {person.role === undefined ? null : <p>{person.role}</p>}
@@ -226,6 +232,7 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
           alt={episode.name}
           className="detail-episode-image"
           containerClassName="size-full"
+          height={360}
           loading="lazy"
           src={mediaImageUrl({
             imageType: "primary",
@@ -233,6 +240,7 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
             preset: "card",
             tag: episode.primaryImageTag,
           })}
+          width={640}
         />
         <span aria-hidden="true" className="detail-episode-play">
           <Play fill="currentColor" size={42} />

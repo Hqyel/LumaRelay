@@ -2,9 +2,7 @@ import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { HomeMediaCard } from "../components/home-media.js";
 import {
-  MediaBrowserGrid,
   MediaBrowserFilters,
   MediaBrowserHeader,
   MediaBrowserLoading,
@@ -12,6 +10,7 @@ import {
   MediaBrowserPagination,
 } from "../components/media-browser.js";
 import { MediaErrorState } from "../components/media-state.js";
+import { VirtualMediaBrowserGrid } from "../components/virtual-media-grid.js";
 import {
   latestMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -74,11 +73,7 @@ function MoviesPage() {
         />
       ) : (
         <>
-          <MediaBrowserGrid label="电影列表">
-            {result.items.map((item) => (
-              <HomeMediaCard item={item} key={item.itemId} />
-            ))}
-          </MediaBrowserGrid>
+          <VirtualMediaBrowserGrid items={result.items} label="电影列表" />
           <MediaBrowserPagination
             busy={query.isFetching}
             onNext={() =>
@@ -98,5 +93,12 @@ function MoviesPage() {
 
 export const Route = createFileRoute("/_app/movies")({
   component: MoviesPage,
+  loaderDeps: ({ search }) => parseSearch(search),
+  loader: async ({ context, deps }) => {
+    await Promise.all([
+      context.queryClient.prefetchQuery(mediaLibrariesQuery),
+      context.queryClient.prefetchQuery(moviesQuery(deps)),
+    ]);
+  },
   validateSearch: parseSearch,
 });

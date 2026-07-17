@@ -24,6 +24,7 @@
     "smoke:emby:write": "pnpm --filter @newemby/emby-client build && node scripts/emby-write-smoke.mjs",
     "test": "pnpm -r --if-present test",
     "test:e2e": "playwright test -c apps/web/playwright.config.ts",
+    "test:performance": "node scripts/performance-test.mjs",
     "test:visual": "pnpm --filter @newemby/ui test:visual",
     "typecheck": "pnpm -r --if-present typecheck",
     "verify:local": "pnpm format:check && pnpm check && pnpm storybook:build && pnpm test:visual && pnpm test:e2e"

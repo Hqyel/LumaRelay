@@ -59,20 +59,6 @@ export function MediaBrowserHeader({
   );
 }
 
-export function MediaBrowserGrid({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: string;
-}) {
-  return (
-    <section aria-label={label} className="media-browser-grid">
-      {children}
-    </section>
-  );
-}
-
 function listValue(value: FormDataEntryValue | null): string[] {
   if (typeof value !== "string") return [];
   return [
@@ -355,6 +341,7 @@ export function LibraryBrowserCard({ library }: { library: MediaLibrary }) {
             alt=""
             className="size-full object-cover"
             containerClassName="size-full"
+            height={56}
             loading="lazy"
             src={mediaImageUrl({
               imageType: "primary",
@@ -362,6 +349,7 @@ export function LibraryBrowserCard({ library }: { library: MediaLibrary }) {
               preset: "card",
               tag: library.primaryImageTag,
             })}
+            width={56}
           />
         )}
       </span>

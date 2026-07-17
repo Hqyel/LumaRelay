@@ -50,8 +50,10 @@ export function PosterCard({
           alt={title}
           className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105 motion-reduce:transform-none"
           containerClassName="size-full"
+          height={360}
           loading="lazy"
           src={imageUrl}
+          width={240}
         />
         {favorite ? (
           <span
@@ -106,8 +108,10 @@ export function ContinueWatchingCard({
           alt={title}
           className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105 motion-reduce:transform-none"
           containerClassName="size-full"
+          height={360}
           loading="lazy"
           src={imageUrl}
+          width={640}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
         <Button

@@ -611,6 +611,55 @@ test("movie library matches the reference card grid", async ({ page }) => {
   await expect(page).toHaveScreenshot("movie-library.png", { fullPage: true });
 });
 
+test("large media grids virtualize rows and prioritize only the first image", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.route("**/api/v1/media/items**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path !== "/api/v1/media/items") {
+      await route.fallback();
+      return;
+    }
+    const items = Array.from({ length: 100 }, (_, index) => ({
+      ...mediaItem,
+      isFavorite: false,
+      itemId: `virtual-movie-${index + 1}`,
+      primaryImageTag: "virtual-poster",
+      title: `Virtual Movie ${index + 1}`,
+    }));
+    await route.fulfill({
+      json: {
+        items,
+        limit: 100,
+        requestId: "request-virtual-items",
+        startIndex: 0,
+        total: items.length,
+      },
+    });
+  });
+
+  await page.goto("/movies?page=1");
+  const grid = page.getByLabel("电影列表");
+  await expect(grid.locator(".home-media-card").first()).toBeVisible();
+  await expect
+    .poll(async () => Number(await grid.getAttribute("data-virtual-row-count")))
+    .toBeLessThan(100);
+  expect(await grid.locator(".home-media-card").count()).toBeLessThan(100);
+  expect(await grid.locator(".media-browser-grid-row").count()).toBeLessThan(8);
+
+  const firstImage = grid.locator("img").first();
+  await expect(firstImage).toHaveAttribute("loading", "eager");
+  await expect(firstImage).toHaveAttribute("fetchpriority", "high");
+  expect(await grid.locator('img[loading="lazy"]').count()).toBeGreaterThan(0);
+
+  await page.mouse.wheel(0, 100_000);
+  await expect(
+    page.getByRole("link", { name: /Virtual Movie 100/ }),
+  ).toBeVisible();
+  expect(await grid.locator(".home-media-card").count()).toBeLessThan(100);
+});
+
 test("media filters use canonical shareable URL state", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/movies?page=2");

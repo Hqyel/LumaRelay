@@ -6,6 +6,7 @@ import {
   buildEmbyImageUrl,
   embyApiUrl,
   getAuthenticatedUser,
+  getMediaHome,
   getSeriesEpisodes,
   getSeriesSeasons,
   logoutEmbySession,
@@ -118,6 +119,16 @@ try {
       serverId: server.serverId,
       userId: authentication.user.userId,
     };
+    const homeStartedAt = performance.now();
+    const home = await getMediaHome(server.baseUrl, mediaInput, {
+      timeoutMs: 10_000,
+    });
+    const homeMs = Math.round(performance.now() - homeStartedAt);
+    const homeItemCount =
+      home.resumeItems.length +
+      home.latestMovies.length +
+      home.latestSeries.length +
+      home.favoriteItems.length;
     const seriesUrl = embyApiUrl(
       server.baseUrl,
       `/Users/${encodeURIComponent(authentication.user.userId)}/Items`,
@@ -181,6 +192,7 @@ try {
 
     console.log(
       `Emby smoke: auth=ok views=${views.total} media=${items.total} ` +
+        `homeItems=${homeItemCount} homeMs=${homeMs} ` +
         `seasons=${seasonCount} episodes=${episodeCount} image=ok`,
     );
   }

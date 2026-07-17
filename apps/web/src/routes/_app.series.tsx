@@ -2,9 +2,7 @@ import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { HomeMediaCard } from "../components/home-media.js";
 import {
-  MediaBrowserGrid,
   MediaBrowserFilters,
   MediaBrowserHeader,
   MediaBrowserLoading,
@@ -12,6 +10,7 @@ import {
   MediaBrowserPagination,
 } from "../components/media-browser.js";
 import { MediaErrorState } from "../components/media-state.js";
+import { VirtualMediaBrowserGrid } from "../components/virtual-media-grid.js";
 import {
   latestMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -96,18 +95,13 @@ function SeriesPage() {
         />
       ) : (
         <>
-          <MediaBrowserGrid label="剧集列表">
-            {result.items.map((item) => (
-              <HomeMediaCard
-                item={item}
-                key={item.itemId}
-                secondaryText={seriesSubtitle(
-                  item.seriesStatus,
-                  item.latestEpisodeDate,
-                )}
-              />
-            ))}
-          </MediaBrowserGrid>
+          <VirtualMediaBrowserGrid
+            items={result.items}
+            label="剧集列表"
+            secondaryText={(item) =>
+              seriesSubtitle(item.seriesStatus, item.latestEpisodeDate)
+            }
+          />
           <MediaBrowserPagination
             busy={query.isFetching}
             onNext={() =>
@@ -127,5 +121,12 @@ function SeriesPage() {
 
 export const Route = createFileRoute("/_app/series")({
   component: SeriesPage,
+  loaderDeps: ({ search }) => parseSearch(search),
+  loader: async ({ context, deps }) => {
+    await Promise.all([
+      context.queryClient.prefetchQuery(mediaLibrariesQuery),
+      context.queryClient.prefetchQuery(seriesQuery(deps)),
+    ]);
+  },
   validateSearch: parseSearch,
 });

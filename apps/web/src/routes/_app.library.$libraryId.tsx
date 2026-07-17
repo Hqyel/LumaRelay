@@ -2,9 +2,7 @@ import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { HomeMediaCard } from "../components/home-media.js";
 import {
-  MediaBrowserGrid,
   MediaBrowserFilters,
   MediaBrowserHeader,
   MediaBrowserLoading,
@@ -15,6 +13,7 @@ import {
   MediaAccessDeniedState,
   MediaErrorState,
 } from "../components/media-state.js";
+import { VirtualMediaBrowserGrid } from "../components/virtual-media-grid.js";
 import {
   libraryMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -92,11 +91,10 @@ function LibraryPage() {
         />
       ) : (
         <>
-          <MediaBrowserGrid label={`${library.name} 条目`}>
-            {items.data.items.map((item) => (
-              <HomeMediaCard item={item} key={item.itemId} />
-            ))}
-          </MediaBrowserGrid>
+          <VirtualMediaBrowserGrid
+            items={items.data.items}
+            label={`${library.name} 条目`}
+          />
           <MediaBrowserPagination
             busy={items.isFetching}
             onNext={() =>
@@ -116,5 +114,20 @@ function LibraryPage() {
 
 export const Route = createFileRoute("/_app/library/$libraryId")({
   component: LibraryPage,
+  loaderDeps: ({ search }) => parseSearch(search),
+  loader: async ({ context, deps, params }) => {
+    const libraries = await context.queryClient
+      .fetchQuery(mediaLibrariesQuery)
+      .catch(() => undefined);
+    if (
+      libraries !== undefined &&
+      libraries.libraries.some(
+        (library) => library.libraryId === params.libraryId,
+      )
+    )
+      await context.queryClient.prefetchQuery(
+        libraryItemsQuery(params.libraryId, deps),
+      );
+  },
   validateSearch: parseSearch,
 });

@@ -127,6 +127,7 @@ export function HeaderSearch() {
                     alt=""
                     className="header-search-poster-image"
                     containerClassName="header-search-poster"
+                    height={48}
                     loading="lazy"
                     src={mediaImageUrl({
                       imageType: "primary",
@@ -134,6 +135,7 @@ export function HeaderSearch() {
                       preset: "avatar",
                       tag: item.primaryImageTag,
                     })}
+                    width={48}
                   />
                   <span className="header-search-result-info">
                     <strong>{item.title}</strong>

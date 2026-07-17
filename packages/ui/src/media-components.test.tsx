@@ -52,6 +52,7 @@ describe("media foundation components", () => {
   it("provides a named continue action", () => {
     render(
       <ContinueWatchingCard
+        imageUrl="/fixture.jpg"
         progress={58}
         remaining="52 分钟"
         title="星际遗迹"
@@ -61,6 +62,10 @@ describe("media foundation components", () => {
     expect(
       screen.getByRole("button", { name: "继续播放 星际遗迹" }),
     ).toBeTruthy();
+    const image = screen.getByAltText("星际遗迹");
+    expect(image.getAttribute("loading")).toBe("lazy");
+    expect(image.getAttribute("width")).toBe("640");
+    expect(image.getAttribute("height")).toBe("360");
   });
 
   it("renders compact media row metadata", () => {
