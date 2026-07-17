@@ -141,7 +141,8 @@ const mediaHome = {
 async function mockPageApi(
   page: Page,
   selected: boolean,
-  itemState: "normal" | "empty" | "error" = "normal",
+  itemState:
+    "normal" | "empty" | "error" | "forbidden" | "unauthenticated" = "normal",
 ) {
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -206,6 +207,22 @@ async function mockPageApi(
       return;
     }
     if (path === "/api/v1/media/items") {
+      if (itemState === "forbidden" || itemState === "unauthenticated") {
+        const unauthenticated = itemState === "unauthenticated";
+        await route.fulfill({
+          json: {
+            error: {
+              code: unauthenticated ? "UNAUTHENTICATED" : "ACCESS_DENIED",
+              message: unauthenticated ? "Sign in again" : "Forbidden",
+              requestId: unauthenticated
+                ? "request-items-auth"
+                : "request-items-denied",
+            },
+          },
+          status: unauthenticated ? 401 : 403,
+        });
+        return;
+      }
       if (itemState === "error") {
         await route.fulfill({
           body: "Upstream gateway unavailable",
@@ -535,6 +552,34 @@ test("offline media state keeps a visible retry action", async ({ page }) => {
   await expect(page).toHaveScreenshot("media-error-state.png", {
     fullPage: true,
   });
+});
+
+test("forbidden media uses a dedicated non-retryable state", async ({
+  page,
+}) => {
+  await mockPageApi(page, true, "forbidden");
+  await page.goto("/movies?page=1");
+  await expect(
+    page.getByRole("heading", { name: "无权访问电影库" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "重新加载" })).toHaveCount(0);
+  await expect(page.getByText(/request-items-denied/)).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("media-access-denied.png", {
+    fullPage: true,
+  });
+});
+
+test("media 401 continues to use the global login recovery", async ({
+  page,
+}) => {
+  await mockPageApi(page, true, "unauthenticated");
+  await page.goto("/movies?page=1");
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole("heading", { name: "登录媒体服务器" }),
+  ).toBeVisible();
 });
 
 test("administrator entry matches the compact glass management shell", async ({

@@ -1,5 +1,5 @@
 import type { MediaItemResponse } from "@newemby/contracts";
-import { Button, EmptyState, ErrorState } from "@newemby/ui";
+import { EmptyState } from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tv } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   PeopleScroller,
   RelatedScroller,
 } from "../components/media-detail.js";
+import { MediaErrorState } from "../components/media-state.js";
 import {
   mediaItemQuery,
   seriesEpisodesQuery,
@@ -83,12 +84,10 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
           </div>
         ) : null}
         {seasons.isError ? (
-          <ErrorState
-            action={
-              <Button onClick={() => void seasons.refetch()}>重新加载</Button>
-            }
-            description="无法读取这个剧集的季信息，请稍后重试。"
-            title="季列表暂时不可用"
+          <MediaErrorState
+            error={seasons.error}
+            onRetry={() => void seasons.refetch()}
+            subject="季列表"
           />
         ) : null}
         {seasons.isSuccess && seasons.data.seasons.length === 0 ? (
@@ -109,12 +108,10 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
           </div>
         ) : null}
         {episodes.isError ? (
-          <ErrorState
-            action={
-              <Button onClick={() => void episodes.refetch()}>重新加载</Button>
-            }
-            description="无法读取所选季的单集，请稍后重试。"
-            title="单集列表暂时不可用"
+          <MediaErrorState
+            error={episodes.error}
+            onRetry={() => void episodes.refetch()}
+            subject="单集列表"
           />
         ) : null}
         {episodes.data?.episodes.length === 0 ? (
@@ -149,10 +146,10 @@ function ItemPage() {
   if (query.isPending) return <DetailLoading />;
   if (query.isError)
     return (
-      <ErrorState
-        action={<Button onClick={() => void query.refetch()}>重新加载</Button>}
-        description="无法读取这个媒体条目，请检查权限和服务器连接。"
-        title="详情暂时不可用"
+      <MediaErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        subject="媒体详情"
       />
     );
 

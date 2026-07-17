@@ -1,4 +1,4 @@
-import { Button, EmptyState, ErrorState } from "@newemby/ui";
+import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -10,6 +10,7 @@ import {
   MediaBrowserPage,
   MediaBrowserPagination,
 } from "../components/media-browser.js";
+import { MediaErrorState } from "../components/media-state.js";
 import { moviesQuery } from "../media-query.js";
 
 export interface MoviesSearch {
@@ -38,10 +39,10 @@ function MoviesPage() {
   if (query.isPending) return <MoviesLoading />;
   if (query.isError)
     return (
-      <ErrorState
-        action={<Button onClick={() => void query.refetch()}>重新加载</Button>}
-        description="无法读取电影库，请检查媒体服务器连接后重试。"
-        title="电影库暂时不可用"
+      <MediaErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        subject="电影库"
       />
     );
 

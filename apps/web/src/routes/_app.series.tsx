@@ -1,4 +1,4 @@
-import { Button, EmptyState, ErrorState } from "@newemby/ui";
+import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -10,6 +10,7 @@ import {
   MediaBrowserPage,
   MediaBrowserPagination,
 } from "../components/media-browser.js";
+import { MediaErrorState } from "../components/media-state.js";
 import { seriesQuery } from "../media-query.js";
 
 export interface SeriesSearch {
@@ -60,10 +61,10 @@ function SeriesPage() {
   if (query.isPending) return <SeriesLoading />;
   if (query.isError)
     return (
-      <ErrorState
-        action={<Button onClick={() => void query.refetch()}>重新加载</Button>}
-        description="无法读取剧集库，请检查媒体服务器连接后重试。"
-        title="剧集库暂时不可用"
+      <MediaErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        subject="剧集库"
       />
     );
 

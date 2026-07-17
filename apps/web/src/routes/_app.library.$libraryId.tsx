@@ -1,4 +1,4 @@
-import { Button, EmptyState, ErrorState } from "@newemby/ui";
+import { EmptyState } from "@newemby/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -10,6 +10,10 @@ import {
   MediaBrowserPage,
   MediaBrowserPagination,
 } from "../components/media-browser.js";
+import {
+  MediaAccessDeniedState,
+  MediaErrorState,
+} from "../components/media-state.js";
 import { libraryItemsQuery, mediaLibrariesQuery } from "../media-query.js";
 
 export interface LibrarySearch {
@@ -45,31 +49,23 @@ function LibraryPage() {
     return <Loading />;
   if (libraries.isError)
     return (
-      <ErrorState
-        action={
-          <Button onClick={() => void libraries.refetch()}>重新加载</Button>
-        }
-        description="无法验证当前账户的媒体库权限。"
-        title="媒体库暂时不可用"
+      <MediaErrorState
+        error={libraries.error}
+        onRetry={() => void libraries.refetch()}
+        subject="媒体库权限"
       />
     );
 
   const library = libraries.data?.libraries.find(
     (candidate) => candidate.libraryId === libraryId,
   );
-  if (library === undefined)
-    return (
-      <ErrorState
-        description="这个媒体库不在当前账户的授权视图中。"
-        title="无权访问媒体库"
-      />
-    );
+  if (library === undefined) return <MediaAccessDeniedState subject="媒体库" />;
   if (items.isError || items.data === undefined)
     return (
-      <ErrorState
-        action={<Button onClick={() => void items.refetch()}>重新加载</Button>}
-        description="无法读取这个媒体库，请稍后重试。"
-        title="媒体库暂时不可用"
+      <MediaErrorState
+        error={items.error}
+        onRetry={() => void items.refetch()}
+        subject={library.name}
       />
     );
   if (items.data.items.length === 0)

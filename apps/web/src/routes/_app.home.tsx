@@ -1,5 +1,5 @@
 import type { MediaCard } from "@newemby/contracts";
-import { Button, EmptyState, ErrorState, Skeleton } from "@newemby/ui";
+import { EmptyState, Skeleton } from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -17,6 +17,7 @@ import {
   HomeMediaCard,
   HomeScroller,
 } from "../components/home-media.js";
+import { MediaErrorState } from "../components/media-state.js";
 import { mediaHomeQuery, mediaLibrariesQuery } from "../media-query.js";
 
 function MoreLink({ children, to }: { children: ReactNode; to: string }) {
@@ -88,19 +89,13 @@ function HomePage() {
   if (home.isError || libraries.isError)
     return (
       <div className="home-page">
-        <ErrorState
-          action={
-            <Button
-              onClick={() => {
-                void home.refetch();
-                void libraries.refetch();
-              }}
-            >
-              重新加载
-            </Button>
-          }
-          description="无法从媒体服务器读取首页，请检查服务器连接后重试。"
-          title="首页暂时不可用"
+        <MediaErrorState
+          error={home.error ?? libraries.error}
+          onRetry={() => {
+            void home.refetch();
+            void libraries.refetch();
+          }}
+          subject="首页"
         />
       </div>
     );

@@ -1,4 +1,4 @@
-import { Button, EmptyState, ErrorState } from "@newemby/ui";
+import { EmptyState } from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -7,6 +7,7 @@ import {
   MediaBrowserHeader,
   MediaBrowserPage,
 } from "../components/media-browser.js";
+import { MediaErrorState } from "../components/media-state.js";
 import { mediaLibrariesQuery } from "../media-query.js";
 
 function LibrariesPage() {
@@ -26,10 +27,10 @@ function LibrariesPage() {
     );
   if (query.isError)
     return (
-      <ErrorState
-        action={<Button onClick={() => void query.refetch()}>重新加载</Button>}
-        description="无法读取当前账户的媒体库。"
-        title="媒体库暂时不可用"
+      <MediaErrorState
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        subject="媒体库"
       />
     );
   if (query.data.libraries.length === 0)
