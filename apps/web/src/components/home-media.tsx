@@ -18,6 +18,10 @@ import {
 } from "react";
 
 import { mediaImageUrl } from "../api.js";
+import {
+  libraryMediaBrowserDefaults,
+  parseMediaBrowserSearch,
+} from "../media-browser-search.js";
 
 interface DragState {
   blocked: boolean;
@@ -290,7 +294,7 @@ export function HomeLibraryCard({ library }: { library: MediaLibrary }) {
         className="home-media-card"
         draggable={false}
         params={{ libraryId: library.libraryId }}
-        search={{ page: 1 }}
+        search={parseMediaBrowserSearch({}, libraryMediaBrowserDefaults)}
         to="/library/$libraryId"
       >
         <span className="home-poster-wrapper">

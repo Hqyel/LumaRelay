@@ -9,6 +9,10 @@ import {
   getSeriesSeasons,
   searchMedia,
 } from "./api.js";
+import {
+  mediaItemsFromSearch,
+  type MediaBrowserSearch,
+} from "./media-browser-search.js";
 
 export const mediaHomeQuery = queryOptions({
   queryFn: getMediaHome,
@@ -22,51 +26,42 @@ export const mediaLibrariesQuery = queryOptions({
   staleTime: 60_000,
 });
 
-export function moviesQuery(page: number) {
-  const limit = 40;
+export function moviesQuery(search: MediaBrowserSearch) {
   return queryOptions({
     queryFn: () =>
-      getMediaItems({
-        kind: "movie",
-        limit,
-        sortBy: "dateAdded",
-        sortOrder: "descending",
-        startIndex: (page - 1) * limit,
-      }),
-    queryKey: ["media", "movies", { page }],
+      getMediaItems(
+        mediaItemsFromSearch(search, { kind: "movie", seriesStatus: "any" }),
+      ),
+    queryKey: ["media", "movies", search],
     staleTime: 60_000,
   });
 }
 
-export function seriesQuery(page: number) {
-  const limit = 40;
+export function seriesQuery(search: MediaBrowserSearch) {
   return queryOptions({
     queryFn: () =>
-      getMediaItems({
-        kind: "series",
-        limit,
-        sortBy: "dateAdded",
-        sortOrder: "descending",
-        startIndex: (page - 1) * limit,
-      }),
-    queryKey: ["media", "series", { page }],
+      getMediaItems(mediaItemsFromSearch(search, { kind: "series" })),
+    queryKey: ["media", "series", search],
     staleTime: 60_000,
   });
 }
 
-export function libraryItemsQuery(libraryId: string, page: number) {
-  const limit = 40;
+export function libraryItemsQuery(
+  libraryId: string,
+  search: MediaBrowserSearch,
+) {
   return queryOptions({
     queryFn: () =>
-      getMediaItems({
-        kind: ["movie", "series", "video"],
-        libraryId,
-        limit,
-        sortBy: "name",
-        sortOrder: "ascending",
-        startIndex: (page - 1) * limit,
-      }),
-    queryKey: ["media", "library", libraryId, { page }],
+      getMediaItems(
+        mediaItemsFromSearch(search, {
+          kind:
+            search.kind.length === 0
+              ? ["movie", "series", "video"]
+              : search.kind,
+          libraryId,
+        }),
+      ),
+    queryKey: ["media", "library", libraryId, search],
     staleTime: 60_000,
   });
 }

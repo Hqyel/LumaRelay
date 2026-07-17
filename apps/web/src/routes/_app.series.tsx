@@ -5,24 +5,24 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeMediaCard } from "../components/home-media.js";
 import {
   MediaBrowserGrid,
+  MediaBrowserFilters,
   MediaBrowserHeader,
   MediaBrowserLoading,
   MediaBrowserPage,
   MediaBrowserPagination,
 } from "../components/media-browser.js";
 import { MediaErrorState } from "../components/media-state.js";
-import { seriesQuery } from "../media-query.js";
+import {
+  latestMediaBrowserDefaults,
+  parseMediaBrowserSearch,
+  type MediaBrowserSearch,
+} from "../media-browser-search.js";
+import { mediaLibrariesQuery, seriesQuery } from "../media-query.js";
 
-export interface SeriesSearch {
-  page: number;
-}
-
-function parseSearch(search: Record<string, unknown>): SeriesSearch {
-  const candidate = Number(search.page);
-  return {
-    page: Number.isInteger(candidate) && candidate > 0 ? candidate : 1,
-  };
-}
+const parseSearch = (search: Record<string, unknown>): MediaBrowserSearch => ({
+  ...parseMediaBrowserSearch(search, latestMediaBrowserDefaults),
+  kind: [],
+});
 
 function formatLatest(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
@@ -51,10 +51,12 @@ function seriesSubtitle(
 }
 
 function SeriesPage() {
-  const { page } = Route.useSearch();
+  const search = Route.useSearch();
+  const { page } = search;
   const navigate = Route.useNavigate();
+  const libraries = useQuery(mediaLibrariesQuery);
   const query = useQuery({
-    ...seriesQuery(page),
+    ...seriesQuery(search),
     placeholderData: keepPreviousData,
   });
 
@@ -70,14 +72,6 @@ function SeriesPage() {
 
   const result = query.data;
   const pageCount = Math.max(1, Math.ceil(result.total / result.limit));
-  if (result.items.length === 0)
-    return (
-      <EmptyState
-        description="当前账户授权的媒体库中没有剧集。"
-        title="没有找到剧集"
-      />
-    );
-
   return (
     <MediaBrowserPage>
       <MediaBrowserHeader
@@ -88,25 +82,45 @@ function SeriesPage() {
         total={result.total}
         unit="部"
       />
-      <MediaBrowserGrid label="剧集列表">
-        {result.items.map((item) => (
-          <HomeMediaCard
-            item={item}
-            key={item.itemId}
-            secondaryText={seriesSubtitle(
-              item.seriesStatus,
-              item.latestEpisodeDate,
-            )}
-          />
-        ))}
-      </MediaBrowserGrid>
-      <MediaBrowserPagination
-        busy={query.isFetching}
-        onNext={() => void navigate({ search: { page: page + 1 } })}
-        onPrevious={() => void navigate({ search: { page: page - 1 } })}
-        page={page}
-        pageCount={pageCount}
+      <MediaBrowserFilters
+        libraries={libraries.data?.libraries ?? []}
+        onApply={(next) => void navigate({ search: next })}
+        onReset={() => void navigate({ search: parseSearch({}) })}
+        search={search}
+        showSeriesStatus
       />
+      {result.items.length === 0 ? (
+        <EmptyState
+          description="没有符合当前筛选条件的授权剧集，可以调整或重置筛选。"
+          title="没有找到剧集"
+        />
+      ) : (
+        <>
+          <MediaBrowserGrid label="剧集列表">
+            {result.items.map((item) => (
+              <HomeMediaCard
+                item={item}
+                key={item.itemId}
+                secondaryText={seriesSubtitle(
+                  item.seriesStatus,
+                  item.latestEpisodeDate,
+                )}
+              />
+            ))}
+          </MediaBrowserGrid>
+          <MediaBrowserPagination
+            busy={query.isFetching}
+            onNext={() =>
+              void navigate({ search: { ...search, page: page + 1 } })
+            }
+            onPrevious={() =>
+              void navigate({ search: { ...search, page: page - 1 } })
+            }
+            page={page}
+            pageCount={pageCount}
+          />
+        </>
+      )}
     </MediaBrowserPage>
   );
 }

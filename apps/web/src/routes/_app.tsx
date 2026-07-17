@@ -14,6 +14,10 @@ import type { ReactNode } from "react";
 import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
 import { HeaderSearch } from "../components/header-search.js";
+import {
+  latestMediaBrowserDefaults,
+  parseMediaBrowserSearch,
+} from "../media-browser-search.js";
 import { sessionQuery } from "../session-query.js";
 import { useUiStore } from "../stores/ui-store.js";
 
@@ -60,7 +64,7 @@ function renderNavigationLink({
         aria-current={item.active ? "page" : undefined}
         aria-label={item.label}
         className={className}
-        search={{ page: 1 }}
+        search={parseMediaBrowserSearch({}, latestMediaBrowserDefaults)}
         to="/movies"
       >
         {children}
@@ -73,7 +77,7 @@ function renderNavigationLink({
         aria-current={item.active ? "page" : undefined}
         aria-label={item.label}
         className={className}
-        search={{ page: 1 }}
+        search={parseMediaBrowserSearch({}, latestMediaBrowserDefaults)}
         to="/series"
       >
         {children}

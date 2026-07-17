@@ -611,6 +611,36 @@ test("movie library matches the reference card grid", async ({ page }) => {
   await expect(page).toHaveScreenshot("movie-library.png", { fullPage: true });
 });
 
+test("media filters use canonical shareable URL state", async ({ page }) => {
+  await mockPageApi(page, true);
+  await page.goto("/movies?page=2");
+  await page.getByLabel("类型标签").fill("科幻, 剧情");
+  await page
+    .getByRole("textbox", { exact: true, name: "年份" })
+    .fill("2026, 2024");
+  await page.getByLabel("最低评分").fill("8");
+  await page.getByLabel("观看状态").selectOption("unplayed");
+  await page.getByLabel("收藏状态").selectOption("true");
+  await page.locator('select[name="sortBy"]').selectOption("communityRating");
+  const filteredRequest = page.waitForRequest((request) =>
+    request.url().includes("/api/v1/media/items?"),
+  );
+  await page.getByRole("button", { name: "应用筛选" }).click();
+
+  const request = await filteredRequest;
+  const apiParams = new URL(request.url()).searchParams;
+  expect(apiParams.getAll("genre")).toEqual(["剧情", "科幻"]);
+  expect(apiParams.getAll("year")).toEqual(["2024", "2026"]);
+  expect(apiParams.get("favorite")).toBe("true");
+  expect(apiParams.get("playState")).toBe("unplayed");
+  expect(apiParams.get("sortBy")).toBe("communityRating");
+
+  await expect(page).toHaveURL(/page=1/);
+  const browserParams = new URL(page.url()).searchParams;
+  expect(browserParams.getAll("genre")).toEqual(["剧情", "科幻"]);
+  expect(browserParams.getAll("year")).toEqual(["2024", "2026"]);
+});
+
 test("series library matches the reference card grid", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/series?page=1");

@@ -718,6 +718,112 @@
   margin-bottom: 0.2rem;
 }
 
+.media-filter-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  align-items: end;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 0.9rem;
+  background: rgb(20 20 35 / 66%);
+  box-shadow:
+    inset 0 1px rgb(255 255 255 / 4%),
+    0 14px 36px rgb(0 0 0 / 12%);
+  backdrop-filter: blur(18px);
+}
+
+.media-filter-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: rgb(255 255 255 / 46%);
+  font-size: 0.625rem;
+  font-weight: 550;
+}
+
+.media-filter-wide {
+  grid-column: span 2;
+}
+
+.media-filter-field input,
+.media-filter-field select {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.65rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.5rem;
+  outline: none;
+  background: rgb(15 15 35 / 74%);
+  color: rgb(255 255 255 / 82%);
+  font: inherit;
+  font-size: 0.75rem;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms,
+    background 150ms;
+}
+
+.media-filter-field input::placeholder {
+  color: rgb(255 255 255 / 26%);
+}
+
+.media-filter-field input:focus,
+.media-filter-field select:focus {
+  border-color: rgb(124 92 255 / 72%);
+  background: rgb(20 20 42 / 92%);
+  box-shadow: 0 0 0 3px rgb(124 92 255 / 13%);
+}
+
+.media-filter-field option {
+  background: #141423;
+  color: #fff;
+}
+
+.media-filter-actions {
+  display: flex;
+  grid-column: span 2;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.media-filter-reset,
+.media-filter-submit {
+  min-height: 2.25rem;
+  padding: 0 0.85rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.5rem;
+  color: rgb(255 255 255 / 70%);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transition:
+    border-color 150ms,
+    background 150ms,
+    color 150ms,
+    transform 150ms;
+}
+
+.media-filter-reset {
+  background: rgb(255 255 255 / 4%);
+}
+
+.media-filter-submit {
+  border-color: rgb(124 92 255 / 36%);
+  background: linear-gradient(135deg, #7c5cff, #6945de);
+  box-shadow: 0 6px 18px rgb(124 92 255 / 18%);
+  color: #fff;
+}
+
+.media-filter-reset:hover,
+.media-filter-submit:hover {
+  border-color: rgb(124 92 255 / 70%);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .media-browser-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));

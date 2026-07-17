@@ -4,6 +4,7 @@ import {
   ApiError,
   getCurrentServer,
   getCurrentUser,
+  getMediaItems,
   getPublicUsers,
   login,
   logout,
@@ -91,6 +92,33 @@ describe("Web Gateway client", () => {
       "/api/v1/auth/me",
       expect.objectContaining({ credentials: "include" }),
     );
+  });
+
+  it("encodes array media filters as repeated query parameters", async () => {
+    const fetcher = csrfAwareFetcher(
+      new Response(
+        JSON.stringify({
+          items: [],
+          limit: 40,
+          requestId: "request-media",
+          startIndex: 0,
+          total: 0,
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await getMediaItems({
+      genre: ["剧情", "科幻"],
+      kind: ["movie", "series"],
+      year: [2024, 2026],
+    });
+    const requestedUrl = String(fetcher.mock.calls[0]?.[0]);
+    const params = new URL(requestedUrl, "http://newemby.local").searchParams;
+    expect(params.getAll("genre")).toEqual(["剧情", "科幻"]);
+    expect(params.getAll("kind")).toEqual(["movie", "series"]);
+    expect(params.getAll("year")).toEqual(["2024", "2026"]);
   });
 
   it("posts a server selection as JSON", async () => {

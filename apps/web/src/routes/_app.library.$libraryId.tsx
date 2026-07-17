@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeMediaCard } from "../components/home-media.js";
 import {
   MediaBrowserGrid,
+  MediaBrowserFilters,
   MediaBrowserHeader,
   MediaBrowserLoading,
   MediaBrowserPage,
@@ -14,18 +15,15 @@ import {
   MediaAccessDeniedState,
   MediaErrorState,
 } from "../components/media-state.js";
+import {
+  libraryMediaBrowserDefaults,
+  parseMediaBrowserSearch,
+  type MediaBrowserSearch,
+} from "../media-browser-search.js";
 import { libraryItemsQuery, mediaLibrariesQuery } from "../media-query.js";
 
-export interface LibrarySearch {
-  page: number;
-}
-
-function parseSearch(search: Record<string, unknown>): LibrarySearch {
-  const candidate = Number(search.page);
-  return {
-    page: Number.isInteger(candidate) && candidate > 0 ? candidate : 1,
-  };
-}
+const parseSearch = (search: Record<string, unknown>): MediaBrowserSearch =>
+  parseMediaBrowserSearch(search, libraryMediaBrowserDefaults);
 
 function Loading() {
   return <MediaBrowserLoading label="正在加载媒体库条目" />;
@@ -33,14 +31,15 @@ function Loading() {
 
 function LibraryPage() {
   const { libraryId } = Route.useParams();
-  const { page } = Route.useSearch();
+  const search = Route.useSearch();
+  const { page } = search;
   const navigate = Route.useNavigate();
   const libraries = useQuery(mediaLibrariesQuery);
   const authorized = libraries.data?.libraries.some(
     (library) => library.libraryId === libraryId,
   );
   const items = useQuery({
-    ...libraryItemsQuery(libraryId, page),
+    ...libraryItemsQuery(libraryId, search),
     enabled: authorized === true,
     placeholderData: keepPreviousData,
   });
@@ -68,14 +67,6 @@ function LibraryPage() {
         subject={library.name}
       />
     );
-  if (items.data.items.length === 0)
-    return (
-      <EmptyState
-        description="这个媒体库中没有可供当前账户浏览的媒体。"
-        title="媒体库为空"
-      />
-    );
-
   const pageCount = Math.max(1, Math.ceil(items.data.total / items.data.limit));
   return (
     <MediaBrowserPage>
@@ -87,18 +78,38 @@ function LibraryPage() {
         total={items.data.total}
         unit="项"
       />
-      <MediaBrowserGrid label={`${library.name} 条目`}>
-        {items.data.items.map((item) => (
-          <HomeMediaCard item={item} key={item.itemId} />
-        ))}
-      </MediaBrowserGrid>
-      <MediaBrowserPagination
-        busy={items.isFetching}
-        onNext={() => void navigate({ search: { page: page + 1 } })}
-        onPrevious={() => void navigate({ search: { page: page - 1 } })}
-        page={page}
-        pageCount={pageCount}
+      <MediaBrowserFilters
+        onApply={(next) => void navigate({ search: next })}
+        onReset={() => void navigate({ search: parseSearch({}) })}
+        search={search}
+        showKinds
+        showSeriesStatus
       />
+      {items.data.items.length === 0 ? (
+        <EmptyState
+          description="没有符合当前筛选条件的授权媒体，可以调整或重置筛选。"
+          title="媒体库为空"
+        />
+      ) : (
+        <>
+          <MediaBrowserGrid label={`${library.name} 条目`}>
+            {items.data.items.map((item) => (
+              <HomeMediaCard item={item} key={item.itemId} />
+            ))}
+          </MediaBrowserGrid>
+          <MediaBrowserPagination
+            busy={items.isFetching}
+            onNext={() =>
+              void navigate({ search: { ...search, page: page + 1 } })
+            }
+            onPrevious={() =>
+              void navigate({ search: { ...search, page: page - 1 } })
+            }
+            page={page}
+            pageCount={pageCount}
+          />
+        </>
+      )}
     </MediaBrowserPage>
   );
 }

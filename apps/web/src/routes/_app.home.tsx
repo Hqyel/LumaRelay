@@ -18,18 +18,30 @@ import {
   HomeScroller,
 } from "../components/home-media.js";
 import { MediaErrorState } from "../components/media-state.js";
+import {
+  latestMediaBrowserDefaults,
+  parseMediaBrowserSearch,
+} from "../media-browser-search.js";
 import { mediaHomeQuery, mediaLibrariesQuery } from "../media-query.js";
 
 function MoreLink({ children, to }: { children: ReactNode; to: string }) {
   if (to === "/movies")
     return (
-      <Link className="home-more-link" search={{ page: 1 }} to="/movies">
+      <Link
+        className="home-more-link"
+        search={parseMediaBrowserSearch({}, latestMediaBrowserDefaults)}
+        to="/movies"
+      >
         {children}
       </Link>
     );
   if (to === "/series")
     return (
-      <Link className="home-more-link" search={{ page: 1 }} to="/series">
+      <Link
+        className="home-more-link"
+        search={parseMediaBrowserSearch({}, latestMediaBrowserDefaults)}
+        to="/series"
+      >
         {children}
       </Link>
     );

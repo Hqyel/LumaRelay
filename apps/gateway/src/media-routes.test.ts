@@ -159,14 +159,19 @@ describe("authenticated media routes", () => {
     const response = await app.inject({
       headers: { cookie: "newemby_session=session-cookie" },
       method: "GET",
-      url: "/api/v1/media/items?kind=movie&startIndex=40&limit=40&sortBy=dateAdded&sortOrder=descending",
+      url: "/api/v1/media/items?kind=movie&genre=Drama&genre=Sci-Fi&year=2024&year=2026&startIndex=40&limit=40&sortBy=dateAdded&sortOrder=descending",
     });
 
     expect(response.statusCode).toBe(200);
     expect(getItems).toHaveBeenCalledWith(
       "http://127.0.0.1:8096/",
       expect.any(Object),
-      expect.objectContaining({ kind: "movie", startIndex: 40 }),
+      expect.objectContaining({
+        genre: ["Drama", "Sci-Fi"],
+        kind: "movie",
+        startIndex: 40,
+        year: [2024, 2026],
+      }),
     );
   });
 
