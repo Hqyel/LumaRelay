@@ -8,6 +8,7 @@ internal enum BridgeStartupAction
   Pair,
   RegisterProtocol,
   Shutdown,
+  Unpair,
   UnregisterProtocol,
 }
 
@@ -22,6 +23,7 @@ internal static class BridgeCommandLine
   private const string PairArgument = "--pair";
   private const string ProtocolArgument = "--protocol";
   private const string ShutdownArgument = "--shutdown";
+  private const string UnpairArgument = "--unpair";
   private const string UnregisterArgument = "--unregister-protocol";
 
   public static BridgeStartupCommand Parse(string[] args)
@@ -73,6 +75,15 @@ internal static class BridgeCommandLine
       return new BridgeStartupCommand(
         BridgeStartupAction.UnregisterProtocol,
         []);
+    }
+
+    if (args.Length == 1
+        && string.Equals(
+          args[0],
+          UnpairArgument,
+          StringComparison.OrdinalIgnoreCase))
+    {
+      return new BridgeStartupCommand(BridgeStartupAction.Unpair, []);
     }
 
     if (args.Length == 1

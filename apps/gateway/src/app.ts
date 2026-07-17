@@ -606,28 +606,34 @@ export async function buildApp(
       const currentServer = await serverStore.getCurrent();
       if (
         currentServer !== null &&
-        currentServer.serverId !== server.serverId &&
-        options.authSessionStore !== undefined
+        currentServer.serverId !== server.serverId
       ) {
-        const sessions = await options.authSessionStore.revokeServerSessions(
-          currentServer.serverId,
-        );
         void reply.clearCookie("newemby_session", { path: "/" });
+        if (options.bridgeDeviceStore !== undefined) {
+          await options.bridgeDeviceStore.revokeServerDevices(
+            currentServer.serverId,
+          );
+        }
 
-        try {
-          const deviceId = await options.authSessionStore.getDeviceId();
-          for (const session of sessions) {
-            try {
-              await (options.logoutSession ?? logoutEmbySession)(
-                currentServer.baseUrl,
-                { accessToken: session.accessToken, deviceId },
-              );
-            } catch {
-              // Local server revocation is authoritative.
+        if (options.authSessionStore !== undefined) {
+          const sessions = await options.authSessionStore.revokeServerSessions(
+            currentServer.serverId,
+          );
+          try {
+            const deviceId = await options.authSessionStore.getDeviceId();
+            for (const session of sessions) {
+              try {
+                await (options.logoutSession ?? logoutEmbySession)(
+                  currentServer.baseUrl,
+                  { accessToken: session.accessToken, deviceId },
+                );
+              } catch {
+                // Local server revocation is authoritative.
+              }
             }
+          } catch {
+            // Sessions remain revoked if device ID access fails.
           }
-        } catch {
-          // Sessions remain revoked if device ID access fails.
         }
       }
 
@@ -649,7 +655,10 @@ export async function buildApp(
     serverStore,
   });
   registerDeviceRoutes(app, {
+    authSessionStore: options.authSessionStore,
     bridgeDeviceStore: options.bridgeDeviceStore,
+    config: options.config,
+    serverStore,
   });
 
   registerNotFoundHandler(app);

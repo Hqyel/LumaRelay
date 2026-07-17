@@ -7,6 +7,7 @@ public sealed class BridgeCommandLineTests
   [Theory]
   [InlineData("--register-protocol", "RegisterProtocol")]
   [InlineData("--shutdown", "Shutdown")]
+  [InlineData("--unpair", "Unpair")]
   [InlineData("--unregister-protocol", "UnregisterProtocol")]
   public void RecognizesProtocolMaintenanceCommand(
     string argument,

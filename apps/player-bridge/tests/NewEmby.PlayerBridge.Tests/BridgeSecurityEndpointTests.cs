@@ -82,6 +82,33 @@ public sealed class BridgeSecurityEndpointTests
     }
   }
 
+  [Fact]
+  public async Task ClearsLocalCredentialThroughProtectedEndpoint()
+  {
+    var port = ReserveLoopbackPort();
+    var store = new MutableCredentialStore();
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      store);
+    await application.StartAsync();
+    using var handler = new SocketsHttpHandler { UseProxy = false };
+    using var client = new HttpClient(handler)
+    {
+      BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+    };
+    using var request = new HttpRequestMessage(
+      HttpMethod.Delete,
+      "/v1/pairing");
+    request.Headers.Add("Origin", AllowedOrigin);
+    request.Headers.Add("X-NewEmby-Nonce", Nonce);
+
+    using var response = await client.SendAsync(request);
+
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    Assert.Null(store.Read());
+    await application.StopAsync();
+  }
+
   private static async Task<HttpResponseMessage> SendVerificationAsync(
     HttpClient client,
     string nonce)
@@ -144,6 +171,30 @@ public sealed class BridgeSecurityEndpointTests
 
     public void Save(BridgeCredential credential)
     {
+    }
+  }
+
+  private sealed class MutableCredentialStore : IBridgeCredentialStore
+  {
+    private BridgeCredential? credential = new(
+      "https://gateway.example.com",
+      "11111111-1111-4111-8111-111111111111",
+      "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      [AllowedOrigin]);
+
+    public void Delete()
+    {
+      credential = null;
+    }
+
+    public BridgeCredential? Read()
+    {
+      return credential;
+    }
+
+    public void Save(BridgeCredential value)
+    {
+      credential = value;
     }
   }
 }

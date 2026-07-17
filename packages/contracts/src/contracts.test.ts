@@ -4,6 +4,7 @@ import {
   BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
   BridgePairingCodeResponseSchema,
   BridgeHeartbeatResponseSchema,
+  BridgeDevicesResponseSchema,
   RedeemBridgePairingCodeResponseSchema,
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
@@ -131,6 +132,24 @@ describe("shared API contracts", () => {
         requestId: "request-heartbeat",
         serverTime: "2026-07-17T12:00:00.000Z",
         status: "ok",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts an owner-scoped Bridge device list", () => {
+    expect(
+      BridgeDevicesResponseSchema.safeParse({
+        devices: [
+          {
+            bridgeVersion: "0.1.0",
+            deviceId: "11111111-1111-4111-8111-111111111111",
+            lastSeenAt: "2026-07-17T12:00:00.000Z",
+            name: "Living Room PC",
+            pairedAt: "2026-07-17T11:00:00.000Z",
+            platform: "windows",
+          },
+        ],
+        requestId: "request-devices",
       }).success,
     ).toBe(true);
   });

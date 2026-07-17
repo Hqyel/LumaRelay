@@ -14,6 +14,8 @@ import {
   BridgeDeviceAuthHeadersSchema,
   BridgeDeviceParamsSchema,
   BridgeHeartbeatResponseSchema,
+  BridgeDevicesResponseSchema,
+  RevokeBridgeDeviceResponseSchema,
   RedeemBridgePairingCodeRequestSchema,
   RedeemBridgePairingCodeResponseSchema,
 } from "./bridge.js";
@@ -96,6 +98,46 @@ export const ApiRoutes = {
       params: BridgeDeviceParamsSchema,
       response: {
         200: BridgeHeartbeatResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  bridgeDevices: {
+    method: "GET",
+    url: `${API_PREFIX}/bridge/devices`,
+    schema: {
+      response: {
+        200: BridgeDevicesResponseSchema,
+        401: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  revokeBridgeDevice: {
+    method: "DELETE",
+    url: `${API_PREFIX}/bridge/devices/:deviceId`,
+    schema: {
+      params: BridgeDeviceParamsSchema,
+      response: {
+        200: RevokeBridgeDeviceResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  revokeOwnBridgeCredential: {
+    method: "DELETE",
+    url: `${API_PREFIX}/bridge/devices/:deviceId/credential`,
+    schema: {
+      headers: BridgeDeviceAuthHeadersSchema,
+      params: BridgeDeviceParamsSchema,
+      response: {
+        200: RevokeBridgeDeviceResponseSchema,
         400: ErrorEnvelopeSchema,
         401: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,

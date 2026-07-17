@@ -291,6 +291,13 @@ describe("Gateway application", () => {
       updateUser: vi.fn(),
     };
     const logoutSession = vi.fn();
+    const bridgeDeviceStore = {
+      authenticate: vi.fn(),
+      listForUser: vi.fn(),
+      revokeAuthenticated: vi.fn(),
+      revokeForUser: vi.fn(),
+      revokeServerDevices: vi.fn().mockResolvedValue(1),
+    };
     const probeServer = vi
       .fn()
       .mockResolvedValueOnce(oldServer)
@@ -298,6 +305,7 @@ describe("Gateway application", () => {
       .mockResolvedValueOnce(newServer);
     const app = await buildApp({
       authSessionStore,
+      bridgeDeviceStore,
       config: loadConfig({ NODE_ENV: "test" }),
       logger: false,
       logoutSession,
@@ -317,6 +325,10 @@ describe("Gateway application", () => {
 
     expect(authSessionStore.revokeServerSessions).toHaveBeenCalledOnce();
     expect(authSessionStore.revokeServerSessions).toHaveBeenCalledWith(
+      "server-old",
+    );
+    expect(bridgeDeviceStore.revokeServerDevices).toHaveBeenCalledOnce();
+    expect(bridgeDeviceStore.revokeServerDevices).toHaveBeenCalledWith(
       "server-old",
     );
     expect(logoutSession).toHaveBeenCalledWith(

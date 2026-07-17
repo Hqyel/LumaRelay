@@ -24,6 +24,31 @@ export interface BridgeDeviceStore {
   authenticate(
     input: AuthenticateBridgeDeviceInput,
   ): Promise<AuthenticateBridgeDeviceResult>;
+  listForUser(serverId: string, userId: string): Promise<BridgeDeviceSummary[]>;
+  revokeAuthenticated(deviceId: string): Promise<boolean>;
+  revokeForUser(
+    serverId: string,
+    userId: string,
+    deviceId: string,
+  ): Promise<boolean>;
+  revokeServerDevices(serverId: string): Promise<number>;
+}
+
+function toDeviceSummary(device: {
+  bridgeVersion: string;
+  createdAt: string;
+  id: string;
+  lastSeenAt: string;
+  name: string;
+}): BridgeDeviceSummary {
+  return {
+    bridgeVersion: device.bridgeVersion,
+    deviceId: device.id,
+    lastSeenAt: device.lastSeenAt,
+    name: device.name,
+    pairedAt: device.createdAt,
+    platform: "windows",
+  };
 }
 
 function hashNonce(value: string, secret: string): string {
@@ -100,16 +125,79 @@ export function createBridgeDeviceStore(
 
         return {
           kind: "authenticated",
-          device: {
-            bridgeVersion: device.bridgeVersion,
-            deviceId: device.id,
+          device: toDeviceSummary({
+            ...device,
             lastSeenAt: authenticatedAtIso,
-            name: device.name,
-            pairedAt: device.createdAt,
-            platform: "windows",
-          },
+          }),
         };
       });
+    },
+
+    async listForUser(
+      serverId: string,
+      userId: string,
+    ): Promise<BridgeDeviceSummary[]> {
+      const devices = await database
+        .selectFrom("bridgeDevices")
+        .selectAll()
+        .where("serverId", "=", serverId)
+        .where("embyUserId", "=", userId)
+        .where("revokedAt", "is", null)
+        .orderBy("lastSeenAt", "desc")
+        .execute();
+      return devices.map(toDeviceSummary);
+    },
+
+    async revokeAuthenticated(deviceId: string): Promise<boolean> {
+      return database.transaction().execute(async (transaction) => {
+        const revoked = await transaction
+          .updateTable("bridgeDevices")
+          .set({ revokedAt: now().toISOString() })
+          .where("id", "=", deviceId)
+          .where("revokedAt", "is", null)
+          .executeTakeFirst();
+        if (Number(revoked.numUpdatedRows) !== 1) return false;
+
+        await transaction
+          .deleteFrom("bridgeRequestNonces")
+          .where("deviceId", "=", deviceId)
+          .execute();
+        return true;
+      });
+    },
+
+    async revokeForUser(
+      serverId: string,
+      userId: string,
+      deviceId: string,
+    ): Promise<boolean> {
+      return database.transaction().execute(async (transaction) => {
+        const revoked = await transaction
+          .updateTable("bridgeDevices")
+          .set({ revokedAt: now().toISOString() })
+          .where("id", "=", deviceId)
+          .where("serverId", "=", serverId)
+          .where("embyUserId", "=", userId)
+          .where("revokedAt", "is", null)
+          .executeTakeFirst();
+        if (Number(revoked.numUpdatedRows) !== 1) return false;
+
+        await transaction
+          .deleteFrom("bridgeRequestNonces")
+          .where("deviceId", "=", deviceId)
+          .execute();
+        return true;
+      });
+    },
+
+    async revokeServerDevices(serverId: string): Promise<number> {
+      const revoked = await database
+        .updateTable("bridgeDevices")
+        .set({ revokedAt: now().toISOString() })
+        .where("serverId", "=", serverId)
+        .where("revokedAt", "is", null)
+        .executeTakeFirst();
+      return Number(revoked.numUpdatedRows);
     },
   };
 }

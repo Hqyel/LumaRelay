@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using NewEmby.PlayerBridge.Pairing;
 
 namespace NewEmby.PlayerBridge.Security;
 
@@ -7,7 +8,8 @@ internal static class BridgeSecurityEndpoint
 {
   public static void Map(
     WebApplication application,
-    BridgeRequestSecurity security)
+    BridgeRequestSecurity security,
+    IBridgeCredentialStore credentialStore)
   {
     application.MapMethods(
       "/v1/{**path}",
@@ -20,6 +22,15 @@ internal static class BridgeSecurityEndpoint
         return;
 
       await context.Response.WriteAsJsonAsync(new { status = "ok" });
+    });
+    application.MapDelete("/v1/pairing", async context =>
+    {
+      context.Response.Headers.CacheControl = "no-store";
+      if (!await security.AuthorizeStateChangeAsync(context))
+        return;
+
+      credentialStore.Delete();
+      await context.Response.WriteAsJsonAsync(new { success = true });
     });
   }
 }

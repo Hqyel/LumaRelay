@@ -87,6 +87,18 @@ describe("Bridge device authentication store", () => {
       await expect(store.authenticate(input)).resolves.toMatchObject({
         kind: "authenticated",
       });
+      await expect(
+        store.listForUser("server-1", "user-1"),
+      ).resolves.toMatchObject([{ deviceId: DEVICE_ID }]);
+      await expect(
+        store.revokeForUser("server-1", "user-2", DEVICE_ID),
+      ).resolves.toBe(false);
+      await expect(
+        store.revokeForUser("server-1", "user-1", DEVICE_ID),
+      ).resolves.toBe(true);
+      await expect(
+        store.authenticate({ ...input, nonce: "X".repeat(43) }),
+      ).resolves.toEqual({ kind: "invalid-credential" });
     } finally {
       await database.destroy();
     }

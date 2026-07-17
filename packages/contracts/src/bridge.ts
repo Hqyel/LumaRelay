@@ -59,6 +59,17 @@ export const BridgeHeartbeatResponseSchema = z.object({
   status: z.literal("ok"),
 });
 
+export const BridgeDevicesResponseSchema = z.object({
+  devices: z.array(BridgeDeviceSummarySchema),
+  requestId: RequestIdSchema,
+});
+
+export const RevokeBridgeDeviceResponseSchema = z.object({
+  deviceId: z.uuid(),
+  requestId: RequestIdSchema,
+  success: z.literal(true),
+});
+
 export type BridgePairingCodeResponse = z.infer<
   typeof BridgePairingCodeResponseSchema
 >;
@@ -71,4 +82,8 @@ export type RedeemBridgePairingCodeResponse = z.infer<
 >;
 export type BridgeHeartbeatResponse = z.infer<
   typeof BridgeHeartbeatResponseSchema
+>;
+export type BridgeDevicesResponse = z.infer<typeof BridgeDevicesResponseSchema>;
+export type RevokeBridgeDeviceResponse = z.infer<
+  typeof RevokeBridgeDeviceResponseSchema
 >;

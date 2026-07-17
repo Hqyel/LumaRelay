@@ -18,6 +18,9 @@ internal static class Program
     if (command.Action is BridgeStartupAction.Pair)
       return RunPairing(command.PairingRequest!);
 
+    if (command.Action is BridgeStartupAction.Unpair)
+      return RunUnpairing();
+
     if (command.Action is not BridgeStartupAction.Run)
       return RunProtocolRegistration(command.Action);
 
@@ -93,6 +96,38 @@ internal static class Program
     catch (Exception exception)
     {
       Console.Error.WriteLine($"Bridge pairing failed: {exception.Message}");
+      return 1;
+    }
+  }
+
+  private static int RunUnpairing()
+  {
+    if (!OperatingSystem.IsWindows())
+    {
+      Console.Error.WriteLine("Bridge unpairing requires Windows.");
+      return 1;
+    }
+
+    try
+    {
+      using var handler = new SocketsHttpHandler
+      {
+        AllowAutoRedirect = false,
+      };
+      using var client = new HttpClient(handler)
+      {
+        Timeout = TimeSpan.FromSeconds(10),
+      };
+      var unpairing = new BridgeUnpairingClient(
+        client,
+        new WindowsCredentialStore());
+      unpairing.UnpairAsync().GetAwaiter().GetResult();
+      Console.WriteLine("Bridge unpaired successfully.");
+      return 0;
+    }
+    catch (Exception exception)
+    {
+      Console.Error.WriteLine($"Bridge unpairing failed: {exception.Message}");
       return 1;
     }
   }

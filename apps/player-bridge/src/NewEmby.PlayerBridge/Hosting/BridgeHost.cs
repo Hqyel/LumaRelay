@@ -32,7 +32,7 @@ internal static class BridgeHost
       credentials,
       nonceStore ?? new BridgeNonceStore());
     BridgeStatusEndpoint.Map(application, credentials, security);
-    BridgeSecurityEndpoint.Map(application, security);
+    BridgeSecurityEndpoint.Map(application, security, credentials);
     return application;
   }
 

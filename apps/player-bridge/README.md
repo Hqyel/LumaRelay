@@ -81,6 +81,24 @@ probe. Bridge-to-Gateway requests use the `NewEmbyDevice` authorization scheme
 and a new nonce; the first authenticated endpoint is
 `POST /api/v1/bridge/devices/:deviceId/heartbeat`.
 
+To revoke the current portable Bridge from both sides, run:
+
+```text
+NewEmby.PlayerBridge.exe --unpair
+```
+
+The Bridge first calls the authenticated Gateway credential-revocation endpoint.
+It removes the Generic Credential only after a successful response, or after a
+`401` confirms that the remote credential is already unusable. Other Gateway
+failures retain the local credential so the operation can be retried. No
+credential or nonce is printed.
+
+The Web device-management flow lists only devices owned by the current Emby
+user. It revokes the Gateway device before calling the protected loopback
+`DELETE /v1/pairing` endpoint with the paired Origin and a fresh nonce to clear
+the local Generic Credential. Calling the loopback endpoint alone does not
+revoke the Gateway device.
+
 The portable executable registers the per-user `newemby://` protocol when run
 with `--register-protocol`. It writes only below
 `HKCU\Software\Classes\newemby`, quotes both the executable and `%1`, and needs
