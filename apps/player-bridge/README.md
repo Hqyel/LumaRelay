@@ -29,3 +29,9 @@ installed .NET Runtime.
 The HTTP host always binds directly to `127.0.0.1` and, when available, `::1`.
 It never honors wildcard URL bindings. The default port is `58080`; override it
 with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.
+
+`GET /v1/status` returns the Bridge identity and version, API compatibility
+range, target platform, pairing state and discovered-player summary. Pass the
+optional integer query `apiVersion` to evaluate client compatibility. Until
+pairing and player discovery are implemented, `isPaired` is false and `players`
+is empty.

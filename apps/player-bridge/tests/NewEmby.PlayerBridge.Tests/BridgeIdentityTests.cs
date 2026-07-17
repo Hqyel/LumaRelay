@@ -7,5 +7,8 @@ public sealed class BridgeIdentityTests
   {
     Assert.Equal("NewEmby.PlayerBridge", BridgeIdentity.ApplicationId);
     Assert.Equal("NewEmby Player Bridge", BridgeIdentity.DisplayName);
+    Assert.Equal(1, BridgeIdentity.ApiVersion);
+    Assert.Equal(1, BridgeIdentity.MinimumClientApiVersion);
+    Assert.Equal(1, BridgeIdentity.MaximumClientApiVersion);
   }
 }

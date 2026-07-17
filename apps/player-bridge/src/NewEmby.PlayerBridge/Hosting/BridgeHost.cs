@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using NewEmby.PlayerBridge.Status;
 
 namespace NewEmby.PlayerBridge.Hosting;
 
@@ -19,7 +20,10 @@ internal static class BridgeHost
     builder.WebHost.ConfigureKestrel(options =>
       ConfigureListeners(options, serverOptions.Port));
 
-    return builder.Build();
+    var application = builder.Build();
+
+    BridgeStatusEndpoint.Map(application);
+    return application;
   }
 
   internal static IReadOnlyList<IPAddress> GetLoopbackAddresses()
