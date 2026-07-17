@@ -10,6 +10,7 @@ import { mediaSearchQuery } from "../media-query.js";
 export function HeaderSearch() {
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,10 +39,11 @@ export function HeaderSearch() {
     window.setTimeout(() => input.current?.focus());
   }
 
-  function close() {
+  function close(restoreFocus = false) {
     setOpen(false);
     setTerm("");
     setSearchTerm("");
+    if (restoreFocus) window.setTimeout(() => trigger.current?.focus());
   }
 
   const media =
@@ -62,7 +64,7 @@ export function HeaderSearch() {
             autoComplete="off"
             onChange={(event) => setTerm(event.currentTarget.value)}
             onKeyDown={(event) => {
-              if (event.key === "Escape") close();
+              if (event.key === "Escape") close(true);
             }}
             placeholder="搜索电影、剧集…"
             ref={input}
@@ -91,6 +93,7 @@ export function HeaderSearch() {
           aria-label="打开全局搜索"
           className="header-search-trigger"
           onClick={show}
+          ref={trigger}
           title="搜索"
           type="button"
         >
@@ -119,7 +122,7 @@ export function HeaderSearch() {
                 <Link
                   className="header-search-result"
                   key={item.itemId}
-                  onClick={close}
+                  onClick={() => close()}
                   params={{ id: item.itemId }}
                   to="/item/$id"
                 >

@@ -8,12 +8,23 @@ export default defineConfig({
     toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
   },
   fullyParallel: false,
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chrome",
+      use: { ...devices["Desktop Chrome"], channel: "chrome" },
+    },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    {
+      name: "edge",
+      use: { ...devices["Desktop Edge"], channel: "msedge" },
+    },
+  ],
   reporter: "line",
   testDir: "./e2e",
   testMatch: "**/*.e2e.ts",
   snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: "http://127.0.0.1:4173",
     colorScheme: "dark",
     locale: "zh-CN",

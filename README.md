@@ -24,6 +24,13 @@ Corepack has stale signing keys, run commands with
 4. Run the non-Docker startup check with `pnpm smoke:local`.
 5. Run the complete local quality gate with `pnpm verify:local`.
 
+Install the Playwright Chromium and Firefox runtimes once with
+`pnpm exec playwright install chromium firefox`. `pnpm test:e2e` keeps the pixel
+baselines on Chromium, while `pnpm test:compat` checks Chromium and Firefox
+functionality, keyboard behavior, layout overflow and console errors. On Windows
+with Chrome and Edge installed, run `pnpm test:compat:local` for the
+four-browser desktop compatibility gate.
+
 To verify a real Emby server without persisting credentials, set
 `EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and
 `EMBY_SMOKE_PASSWORD` in the command process, then run `pnpm smoke:emby`. The

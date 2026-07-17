@@ -42,6 +42,8 @@ await run(
     "-c",
     "apps/web/playwright.config.ts",
     "apps/web/e2e/performance.e2e.ts",
+    "--project",
+    "chromium",
   ],
   { ...process.env, NEWEMBY_E2E_PRODUCTION: "true" },
 );

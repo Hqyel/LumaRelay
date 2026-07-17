@@ -55,11 +55,14 @@ jobs:
       - name: Build Storybook
         run: pnpm storybook:build
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox
 
       - name: Authentication and page regression
         run: pnpm test:e2e
+
+      - name: Chromium and Firefox compatibility
+        run: pnpm test:compat
 
       - name: Visual regression
         run: pnpm test:visual
