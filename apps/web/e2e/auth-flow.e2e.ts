@@ -21,20 +21,24 @@ const user = {
   userId: "user-1",
 };
 
-const mediaHome = {
-  favoriteItems: [],
-  genreRows: [],
-  hero: null,
-  latestMovies: [],
-  latestSeries: [],
-  requestId: "request-home",
-  resumeItems: [],
+const movie = {
+  genres: ["Drama"],
+  isFavorite: false,
+  isPlayed: false,
+  itemId: "movie-1",
+  kind: "movie",
+  overview: "A complete E2E journey fixture.",
+  playbackPositionSeconds: 0,
+  serverId: "server-1",
+  title: "Example Movie",
 };
 
-test("connects, signs in, restores the session, and signs out", async ({
+test("completes login, browse, filter, favorite restore, and logout", async ({
   page,
 }) => {
   let authenticated = false;
+  let favorite = false;
+  let filterObserved = false;
   let selected = false;
   let sessionReads = 0;
 
@@ -122,7 +126,80 @@ test("connects, signs in, restores the session, and signs out", async ({
       return;
     }
     if (path === "/api/v1/media/home" && method === "GET") {
-      await route.fulfill({ json: mediaHome });
+      const currentMovie = { ...movie, isFavorite: favorite };
+      await route.fulfill({
+        json: {
+          favoriteItems: favorite ? [currentMovie] : [],
+          genreRows: [],
+          hero: currentMovie,
+          latestMovies: [currentMovie],
+          latestSeries: [],
+          requestId: "request-home",
+          resumeItems: [],
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/libraries" && method === "GET") {
+      await route.fulfill({
+        json: {
+          libraries: [
+            {
+              itemCount: 1,
+              kind: "movies",
+              libraryId: "library-1",
+              name: "Movies",
+              serverId: "server-1",
+            },
+          ],
+          requestId: "request-libraries",
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/items" && method === "GET") {
+      filterObserved = new URL(request.url()).searchParams
+        .getAll("genre")
+        .includes("Drama");
+      await route.fulfill({
+        json: {
+          items: [{ ...movie, isFavorite: favorite }],
+          limit: 40,
+          requestId: "request-items",
+          startIndex: 0,
+          total: 1,
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/items/movie-1" && method === "GET") {
+      await route.fulfill({
+        json: {
+          item: { ...movie, isFavorite: favorite },
+          people: [],
+          relatedItems: [],
+          requestId: "request-item",
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/items/movie-1/favorite" && method === "PUT") {
+      expect(request.headers()["x-newemby-csrf"]).toBe(
+        "test-csrf-token-with-at-least-32-characters",
+      );
+      favorite = (request.postDataJSON() as { favorite: boolean }).favorite;
+      await route.fulfill({
+        json: {
+          requestId: "request-favorite",
+          state: {
+            isFavorite: favorite,
+            isPlayed: false,
+            itemId: "movie-1",
+            playbackPositionSeconds: 0,
+            serverId: "server-1",
+          },
+        },
+      });
       return;
     }
 
@@ -145,6 +222,35 @@ test("connects, signs in, restores the session, and signs out", async ({
     page.getByRole("button", { name: "打开 Alex 的用户菜单" }),
   ).toBeVisible();
   expect(sessionReads).toBeGreaterThanOrEqual(2);
+
+  await page.getByRole("link", { exact: true, name: "电影" }).click();
+  await expect(page).toHaveURL(/\/movies/);
+  await page.getByLabel("类型标签").fill("Drama");
+  await page.getByRole("button", { name: "应用筛选" }).click();
+  await expect(page).toHaveURL(/genre=Drama/);
+  await expect.poll(() => filterObserved).toBe(true);
+
+  await page
+    .getByRole("link", { name: /Example Movie/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/item\/movie-1/);
+  await page.getByRole("button", { name: "收藏" }).click();
+  await expect(page.getByRole("button", { name: "已收藏" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.reload();
+  await expect(page.getByRole("button", { name: "已收藏" })).toBeVisible();
+  await page.getByRole("button", { name: "已收藏" }).click();
+  await expect(page.getByRole("button", { name: "收藏" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  expect(favorite).toBe(false);
+
+  await page.goto("/home");
+  await expect(page.getByRole("heading", { name: "我的收藏" })).toHaveCount(0);
 
   const menuTrigger = page.getByRole("button", {
     name: "打开 Alex 的用户菜单",

@@ -650,8 +650,11 @@ test("browser back restores media URL and scroll position", async ({
   );
   await expect(page.locator(".home-media-card").first()).toBeVisible();
 
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await page.waitForTimeout(100);
+  await page.mouse.wheel(0, 10_000);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(200);
+  await page.waitForTimeout(150);
   const previousScrollY = await page.evaluate(() => window.scrollY);
   expect(previousScrollY).toBeGreaterThan(200);
 
