@@ -1,4 +1,5 @@
 export * from "./auth.js";
+export * from "./bridge.js";
 export * from "./common.js";
 export * from "./health.js";
 export * from "./media.js";

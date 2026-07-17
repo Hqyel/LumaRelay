@@ -8,6 +8,7 @@ import {
 import { InitialMigration } from "./migrations/001-initial.js";
 import { ServerSelectionMigration } from "./migrations/002-server-selection.js";
 import { AuthSessionsMigration } from "./migrations/003-auth-sessions.js";
+import { BridgePairingCodesMigration } from "./migrations/004-bridge-pairing-codes.js";
 import { backupDatabase } from "./database.js";
 import type { DatabaseSchema } from "./types.js";
 
@@ -15,6 +16,7 @@ const migrations: Record<string, Migration> = {
   "001-initial": InitialMigration,
   "002-server-selection": ServerSelectionMigration,
   "003-auth-sessions": AuthSessionsMigration,
+  "004-bridge-pairing-codes": BridgePairingCodesMigration,
 };
 
 function createMigrator(database: Kysely<DatabaseSchema>): Migrator {

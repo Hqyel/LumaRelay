@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
+  BridgePairingCodeResponseSchema,
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
   HealthResponseSchema,
@@ -82,5 +84,24 @@ describe("shared API contracts", () => {
         resumeItems: [],
       }).success,
     ).toBe(true);
+  });
+
+  it("accepts a 60-second opaque Bridge pairing code", () => {
+    const result = BridgePairingCodeResponseSchema.safeParse({
+      expiresAt: "2026-07-17T12:01:00.000Z",
+      expiresInSeconds: BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
+      pairingCode: "A".repeat(43),
+      requestId: "request-pairing-code",
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      BridgePairingCodeResponseSchema.safeParse({
+        expiresAt: "2026-07-17T12:01:00.000Z",
+        expiresInSeconds: 120,
+        pairingCode: "short-code",
+        requestId: "request-pairing-code",
+      }).success,
+    ).toBe(false);
   });
 });

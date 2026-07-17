@@ -130,6 +130,12 @@ Player Bridge ── one-time ticket ── Gateway ── media URL / Emby
 5. Bridge 用配对码换取设备凭证，保存到系统凭据存储。
 6. Gateway 记录设备名称、系统、Bridge 版本和最后活动时间。
 
+配对码由 `POST /api/v1/bridge/pairing-codes` 签发。该接口要求当前 Emby
+登录会话、精确 Origin 和 CSRF Token，返回 `pairingCode`、`expiresAt` 与固定
+的 `expiresInSeconds: 60`。配对码使用 32 字节随机值，明文只在签发响应中出现；
+Gateway 仅保存绑定认证会话的 HMAC 摘要。同一会话重复签发时旧码立即失效，
+Bridge 的一次性兑换和设备凭证由 `M2-008` 完成。
+
 ### 4.2 点击播放
 
 1. Web 端打开“播放准备”弹层。

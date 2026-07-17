@@ -42,12 +42,14 @@ import {
   validateStateChange,
 } from "./csrf.js";
 import type { AuthSessionStore } from "./database/auth-session-store.js";
+import type { PairingCodeStore } from "./database/pairing-code-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
 import {
   registerMediaRoutes,
   type MediaRouteDependencies,
 } from "./media-routes.js";
+import { registerPairingRoutes } from "./pairing-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -79,6 +81,7 @@ export interface BuildAppOptions {
     MediaRouteDependencies,
     "authSessionStore" | "config" | "serverStore"
   >;
+  pairingCodeStore?: PairingCodeStore;
 }
 
 function loginErrorResponse(error: EmbyAuthError): {
@@ -634,6 +637,12 @@ export async function buildApp(
     ...options.media,
     authSessionStore: options.authSessionStore,
     config: options.config,
+    serverStore,
+  });
+  registerPairingRoutes(app, {
+    authSessionStore: options.authSessionStore,
+    config: options.config,
+    pairingCodeStore: options.pairingCodeStore,
     serverStore,
   });
 

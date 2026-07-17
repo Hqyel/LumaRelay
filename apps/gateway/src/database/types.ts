@@ -37,8 +37,17 @@ export interface AuthSessionsTable {
   userName: string;
 }
 
+export interface BridgePairingCodesTable {
+  authSessionId: string;
+  codeHash: string;
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
+  bridgePairingCodes: BridgePairingCodesTable;
   servers: ServersTable;
 }

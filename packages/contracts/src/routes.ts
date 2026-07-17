@@ -9,6 +9,7 @@ import {
 } from "./auth.js";
 import { HealthResponseSchema } from "./health.js";
 import { CsrfResponseSchema } from "./security.js";
+import { BridgePairingCodeResponseSchema } from "./bridge.js";
 import {
   EpisodesResponseSchema,
   FavoriteRequestSchema,
@@ -52,6 +53,18 @@ export const ApiRoutes = {
     schema: {
       response: {
         200: HealthResponseSchema,
+      },
+    },
+  },
+  createBridgePairingCode: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/pairing-codes`,
+    schema: {
+      response: {
+        201: BridgePairingCodeResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
       },
     },
   },
