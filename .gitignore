@@ -7,6 +7,9 @@ dist/
 coverage/
 .cache/
 .vite/
+bin/
+obj/
+apps/player-bridge/artifacts/
 *.tsbuildinfo
 storybook-static/
 playwright-report/

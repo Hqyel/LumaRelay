@@ -1,7 +1,27 @@
 # NewEmby Player Bridge
 
-The Windows Player Bridge is intentionally deferred to `M2-001`.
+`NewEmby.PlayerBridge` is the Windows companion process for local-player
+integration. M2 begins with a .NET 8 executable and an isolated player-adapter
+boundary; the loopback service, pairing, protocol registration and PotPlayer
+implementation are introduced by later progress items.
 
-M0 reserves this workspace boundary and the public application identity
-`NewEmby.PlayerBridge`. The .NET 8 solution, installer, loopback service and
-PotPlayer adapter must not be added before the M2 SMTC validation begins.
+## Projects
+
+- `src/NewEmby.PlayerBridge`: executable application.
+- `tests/NewEmby.PlayerBridge.Tests`: adapter-boundary unit tests.
+- `NewEmby.PlayerBridge.sln`: solution used by local and CI quality gates.
+
+## Commands
+
+Run these commands from the repository root with .NET SDK 8.0.422 installed:
+
+```text
+pnpm --filter @newemby/player-bridge build
+pnpm --filter @newemby/player-bridge test
+pnpm --filter @newemby/player-bridge lint
+pnpm bridge:publish
+```
+
+The publish command targets `win-x64` and produces a self-contained single-file
+executable under `artifacts/win-x64`. End users do not need a separately
+installed .NET Runtime.

@@ -8,7 +8,7 @@ local-player Bridge. It does not implement an HTML5 video player.
 - Node.js 22.13.x 或更新的 Node.js 22 版本
 - pnpm 11.13.1
 - Docker with Compose for the production topology
-- .NET 8 SDK before Player Bridge work starts in M2
+- .NET SDK 8.0.422 for Player Bridge development
 
 The checked-in package manager and lock file are authoritative. On Windows, use
 `pnpm.cmd` if PowerShell execution policy blocks `pnpm.ps1`. If the bundled
@@ -30,6 +30,12 @@ baselines on Chromium, while `pnpm test:compat` checks Chromium and Firefox
 functionality, keyboard behavior, layout overflow and console errors. On Windows
 with Chrome and Edge installed, run `pnpm test:compat:local` for the
 four-browser desktop compatibility gate.
+
+The repository `global.json` pins the Player Bridge SDK. Build and test it with
+`pnpm --filter @newemby/player-bridge build` and
+`pnpm --filter @newemby/player-bridge test`. Create the Windows self-contained
+single-file artifact with `pnpm bridge:publish`; output is written to
+`apps/player-bridge/artifacts/win-x64` and remains untracked.
 
 To verify a real Emby server without persisting credentials, set
 `EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and

@@ -3,7 +3,7 @@
 > 当前版本：v1.2  
 > 创建日期：2026-07-16  
 > 最近更新：2026-07-17
-> 当前阶段：M1 媒体浏览 MVP（完成，M2 待开始）
+> 当前阶段：M2 PotPlayer 本地播放闭环
 > 依据：[项目规划](PROJECT_PLAN.md) · [界面规范](UX_SPEC.md)
 
 ## 1. 使用方法
@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 未开始 | 0/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 1/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -258,7 +258,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 7.1 Bridge 骨架
 
-- [ ] `M2-001` 初始化 C# / .NET 8 Player Bridge 工程。
+- [x] `M2-001` 初始化 C# / .NET 8 Player Bridge 工程。
   - 使用 self-contained single-file 发布，并预留 `IPlayerAdapter`。
 - [ ] `M2-002` 实现回环 HTTP 服务，仅监听 localhost。
 - [ ] `M2-003` 实现 `/v1/status` 和版本兼容响应。
@@ -497,7 +497,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 无。M1 已完成，M2 尚未开始。
+- 无。`M2-001` 已完成，下一项尚未开始。
 
 ### 阻塞
 
@@ -508,7 +508,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-001` Player Bridge 工程初始化。
+1. 开始 `M2-002` 仅监听 localhost 的回环 HTTP 服务。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -533,6 +533,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-17 | M2-001 | 完成 | 已初始化 .NET 8.0.422 解决方案、Bridge 可执行项目和 xUnit 测试项目，固定 `NewEmby.PlayerBridge` 应用身份并预留 `IPlayerAdapter`；NuGet 依赖使用锁文件，Bridge 已纳入 pnpm 根级 lint/typecheck/test/build 和 CI 的 .NET SDK 配置。Release 构建 0 警告/0 错误、2 项边界测试与锁定还原通过；`win-x64` self-contained single-file 发布仅生成一个约 35 MB 的 EXE，实机启动输出版本 0.1.0。完整 `verify:local`、167 项 JS/TS 单测、Storybook、2 项组件视觉/axe、25 项 Chromium E2E、2 项 Chromium/Firefox 兼容回归、生产依赖审计和本地 Smoke 全部通过 | Player Bridge、.NET 8、pnpm/CI、README、进度表 | M2-002 |
+| 2026-07-17 | M2-001 | 进行中 | 正在初始化 C# / .NET 8 Player Bridge 工程、测试工程与 Windows self-contained single-file 发布配置，并预留播放器适配边界 | Player Bridge、.NET 工具链、进度表 | 完成工程构建、测试和发布验证 |
 | 2026-07-17 | M1-028 | 完成 | Playwright 已建立 Chromium、Chrome、Firefox 和本机 Edge 桌面兼容项目，覆盖首页布局、键盘跳转、媒体导航、顶栏搜索、Escape 关闭与焦点恢复、横向溢出及运行时控制台错误；修复搜索浮层关闭后焦点未回到触发按钮的问题。本机四浏览器 4/4 通过，CI 配置加入 Chromium 与 Firefox（远程 Actions 仍按 M0-004 保持阻塞）；全仓 167 项单测、25 项 Chromium E2E、2 项 Chromium/Firefox 兼容回归、Storybook、axe/视觉、lint/typecheck/build 均通过。生产构建首页可交互 660 ms，本地 Smoke、迁移 `up/down/up` 和差异检查通过。M1 五项发布门全部满足，阶段收口为 28/28 | Web、Playwright、CI、README、进度表 | M2-001 |
 | 2026-07-17 | M1-027 | 完成 | 已引入 TanStack React Virtual 对电影、剧集和通用媒体库执行 window 行级虚拟化，仅保留可见行及相邻一行；100 项回归确认 DOM 不再一次性渲染全部卡片。媒体图片补齐固定宽高，普通图片原生懒加载并使用低优先级，首张媒体图与详情焦点图使用 eager/high；Image Tag 继续作为不可变代理缓存键。媒体路由使用不抛异常的预取，在虚拟网格测量前准备缓存，同时保持 401、403、离线状态和滚动恢复。生产构建在受控 10 Mbps/40 ms 网络下首个有效交互为 698 ms；真实 Emby 4.8.9.0 只读首页聚合 36 项耗时 1095 ms，图片与详情读取正常且会话已退出。全仓 167 项单测、lint/typecheck/build、生产性能门、24 项 E2E（另 1 项显式性能用例在普通套件跳过）、本地 Smoke、格式和差异检查通过，既有卡片视觉基线未改变 | Web、UI、TanStack Virtual、Playwright、Smoke | M1-028 |
 | 2026-07-17 | M1-026 | 完成 | 已将可控模拟 API 的认证流程扩展为完整用户旅程，覆盖连接、登录、会话刷新、首页、电影筛选、详情、收藏乐观更新、刷新后服务端状态确认、恢复原收藏值及退出；原有 401、403、服务器离线、空媒体库、写入失败回滚、axe、键盘和截图场景继续纳入同一套件。修复滚动恢复用例的程序化滚动竞态，改为真实滚轮事件并在双 worker 下重复 3/3 通过；完整 Playwright 23/23、Web lint/typecheck/build、本地 Smoke、格式和差异检查通过，未访问或修改真实 Emby 数据 | Web、Playwright、模拟 API | M1-027 |
