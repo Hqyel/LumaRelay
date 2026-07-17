@@ -37,6 +37,11 @@ The repository `global.json` pins the Player Bridge SDK. Build and test it with
 single-file artifact with `pnpm bridge:publish`; output is written to
 `apps/player-bridge/artifacts/win-x64` and remains untracked.
 
+The current Bridge distribution is portable: place the published executable in a
+stable directory, run it directly, and use `--register-protocol` once from that
+location. Run `--shutdown` and `--unregister-protocol` before moving or deleting
+it. An installer, uninstaller and automatic updater are intentionally deferred.
+
 To verify a real Emby server without persisting credentials, set
 `EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and
 `EMBY_SMOKE_PASSWORD` in the command process, then run `pnpm smoke:emby`. The

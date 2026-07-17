@@ -26,6 +26,25 @@ The publish command targets `win-x64` and produces a self-contained single-file
 executable under `artifacts/win-x64`. End users do not need a separately
 installed .NET Runtime.
 
+## Portable use
+
+The current release is portable and does not include an installer or
+uninstaller. Copy `NewEmby.PlayerBridge.exe` to a stable user-selected directory
+and run it directly. Register the browser protocol once from that final
+location:
+
+```text
+NewEmby.PlayerBridge.exe --register-protocol
+```
+
+Before moving or deleting the executable, stop the running Bridge and remove the
+old protocol registration. Register it again after moving it:
+
+```text
+NewEmby.PlayerBridge.exe --shutdown
+NewEmby.PlayerBridge.exe --unregister-protocol
+```
+
 The HTTP host always binds directly to `127.0.0.1` and, when available, `::1`.
 It never honors wildcard URL bindings. The default port is `58080`; override it
 with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.
@@ -36,10 +55,11 @@ optional integer query `apiVersion` to evaluate client compatibility. Until
 pairing and player discovery are implemented, `isPaired` is false and `players`
 is empty.
 
-The Windows installer can register the per-user `newemby://` protocol by running
-`NewEmby.PlayerBridge.exe --register-protocol`. It writes only below
+The portable executable registers the per-user `newemby://` protocol when run
+with `--register-protocol`. It writes only below
 `HKCU\Software\Classes\newemby`, quotes both the executable and `%1`, and needs
-no administrator access. Use `--unregister-protocol` during uninstall.
+no administrator access. Use `--unregister-protocol` before removing or moving
+the portable executable.
 
 The Windows build runs without a console window and remains available through a
 notification-area icon. Its compact menu shows the Bridge version and an exit

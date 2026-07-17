@@ -13,7 +13,8 @@ NewEmby 不是另一个媒体服务器，也不接管 Emby 的媒体扫描、用
 
 1. Web 客户端：媒体发现、搜索、详情、收藏、播放入口和后台管理。
 2. NewEmby Gateway：统一登录、会话保护、API 适配和本地播放票据。
-3. Player Bridge：安装在用户电脑上，唤起本地播放器并回传播放进度。
+3. Player Bridge：由用户在电脑上直接运行的便携应用，唤起本地播放器并回传
+   播放进度。
 
 ### 1.1 产品目标
 
@@ -123,7 +124,7 @@ Player Bridge ── one-time ticket ── Gateway ── media URL / Emby
 ### 4.1 首次配对
 
 1. Web 客户端请求 `GET http://127.0.0.1:{port}/v1/status`。
-2. 未安装时展示下载及安装说明，不静默失败。
+2. 未下载或未运行时展示便携版下载、放置和启动说明，不静默失败。
 3. Bridge 返回版本、平台、已发现播放器和配对状态。
 4. 用户点击“配对”，Gateway 生成 60 秒有效的配对码。
 5. Bridge 用配对码换取设备凭证，保存到系统凭据存储。
@@ -492,7 +493,8 @@ docs/
 Windows 首版建议使用 C# / .NET 8：
 
 - 可直接使用 `Windows.Media.Control` 访问系统媒体会话和时间线。
-- 适合实现进程控制、自定义协议、系统托盘和 Windows 安装流程。
+- 适合实现进程控制、自定义协议、系统托盘和 Windows 便携发布；安装流程延期
+  评估。
 - 使用 self-contained single-file 发布，不要求用户预装 .NET Runtime。
 - 播放器能力通过 `IPlayerAdapter` 隔离；PotPlayer 为首个实现，mpv 为
   第二实现。
@@ -526,7 +528,7 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 - `PLAYER_IPC_LOST`
 - `EMBY_WRITE_FAILED`
 
-错误提示必须告诉用户下一步，例如“安装 Bridge”“重新配对”“选择其他
+错误提示必须告诉用户下一步，例如“下载并启动 Bridge”“重新配对”“选择其他
 播放器”“重新登录”，不能只显示“发生错误”。
 
 ## 11. 测试策略
@@ -549,7 +551,7 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 ### 11.3 端到端测试
 
 - 连接、登录、首页、筛选、详情和收藏。
-- Bridge 未安装、未配对、版本过旧。
+- Bridge 未下载或未运行、未配对、版本过旧。
 - PotPlayer 启动、SMTC 会话匹配、暂停、拖动、结束和异常退出。
 - PotPlayer 已关闭 SMTC、多实例和会话匹配失败的恢复流程。
 - Emby 暂时不可用后的进度补偿。
@@ -586,7 +588,7 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 
 ### M2：PotPlayer 本地播放闭环
 
-- Windows Bridge 安装与配对。
+- Windows Bridge 便携发布与配对。
 - PotPlayer 发现、版本检查和命令行启动。
 - Windows SMTC 能力检查、会话匹配和时间线监听。
 - PlayTicket。
@@ -688,9 +690,11 @@ Player Bridge ── HTTPS ─────────── NewEmby Gateway
 
 ### 13.3 客户端 Bridge
 
-- Windows 使用签名安装包。
-- 安装时注册协议和防火墙说明。
-- 自动更新必须校验签名。
+- Windows 当前使用 self-contained single-file 便携版，用户将程序放在稳定目录
+  后直接运行，不要求预装 .NET Runtime。
+- 用户首次使用时显式注册当前用户级协议；移动或删除程序前先注销协议，移动后
+  重新注册。Bridge 仅监听回环地址，不创建公网防火墙规则。
+- 安装器、卸载器和自动更新延期；未来若加入，安装包和更新包必须校验签名。
 - Bridge 与 Gateway 版本使用兼容范围，而非严格相等。
 
 ## 14. 风险清单
