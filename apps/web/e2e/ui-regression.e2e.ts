@@ -641,6 +641,39 @@ test("media filters use canonical shareable URL state", async ({ page }) => {
   expect(browserParams.getAll("year")).toEqual(["2024", "2026"]);
 });
 
+test("browser back restores media URL and scroll position", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto(
+    "/movies?genre=Drama&genre=Sci-Fi&page=2&sortBy=dateAdded&sortOrder=descending",
+  );
+  await expect(page.locator(".home-media-card").first()).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(100);
+  const previousScrollY = await page.evaluate(() => window.scrollY);
+  expect(previousScrollY).toBeGreaterThan(200);
+
+  await page
+    .locator(".home-media-card")
+    .first()
+    .evaluate((element) => (element as HTMLElement).click());
+  await expect(page).toHaveURL(/\/item\/movie-1/);
+  await page.goBack();
+
+  const restoredUrl = new URL(page.url());
+  expect(restoredUrl.pathname).toBe("/movies");
+  expect(restoredUrl.searchParams.get("page")).toBe("2");
+  expect(restoredUrl.searchParams.getAll("genre")).toEqual(["Drama", "Sci-Fi"]);
+  await expect
+    .poll(async () => {
+      const restoredScrollY = await page.evaluate(() => window.scrollY);
+      return Math.abs(restoredScrollY - previousScrollY);
+    })
+    .toBeLessThanOrEqual(120);
+});
+
 test("series library matches the reference card grid", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/series?page=1");

@@ -6,6 +6,7 @@ import {
   parseRepeatedSearch,
   stringifyRepeatedSearch,
 } from "./search-serializer.js";
+import { scrollRestorationKey } from "./scroll-restoration.js";
 
 export const router = createRouter({
   context: {
@@ -15,6 +16,8 @@ export const router = createRouter({
   defaultPreloadStaleTime: 30_000,
   parseSearch: parseRepeatedSearch,
   routeTree,
+  getScrollRestorationKey: scrollRestorationKey,
+  scrollRestoration: true,
   stringifySearch: stringifyRepeatedSearch,
 });
 
