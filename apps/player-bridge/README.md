@@ -52,8 +52,22 @@ with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.
 `GET /v1/status` returns the Bridge identity and version, API compatibility
 range, target platform, pairing state and discovered-player summary. Pass the
 optional integer query `apiVersion` to evaluate client compatibility. Until
-pairing and player discovery are implemented, `isPaired` is false and `players`
-is empty.
+player discovery is implemented, `players` is empty. `isPaired` reflects whether
+a valid device credential is present in the current Windows user's Credential
+Manager.
+
+The Web pairing flow opens a short-lived `newemby://pair` URI. For local
+diagnostics, the equivalent command is:
+
+```text
+NewEmby.PlayerBridge.exe --pair https://newemby.example.com PAIRING_CODE
+```
+
+The Gateway must use HTTPS; plain HTTP is accepted only for a loopback Gateway.
+The 60-second pairing code is exchanged once and is never persisted by the
+Bridge. The resulting device credential is stored as a Generic Credential for
+the current Windows user. Pairing failures report only the HTTP status and never
+print the pairing code or device credential.
 
 The portable executable registers the per-user `newemby://` protocol when run
 with `--register-protocol`. It writes only below

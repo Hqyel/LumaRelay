@@ -24,7 +24,9 @@ internal sealed record BridgeStatusResponse(
   bool IsPaired,
   IReadOnlyList<BridgePlayerStatus> Players)
 {
-  public static BridgeStatusResponse Create(string? requestedVersion)
+  public static BridgeStatusResponse Create(
+    string? requestedVersion,
+    bool isPaired = false)
   {
     var hasVersion = !string.IsNullOrEmpty(requestedVersion);
     var parsed = int.TryParse(
@@ -55,7 +57,7 @@ internal sealed record BridgeStatusResponse(
       "ready",
       "windows",
       "x64",
-      false,
+      isPaired,
       []);
   }
 }

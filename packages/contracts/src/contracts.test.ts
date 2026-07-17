@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
   BridgePairingCodeResponseSchema,
+  RedeemBridgePairingCodeResponseSchema,
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
   HealthResponseSchema,
@@ -103,5 +104,23 @@ describe("shared API contracts", () => {
         requestId: "request-pairing-code",
       }).success,
     ).toBe(false);
+  });
+
+  it("accepts a device credential without exposing an Emby token", () => {
+    expect(
+      RedeemBridgePairingCodeResponseSchema.safeParse({
+        allowedOrigins: ["https://newemby.example.com"],
+        device: {
+          bridgeVersion: "0.1.0",
+          deviceId: "11111111-1111-4111-8111-111111111111",
+          lastSeenAt: "2026-07-17T12:00:00.000Z",
+          name: "Living Room PC",
+          pairedAt: "2026-07-17T12:00:00.000Z",
+          platform: "windows",
+        },
+        deviceCredential: "B".repeat(43),
+        requestId: "request-redeem-pairing",
+      }).success,
+    ).toBe(true);
   });
 });

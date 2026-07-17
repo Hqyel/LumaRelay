@@ -28,4 +28,21 @@ public sealed class BridgeCommandLineTests
     Assert.Equal(BridgeStartupAction.Run, command.Action);
     Assert.Same(arguments, command.HostArguments);
   }
+
+  [Fact]
+  public void RecognizesPairingProtocolActivation()
+  {
+    const string code =
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    var gateway = Uri.EscapeDataString("https://newemby.example.com");
+    var command = BridgeCommandLine.Parse([
+      "--protocol",
+      $"newemby://pair?gateway={gateway}&code={code}",
+    ]);
+
+    Assert.Equal(BridgeStartupAction.Pair, command.Action);
+    Assert.NotNull(command.PairingRequest);
+    Assert.Equal(code, command.PairingRequest.PairingCode);
+    Assert.Empty(command.HostArguments);
+  }
 }

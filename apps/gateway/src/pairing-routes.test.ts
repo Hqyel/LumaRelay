@@ -58,6 +58,7 @@ function createServerStore(): ServerStore {
 
 function createPairingCodeStore(): PairingCodeStore & {
   issue: ReturnType<typeof vi.fn>;
+  redeem: ReturnType<typeof vi.fn>;
 } {
   return {
     issue: vi.fn().mockResolvedValue({
@@ -65,6 +66,17 @@ function createPairingCodeStore(): PairingCodeStore & {
       pairingCode: "A".repeat(43),
     }),
     pruneExpired: vi.fn(),
+    redeem: vi.fn().mockResolvedValue({
+      device: {
+        bridgeVersion: "0.1.0",
+        deviceId: "11111111-1111-4111-8111-111111111111",
+        lastSeenAt: "2026-07-17T12:00:00.000Z",
+        name: "Living Room PC",
+        pairedAt: "2026-07-17T12:00:00.000Z",
+        platform: "windows",
+      },
+      deviceCredential: "B".repeat(43),
+    }),
   };
 }
 
@@ -173,5 +185,55 @@ describe("Bridge pairing routes", () => {
     await app.ready();
 
     expect(app.swagger().paths?.["/api/v1/bridge/pairing-codes"]).toBeDefined();
+    expect(
+      app.swagger().paths?.["/api/v1/bridge/pairings/redeem"],
+    ).toBeDefined();
+  });
+
+  it("redeems a code without requiring a browser cookie or CSRF", async () => {
+    const pairingCodeStore = createPairingCodeStore();
+    const app = await createTestApp({ pairingCodeStore });
+    const response = await app.inject({
+      method: "POST",
+      payload: {
+        bridgeVersion: "0.1.0",
+        deviceName: "Living Room PC",
+        pairingCode: "A".repeat(43),
+        platform: "windows",
+      },
+      url: "/api/v1/bridge/pairings/redeem",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      allowedOrigins: ["http://127.0.0.1:5173"],
+      device: { name: "Living Room PC" },
+      deviceCredential: "B".repeat(43),
+    });
+    expect(pairingCodeStore.redeem).toHaveBeenCalledWith({
+      bridgeVersion: "0.1.0",
+      deviceName: "Living Room PC",
+      pairingCode: "A".repeat(43),
+      platform: "windows",
+    });
+  });
+
+  it("does not distinguish expired, replayed, and unknown codes", async () => {
+    const pairingCodeStore = createPairingCodeStore();
+    pairingCodeStore.redeem.mockResolvedValue(null);
+    const app = await createTestApp({ pairingCodeStore });
+    const response = await app.inject({
+      method: "POST",
+      payload: {
+        bridgeVersion: "0.1.0",
+        deviceName: "Living Room PC",
+        pairingCode: "A".repeat(43),
+        platform: "windows",
+      },
+      url: "/api/v1/bridge/pairings/redeem",
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().error.code).toBe("PAIRING_CODE_INVALID");
   });
 });

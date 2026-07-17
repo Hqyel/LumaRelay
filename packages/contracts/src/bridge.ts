@@ -13,6 +13,44 @@ export const BridgePairingCodeResponseSchema = z.object({
   requestId: RequestIdSchema,
 });
 
+export const BridgePlatformSchema = z.enum(["windows"]);
+
+export const BridgeDeviceNameSchema = z.string().trim().min(1).max(80);
+
+export const BridgeVersionSchema = z
+  .string()
+  .regex(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/);
+
+export const BridgeDeviceSummarySchema = z.object({
+  bridgeVersion: BridgeVersionSchema,
+  deviceId: z.uuid(),
+  lastSeenAt: z.iso.datetime(),
+  name: BridgeDeviceNameSchema,
+  pairedAt: z.iso.datetime(),
+  platform: BridgePlatformSchema,
+});
+
+export const RedeemBridgePairingCodeRequestSchema = z.object({
+  bridgeVersion: BridgeVersionSchema,
+  deviceName: BridgeDeviceNameSchema,
+  pairingCode: BridgePairingCodeSchema,
+  platform: BridgePlatformSchema,
+});
+
+export const RedeemBridgePairingCodeResponseSchema = z.object({
+  allowedOrigins: z.array(z.url()).min(1),
+  device: BridgeDeviceSummarySchema,
+  deviceCredential: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  requestId: RequestIdSchema,
+});
+
 export type BridgePairingCodeResponse = z.infer<
   typeof BridgePairingCodeResponseSchema
+>;
+export type BridgeDeviceSummary = z.infer<typeof BridgeDeviceSummarySchema>;
+export type RedeemBridgePairingCodeRequest = z.infer<
+  typeof RedeemBridgePairingCodeRequestSchema
+>;
+export type RedeemBridgePairingCodeResponse = z.infer<
+  typeof RedeemBridgePairingCodeResponseSchema
 >;

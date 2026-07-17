@@ -9,7 +9,11 @@ import {
 } from "./auth.js";
 import { HealthResponseSchema } from "./health.js";
 import { CsrfResponseSchema } from "./security.js";
-import { BridgePairingCodeResponseSchema } from "./bridge.js";
+import {
+  BridgePairingCodeResponseSchema,
+  RedeemBridgePairingCodeRequestSchema,
+  RedeemBridgePairingCodeResponseSchema,
+} from "./bridge.js";
 import {
   EpisodesResponseSchema,
   FavoriteRequestSchema,
@@ -65,6 +69,19 @@ export const ApiRoutes = {
         401: ErrorEnvelopeSchema,
         403: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  redeemBridgePairingCode: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/pairings/redeem`,
+    schema: {
+      body: RedeemBridgePairingCodeRequestSchema,
+      response: {
+        200: RedeemBridgePairingCodeResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
       },
     },
   },

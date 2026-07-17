@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 6/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 7/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -273,7 +273,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 ### 7.2 配对与安全
 
 - [x] `M2-007` Gateway 生成 60 秒配对码。
-- [ ] `M2-008` Bridge 换取并安全保存设备凭证。
+- [x] `M2-008` Bridge 换取并安全保存设备凭证。
 - [ ] `M2-009` 实现 Origin 白名单、nonce 和重放保护。
 - [ ] `M2-010` 实现 Bridge 设备列表、解除配对和凭证撤销。
 
@@ -501,7 +501,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 无。`M2-007` 已完成，下一项尚未开始。
+- 无。`M2-008` 已完成，下一项尚未开始。
 
 ### 延期
 
@@ -517,7 +517,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-008` Bridge 换取并安全保存设备凭证。
+1. 开始 `M2-009` 实现 Origin 白名单、nonce 和重放保护。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -543,6 +543,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-17 | M2-008 | 完成 | 已新增配对码兑换契约和 `POST /api/v1/bridge/pairings/redeem`，Gateway 在单一 SQLite 事务中原子删除配对码、创建设备并签发 32 字节设备凭证；过期、未知和重放统一返回 `PAIRING_CODE_INVALID`，数据库仅保存带域分隔的设备凭证 HMAC 摘要。Bridge 支持 `newemby://pair` 与诊断命令，仅允许 HTTPS 或回环 HTTP Gateway，禁止跟随重定向，并将 Gateway、设备 ID、凭证及允许来源保存到当前 Windows 用户 Credential Manager；`/v1/status` 已反映实际配对状态。根级 format/lint/typecheck、178 项 JS/TS 单测、35 项 .NET 测试及全量构建通过且 0 警告/0 错误；Credential Manager 实机往返与清理、临时 SQLite `up/down/up`、本地 Smoke 和 Windows 单文件发布通过 | Contracts、Gateway、SQLite、Player Bridge、Credential Manager、README、进度表 | M2-009 |
+| 2026-07-17 | M2-008 | 进行中 | 正在实现 Bridge 使用 60 秒配对码换取设备凭证、Gateway 只保存凭证摘要、Bridge 将明文保存到当前 Windows 登录用户的 Credential Manager；本任务不提前实现请求 nonce 或设备管理界面 | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成原子兑换与凭证安全保存验证 |
 | 2026-07-17 | M2-007 | 完成 | 已新增 `POST /api/v1/bridge/pairing-codes` 契约与 OpenAPI，只有当前服务器的已登录会话可在精确 Origin 和 CSRF 校验后签发；配对码使用 32 字节随机值、固定 60 秒有效期，同一会话重复签发会替换旧码，SQLite 仅持久化带域分隔的 HMAC-SHA256 摘要并在启动时清理过期记录。全仓 format/lint/typecheck、174 项 JS/TS 单测、23 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（1 项显式跳过）和 2 项 Chromium/Firefox 兼容回归通过；临时 SQLite 迁移 `up/down/up`、本地 Web/Gateway Smoke 与差异检查通过 | Contracts、Gateway、SQLite 迁移、OpenAPI、项目计划、进度表 | M2-008 |
 | 2026-07-17 | M2-007 | 进行中 | 正在实现仅由当前登录用户签发的 60 秒高熵配对码、SQLite 摘要存储、CSRF/Origin 保护与认证隔离测试；本任务不提前实现 Bridge 兑换设备凭证 | Contracts、Gateway、SQLite、进度表 | 完成配对码安全与过期验证 |
 | 2026-07-17 | M2-006 | 延期 | 按用户确认，当前阶段不实现 Windows 安装器和卸载器，改为直接交付 self-contained single-file 便携版；文档已补充固定目录放置、手工协议注册、移动或删除前注销协议以及进程退出方式。任务保持未勾选且不计入 M2 完成数，不阻塞播放闭环继续开发 | 项目计划、Bridge README、根 README、进度表 | M2-007 |

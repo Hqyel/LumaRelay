@@ -5,12 +5,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using NewEmby.PlayerBridge.Status;
+using NewEmby.PlayerBridge.Pairing;
 
 namespace NewEmby.PlayerBridge.Hosting;
 
 internal static class BridgeHost
 {
-  public static WebApplication Build(string[] args)
+  public static WebApplication Build(
+    string[] args,
+    IBridgeCredentialStore? credentialStore = null)
   {
     var builder = WebApplication.CreateSlimBuilder(args);
     var serverOptions = BridgeServerOptions.FromConfiguration(
@@ -22,7 +25,9 @@ internal static class BridgeHost
 
     var application = builder.Build();
 
-    BridgeStatusEndpoint.Map(application);
+    BridgeStatusEndpoint.Map(
+      application,
+      credentialStore ?? new WindowsCredentialStore());
     return application;
   }
 

@@ -1,5 +1,6 @@
 using NewEmby.PlayerBridge.Hosting;
 using NewEmby.PlayerBridge.Lifecycle;
+using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Protocol;
 using NewEmby.PlayerBridge.Startup;
 
@@ -13,6 +14,9 @@ internal static class Program
     var command = BridgeCommandLine.Parse(args);
     if (command.Action is BridgeStartupAction.Shutdown)
       return BridgeRuntime.SignalShutdown();
+
+    if (command.Action is BridgeStartupAction.Pair)
+      return RunPairing(command.PairingRequest!);
 
     if (command.Action is not BridgeStartupAction.Run)
       return RunProtocolRegistration(command.Action);
@@ -55,6 +59,40 @@ internal static class Program
     {
       Console.Error.WriteLine(
         $"Protocol registration failed: {exception.Message}");
+      return 1;
+    }
+  }
+
+  private static int RunPairing(BridgePairingRequest request)
+  {
+    if (!OperatingSystem.IsWindows())
+    {
+      Console.Error.WriteLine("Bridge pairing requires Windows.");
+      return 1;
+    }
+
+    try
+    {
+      using var handler = new SocketsHttpHandler
+      {
+        AllowAutoRedirect = false,
+      };
+      using var client = new HttpClient(handler)
+      {
+        Timeout = TimeSpan.FromSeconds(10),
+      };
+      var pairing = new BridgePairingClient(
+        client,
+        new WindowsCredentialStore());
+      pairing.PairAsync(request, Environment.MachineName)
+        .GetAwaiter()
+        .GetResult();
+      Console.WriteLine("Bridge paired successfully.");
+      return 0;
+    }
+    catch (Exception exception)
+    {
+      Console.Error.WriteLine($"Bridge pairing failed: {exception.Message}");
       return 1;
     }
   }

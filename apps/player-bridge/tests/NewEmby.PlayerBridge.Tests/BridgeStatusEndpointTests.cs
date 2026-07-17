@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using NewEmby.PlayerBridge.Hosting;
+using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Status;
 
 namespace NewEmby.PlayerBridge.Tests;
@@ -21,7 +22,8 @@ public sealed class BridgeStatusEndpointTests
   {
     var port = ReserveLoopbackPort();
     await using var application = BridgeHost.Build(
-      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)]);
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new EmptyCredentialStore());
     await application.StartAsync();
 
     using var handler = new SocketsHttpHandler { UseProxy = false };
@@ -56,6 +58,63 @@ public sealed class BridgeStatusEndpointTests
     Assert.Equal(1, status.Compatibility.MaximumClientApiVersion);
 
     await application.StopAsync();
+  }
+
+  [Fact]
+  public async Task ReportsStoredPairingState()
+  {
+    var port = ReserveLoopbackPort();
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new StoredCredentialStore());
+    await application.StartAsync();
+
+    using var handler = new SocketsHttpHandler { UseProxy = false };
+    using var client = new HttpClient(handler);
+    var status = await client.GetFromJsonAsync<BridgeStatusResponse>(
+      $"http://127.0.0.1:{port}/v1/status");
+
+    Assert.NotNull(status);
+    Assert.True(status.IsPaired);
+    await application.StopAsync();
+  }
+
+  private sealed class EmptyCredentialStore : IBridgeCredentialStore
+  {
+    public void Delete()
+    {
+    }
+
+    public BridgeCredential? Read()
+    {
+      return null;
+    }
+
+    public void Save(BridgeCredential credential)
+    {
+    }
+  }
+
+  private sealed class StoredCredentialStore : IBridgeCredentialStore
+  {
+    private static readonly BridgeCredential Credential = new(
+      "https://gateway.example.com",
+      "11111111-1111-4111-8111-111111111111",
+      "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      ["https://newemby.example.com"]);
+
+    public void Delete()
+    {
+    }
+
+    public BridgeCredential? Read()
+    {
+      return Credential;
+    }
+
+    public void Save(BridgeCredential credential)
+    {
+    }
   }
 
   private static int ReserveLoopbackPort()

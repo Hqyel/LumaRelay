@@ -136,6 +136,13 @@ Player Bridge ── one-time ticket ── Gateway ── media URL / Emby
 Gateway 仅保存绑定认证会话的 HMAC 摘要。同一会话重复签发时旧码立即失效，
 Bridge 的一次性兑换和设备凭证由 `M2-008` 完成。
 
+Bridge 通过 `POST /api/v1/bridge/pairings/redeem` 提交配对码、设备名称、平台和
+Bridge 版本。Gateway 在同一 SQLite 事务中删除配对码、创建设备并签发 32 字节
+设备凭证；过期、未知和已兑换的配对码统一返回 `PAIRING_CODE_INVALID`，不泄露
+具体状态。设备凭证明文只在该响应中出现，Gateway 只保存 HMAC 摘要。Windows
+Bridge 将 Gateway Origin、设备 ID、凭证和允许来源保存到当前用户的 Credential
+Manager Generic Credential，不写入文件、注册表、命令行或日志。
+
 ### 4.2 点击播放
 
 1. Web 端打开“播放准备”弹层。

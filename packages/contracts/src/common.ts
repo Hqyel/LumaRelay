@@ -20,6 +20,8 @@ export const ErrorCodeSchema = z.enum([
   "ACCESS_DENIED",
   "MEDIA_NOT_FOUND",
   "EMBY_WRITE_FAILED",
+  "PAIRING_CODE_INVALID",
+  "BRIDGE_CREDENTIAL_INVALID",
   "INTERNAL_ERROR",
 ]);
 

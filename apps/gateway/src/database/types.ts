@@ -45,9 +45,23 @@ export interface BridgePairingCodesTable {
   id: string;
 }
 
+export interface BridgeDevicesTable {
+  bridgeVersion: string;
+  createdAt: string;
+  credentialHash: string;
+  embyUserId: string;
+  id: string;
+  lastSeenAt: string;
+  name: string;
+  platform: string;
+  revokedAt: string | null;
+  serverId: string;
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
+  bridgeDevices: BridgeDevicesTable;
   bridgePairingCodes: BridgePairingCodesTable;
   servers: ServersTable;
 }

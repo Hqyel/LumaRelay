@@ -663,7 +663,7 @@ export async function buildApp(
         .send(
           errorEnvelope(
             "RATE_LIMITED",
-            "Too many login attempts; try again later",
+            "Too many requests; try again later",
             request.id,
           ),
         );
