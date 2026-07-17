@@ -9,6 +9,7 @@ import {
   getSeriesSeasons,
   searchMedia,
   setFavoriteState,
+  setPlayedState,
 } from "./media-api.js";
 
 const input = {
@@ -318,6 +319,55 @@ describe("authenticated media client", () => {
 
     expect(first.isFavorite).toBe(true);
     expect(repeated.isFavorite).toBe(true);
+    expect(methods.filter((method) => method === "POST")).toHaveLength(1);
+    expect(JSON.stringify(first)).not.toContain(input.accessToken);
+  });
+
+  it("sets played state idempotently and returns refreshed user data", async () => {
+    let played = false;
+    const methods: string[] = [];
+    const fetcher = vi.fn(async (request: string | URL | Request, init) => {
+      const url = new URL(String(request));
+      const method = init?.method ?? "GET";
+      methods.push(method);
+
+      if (url.pathname.includes("/PlayedItems/")) {
+        played = method === "POST";
+        return new Response(undefined, { status: 204 });
+      }
+
+      expect(url.pathname).toBe("/Users/user-1/Items/movie-1");
+      return new Response(
+        JSON.stringify({
+          Id: "movie-1",
+          Name: "Movie",
+          Type: "Movie",
+          UserData: {
+            IsFavorite: false,
+            Played: played,
+            PlayedPercentage: played ? 100 : undefined,
+          },
+        }),
+      );
+    });
+
+    const first = await setPlayedState(
+      "https://emby.example.com",
+      input,
+      "movie-1",
+      true,
+      { fetch: fetcher as typeof fetch },
+    );
+    const repeated = await setPlayedState(
+      "https://emby.example.com",
+      input,
+      "movie-1",
+      true,
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(first).toMatchObject({ isPlayed: true, playedPercentage: 100 });
+    expect(repeated.isPlayed).toBe(true);
     expect(methods.filter((method) => method === "POST")).toHaveLength(1);
     expect(JSON.stringify(first)).not.toContain(input.accessToken);
   });

@@ -5,35 +5,37 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 
-import { setFavorite } from "./api.js";
+import { setPlayed } from "./api.js";
 import { updateMediaStateCache } from "./media-state-cache.js";
 
-export interface FavoriteMutationInput {
-  favorite: boolean;
+export interface PlayedMutationInput {
   item: MediaCard;
+  played: boolean;
 }
 
-interface FavoriteMutationContext {
+interface PlayedMutationContext {
   snapshots: [QueryKey, unknown][];
 }
 
-export function useFavoriteMutation() {
+export function usePlayedMutation() {
   const queryClient = useQueryClient();
 
-  function update(input: FavoriteMutationInput, favorite: boolean) {
-    queryClient.setQueriesData({ queryKey: ["media"] }, (value) =>
-      updateMediaStateCache(value, input.item, { isFavorite: favorite }),
-    );
-  }
-
   return useMutation({
-    mutationFn: ({ favorite, item }: FavoriteMutationInput) =>
-      setFavorite(item.itemId, favorite),
-    mutationKey: ["media", "favorite"],
-    async onMutate(input): Promise<FavoriteMutationContext> {
+    mutationFn: ({ item, played }: PlayedMutationInput) =>
+      setPlayed(item.itemId, played),
+    mutationKey: ["media", "played"],
+    async onMutate(input): Promise<PlayedMutationContext> {
       await queryClient.cancelQueries({ queryKey: ["media"] });
       const snapshots = queryClient.getQueriesData({ queryKey: ["media"] });
-      update(input, input.favorite);
+      queryClient.setQueriesData({ queryKey: ["media"] }, (value) =>
+        updateMediaStateCache(value, input.item, {
+          isPlayed: input.played,
+          playbackPositionSeconds: input.played
+            ? input.item.playbackPositionSeconds
+            : 0,
+          playedPercentage: input.played ? 100 : 0,
+        }),
+      );
       return { snapshots };
     },
     onError(_error, _input, context) {

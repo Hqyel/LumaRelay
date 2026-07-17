@@ -368,6 +368,66 @@ describe("authenticated media routes", () => {
     expect(failure.json().error.code).toBe("EMBY_WRITE_FAILED");
   });
 
+  it("protects played writes and returns only the refreshed user state", async () => {
+    const setPlayed = vi.fn().mockResolvedValue({
+      isFavorite: false,
+      isPlayed: true,
+      itemId: "movie-1",
+      playbackPositionSeconds: 0,
+      playedPercentage: 100,
+      serverId: "server-1",
+    });
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: { setPlayed },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const rejected = await app.inject({
+      headers: { cookie: "newemby_session=session-cookie" },
+      method: "PUT",
+      payload: { played: true },
+      url: "/api/v1/media/items/movie-1/played",
+    });
+    const response = await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "PUT",
+      payload: { played: true },
+      url: "/api/v1/media/items/movie-1/played",
+    });
+
+    expect(rejected.statusCode).toBe(403);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      requestId: expect.any(String),
+      state: expect.objectContaining({
+        isPlayed: true,
+        itemId: "movie-1",
+      }),
+    });
+    expect(response.body).not.toContain("encrypted-at-rest-token");
+    expect(setPlayed).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ userId: "user-1" }),
+      "movie-1",
+      true,
+    );
+  });
+
   it("rejects a library ID outside the current user's views", async () => {
     const getItems = vi.fn();
     const app = await buildApp({

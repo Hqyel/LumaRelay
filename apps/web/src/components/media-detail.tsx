@@ -8,6 +8,7 @@ import { CheckCircle2, Heart, Play, Sparkles, Users } from "lucide-react";
 
 import { mediaImageUrl } from "../api.js";
 import { useFavoriteMutation } from "../use-favorite-mutation.js";
+import { usePlayedMutation } from "../use-played-mutation.js";
 import {
   HomeMediaCard,
   HomeScroller,
@@ -28,9 +29,13 @@ export function MediaDetailHero({
   series?: boolean;
 }) {
   const favoriteMutation = useFavoriteMutation();
+  const playedMutation = usePlayedMutation();
   const favoritePending =
     favoriteMutation.isPending &&
     favoriteMutation.variables.item.itemId === item.itemId;
+  const playedPending =
+    playedMutation.isPending &&
+    playedMutation.variables.item.itemId === item.itemId;
 
   return (
     <section className="detail-hero">
@@ -123,14 +128,27 @@ export function MediaDetailHero({
                 ? "已收藏"
                 : "收藏"}
           </Button>
-          <Button disabled title="观看状态将在 M1-022 开放" variant="secondary">
+          <Button
+            aria-pressed={item.isPlayed}
+            disabled={playedPending}
+            onClick={() =>
+              playedMutation.mutate({ item, played: !item.isPlayed })
+            }
+            title={item.isPlayed ? "标记未看" : "标记已看"}
+            variant="secondary"
+          >
             <CheckCircle2 aria-hidden="true" size={18} />
-            {item.isPlayed ? "已看" : "标记已看"}
+            {playedPending
+              ? "正在更新…"
+              : item.isPlayed
+                ? "标记未看"
+                : "标记已看"}
           </Button>
         </div>
-        {favoriteMutation.isError ? (
+        {favoriteMutation.isError || playedMutation.isError ? (
           <p aria-live="polite" className="detail-action-error" role="alert">
-            收藏状态更新失败，已恢复原状态，请重试。
+            {playedMutation.isError ? "观看" : "收藏"}
+            状态更新失败，已恢复原状态，请重试。
           </p>
         ) : null}
         {item.overview === undefined ? null : (

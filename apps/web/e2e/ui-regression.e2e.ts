@@ -143,8 +143,10 @@ async function mockPageApi(
   selected: boolean,
   itemState:
     "normal" | "empty" | "error" | "forbidden" | "unauthenticated" = "normal",
+  playedWriteFails = false,
 ) {
   let favoriteState = true;
+  let playedState = false;
 
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -202,17 +204,35 @@ async function mockPageApi(
         json: {
           ...mediaHome,
           favoriteItems: favoriteState
-            ? [{ ...mediaItem, isFavorite: true }]
+            ? [
+                {
+                  ...mediaItem,
+                  isFavorite: true,
+                  isPlayed: playedState,
+                  playedPercentage: playedState ? 100 : undefined,
+                },
+              ]
             : [],
           hero:
             mediaHome.hero === null
               ? null
-              : { ...mediaHome.hero, isFavorite: favoriteState },
+              : {
+                  ...mediaHome.hero,
+                  isFavorite: favoriteState,
+                  isPlayed: playedState,
+                  playedPercentage: playedState ? 100 : undefined,
+                },
           latestMovies: mediaHome.latestMovies.map((item) => ({
             ...item,
             isFavorite:
               item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+            isPlayed: item.itemId === "movie-1" ? playedState : item.isPlayed,
+            playedPercentage:
+              item.itemId === "movie-1" && playedState
+                ? 100
+                : item.playedPercentage,
           })),
+          resumeItems: playedState ? [] : mediaHome.resumeItems,
         },
       });
       return;
@@ -272,6 +292,11 @@ async function mockPageApi(
       ).map((item) => ({
         ...item,
         isFavorite: item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+        isPlayed: item.itemId === "movie-1" ? playedState : item.isPlayed,
+        playedPercentage:
+          item.itemId === "movie-1" && playedState
+            ? 100
+            : item.playedPercentage,
       }));
       await route.fulfill({
         json: {
@@ -292,6 +317,11 @@ async function mockPageApi(
             ...item,
             isFavorite:
               item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+            isPlayed: item.itemId === "movie-1" ? playedState : item.isPlayed,
+            playedPercentage:
+              item.itemId === "movie-1" && playedState
+                ? 100
+                : item.playedPercentage,
           })),
           people: [],
           requestId: "request-search",
@@ -303,7 +333,12 @@ async function mockPageApi(
     if (path === "/api/v1/media/items/movie-1") {
       await route.fulfill({
         json: {
-          item: { ...movieDetail, isFavorite: favoriteState },
+          item: {
+            ...movieDetail,
+            isFavorite: favoriteState,
+            isPlayed: playedState,
+            playedPercentage: playedState ? 100 : undefined,
+          },
           people,
           relatedItems: movieItems.slice(1, 7),
           requestId: "request-movie-detail",
@@ -322,9 +357,44 @@ async function mockPageApi(
           requestId: "request-favorite",
           state: {
             isFavorite: favoriteState,
-            isPlayed: false,
+            isPlayed: playedState,
             itemId: "movie-1",
             playbackPositionSeconds: 0,
+            playedPercentage: playedState ? 100 : undefined,
+            serverId: "server-1",
+          },
+        },
+      });
+      return;
+    }
+    if (
+      path === "/api/v1/media/items/movie-1/played" &&
+      route.request().method() === "PUT"
+    ) {
+      if (playedWriteFails) {
+        await route.fulfill({
+          json: {
+            error: {
+              code: "EMBY_WRITE_FAILED",
+              message: "The Emby write failed",
+              requestId: "request-played-failed",
+            },
+          },
+          status: 502,
+        });
+        return;
+      }
+      const body = route.request().postDataJSON() as { played: boolean };
+      playedState = body.played;
+      await route.fulfill({
+        json: {
+          requestId: "request-played",
+          state: {
+            isFavorite: favoriteState,
+            isPlayed: playedState,
+            itemId: "movie-1",
+            playbackPositionSeconds: 0,
+            playedPercentage: playedState ? 100 : undefined,
             serverId: "server-1",
           },
         },
@@ -662,6 +732,47 @@ test("favorite updates optimistically, survives refresh, and is restored", async
     "aria-pressed",
     "true",
   );
+});
+
+test("played state updates optimistically, survives refresh, and is restored", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto("/item/movie-1");
+  const playedButton = page.getByRole("button", { name: "标记已看" });
+  await expect(playedButton).toHaveAttribute("aria-pressed", "false");
+  await playedButton.click();
+  await expect(page.getByRole("button", { name: "标记未看" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "标记未看" })).toBeVisible();
+  await page.goto("/home");
+  await expect(page.getByLabel("已看").first()).toBeVisible();
+
+  await page.goto("/item/movie-1");
+  await page.getByRole("button", { name: "标记未看" }).click();
+  await expect(page.getByRole("button", { name: "标记已看" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+test("failed played update rolls back and remains actionable", async ({
+  page,
+}) => {
+  await mockPageApi(page, true, "normal", true);
+  await page.goto("/item/movie-1");
+  const playedButton = page.getByRole("button", { name: "标记已看" });
+  await playedButton.click();
+
+  await expect(page.getByRole("alert")).toContainText(
+    "观看状态更新失败，已恢复原状态，请重试",
+  );
+  await expect(playedButton).toHaveAttribute("aria-pressed", "false");
+  await expect(playedButton).toBeEnabled();
 });
 
 test("administrator entry matches the compact glass management shell", async ({

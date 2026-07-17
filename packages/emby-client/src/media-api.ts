@@ -637,6 +637,28 @@ export async function setFavoriteState(
   );
 }
 
+export async function setPlayedState(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  itemId: string,
+  played: boolean,
+  options: MediaClientOptions = {},
+): Promise<MediaUserState> {
+  const current = await getUserItem(baseUrl, input, itemId, options);
+  if ((current.UserData?.Played === true) === played)
+    return mediaUserState(current, input.serverId);
+
+  const url = embyApiUrl(
+    baseUrl,
+    `/Users/${encodeURIComponent(input.userId)}/PlayedItems/${encodeURIComponent(itemId)}`,
+  );
+  await writeEmby(url, input, played ? "POST" : "DELETE", options);
+  return mediaUserState(
+    await getUserItem(baseUrl, input, itemId, options),
+    input.serverId,
+  );
+}
+
 function imageType(
   value: AuthenticatedImageRequest["imageType"],
 ): EmbyImageType {

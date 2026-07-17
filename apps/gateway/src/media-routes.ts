@@ -21,6 +21,7 @@ import {
   loadAuthenticatedImage,
   searchMedia,
   setFavoriteState,
+  setPlayedState,
   type AuthenticatedImage,
   type AuthenticatedImageRequest,
   type AuthenticatedMediaRequest,
@@ -85,6 +86,12 @@ export interface MediaRouteDependencies {
     input: AuthenticatedMediaRequest,
     itemId: string,
     favorite: boolean,
+  ) => Promise<MediaUserState>;
+  setPlayed?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    itemId: string,
+    played: boolean,
   ) => Promise<MediaUserState>;
   serverStore: ServerStore;
 }
@@ -338,6 +345,29 @@ export function registerMediaRoutes(
             context.input,
             (request.params as { itemId: string }).itemId,
             (request.body as { favorite: boolean }).favorite,
+          ),
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.put(ApiRoutes.mediaPlayed.url, {
+    schema: ApiRoutes.mediaPlayed.schema,
+    async handler(request, reply) {
+      if (!validateStateChange(request, reply, dependencies.config)) return;
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          requestId: request.id,
+          state: await (dependencies.setPlayed ?? setPlayedState)(
+            context.baseUrl,
+            context.input,
+            (request.params as { itemId: string }).itemId,
+            (request.body as { played: boolean }).played,
           ),
         };
       } catch (error) {

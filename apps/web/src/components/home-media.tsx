@@ -2,6 +2,7 @@ import type { MediaCard, MediaLibrary } from "@newemby/contracts";
 import { ImageFallback } from "@newemby/ui";
 import { Link } from "@tanstack/react-router";
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -238,13 +239,19 @@ export function HomeMediaCard({
               <Heart aria-hidden="true" fill="currentColor" size={13} />
             </span>
           ) : null}
+          {item.isPlayed ? (
+            <span aria-label="已看" className="home-played-badge">
+              <CheckCircle2 aria-hidden="true" size={13} />
+            </span>
+          ) : null}
           {item.unplayedItemCount === undefined ||
           item.unplayedItemCount === 0 ? null : (
             <span className="home-episode-badge">
               {item.unplayedItemCount} 集未看
             </span>
           )}
-          {item.playedPercentage === undefined ||
+          {item.isPlayed ||
+          item.playedPercentage === undefined ||
           item.playedPercentage <= 0 ? null : (
             <span
               aria-label={`播放进度 ${Math.round(item.playedPercentage)}%`}

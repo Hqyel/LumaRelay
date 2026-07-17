@@ -185,6 +185,20 @@ export function setFavorite(
   );
 }
 
+export function setPlayed(
+  itemId: string,
+  played: boolean,
+): Promise<MediaUserStateResponse> {
+  return requestJson(
+    `/api/v1/media/items/${encodeURIComponent(itemId)}/played`,
+    {
+      body: JSON.stringify({ played }),
+      headers: { "content-type": "application/json" },
+      method: "PUT",
+    },
+  );
+}
+
 export function searchMedia(
   query: string,
   limit = 8,

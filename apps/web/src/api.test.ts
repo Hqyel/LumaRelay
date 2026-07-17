@@ -9,6 +9,7 @@ import {
   logout,
   selectServer,
   setFavorite,
+  setPlayed,
   subscribeToUnauthorized,
 } from "./api.js";
 
@@ -230,6 +231,38 @@ describe("Web Gateway client", () => {
       "/api/v1/media/items/movie-1/favorite",
       expect.objectContaining({
         body: JSON.stringify({ favorite: true }),
+        credentials: "include",
+        method: "PUT",
+      }),
+    );
+  });
+
+  it("puts played state through the CSRF-protected Gateway", async () => {
+    const fetcher = csrfAwareFetcher(
+      new Response(
+        JSON.stringify({
+          requestId: "request-played",
+          state: {
+            isFavorite: false,
+            isPlayed: true,
+            itemId: "movie-1",
+            playbackPositionSeconds: 0,
+            playedPercentage: 100,
+            serverId: "server-1",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(setPlayed("movie-1", true)).resolves.toMatchObject({
+      state: { isPlayed: true },
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/v1/media/items/movie-1/played",
+      expect.objectContaining({
+        body: JSON.stringify({ played: true }),
         credentials: "include",
         method: "PUT",
       }),

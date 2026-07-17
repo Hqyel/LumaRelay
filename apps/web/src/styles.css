@@ -577,6 +577,23 @@
   backdrop-filter: blur(8px);
 }
 
+.home-played-badge {
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: rgb(10 11 28 / 78%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 999px;
+  bottom: 10px;
+  color: #a78bfa;
+  display: inline-flex;
+  height: 26px;
+  justify-content: center;
+  position: absolute;
+  right: 10px;
+  width: 26px;
+  z-index: 2;
+}
+
 .home-progress-bar {
   position: absolute;
   right: 0;

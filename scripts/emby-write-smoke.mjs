@@ -9,6 +9,7 @@ import {
   logoutEmbySession,
   probeEmbyServer,
   setFavoriteState,
+  setPlayedState,
 } from "../packages/emby-client/dist/index.js";
 
 const baseUrl = process.env.EMBY_SMOKE_BASE_URL;
@@ -79,6 +80,7 @@ async function run() {
   let mediaInput;
   let operationError;
   let originalFavorite;
+  let originalPlayed;
   let serverBaseUrl = baseUrl;
 
   try {
@@ -109,6 +111,7 @@ async function run() {
       );
 
     originalFavorite = candidate.UserData?.IsFavorite === true;
+    originalPlayed = candidate.UserData?.Played === true;
     const toggled = await setFavoriteState(
       server.baseUrl,
       mediaInput,
@@ -121,6 +124,17 @@ async function run() {
         "Favorite write smoke did not persist the temporary state",
       );
     console.log("Emby write smoke: favorite=verified");
+
+    const played = await setPlayedState(
+      server.baseUrl,
+      mediaInput,
+      candidate.Id,
+      !originalPlayed,
+      { timeoutMs: 10_000 },
+    );
+    if (played.isPlayed === originalPlayed)
+      throw new Error("Played write smoke did not persist the temporary state");
+    console.log("Emby write smoke: played=verified");
   } catch (error) {
     operationError = error;
   } finally {
@@ -146,6 +160,34 @@ async function run() {
         }
       } catch (error) {
         cleanupError = error;
+      }
+    }
+
+    if (
+      candidate !== undefined &&
+      mediaInput !== undefined &&
+      originalPlayed !== undefined
+    ) {
+      try {
+        const restored = await setPlayedState(
+          serverBaseUrl,
+          mediaInput,
+          candidate.Id,
+          originalPlayed,
+          { timeoutMs: 10_000 },
+        );
+        if (
+          restored.isPlayed !== originalPlayed ||
+          restored.playbackPositionSeconds !== 0
+        ) {
+          cleanupError ??= new Error(
+            "Played state restoration could not be verified",
+          );
+        } else {
+          console.log("Emby write smoke: played=restored");
+        }
+      } catch (error) {
+        cleanupError ??= error;
       }
     }
 
