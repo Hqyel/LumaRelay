@@ -155,8 +155,14 @@ export function HomeScroller({
         </div>
       </div>
       <div
+        aria-label={`浏览${title}`}
         className={`home-scroll-container${dragging ? " is-dragging" : ""}`}
         ref={container}
+        role="region"
+        // The overflow region must be keyboard-focusable so arrow and touchpad
+        // scrolling remain available without targeting an individual card.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
       >
         {children}
       </div>
@@ -169,17 +175,19 @@ function cardSubtitle(item: MediaCard): string | undefined {
   return item.productionYear?.toString() ?? item.subtitle;
 }
 
+export interface HomeMediaCardProps {
+  item: MediaCard;
+  landscape?: boolean;
+  secondaryText?: string;
+  showPlay?: boolean;
+}
+
 export function HomeMediaCard({
   item,
   landscape = false,
   secondaryText,
   showPlay = false,
-}: {
-  item: MediaCard;
-  landscape?: boolean;
-  secondaryText?: string;
-  showPlay?: boolean;
-}) {
+}: HomeMediaCardProps) {
   const imageType =
     landscape && item.backdropImageTag !== undefined ? "backdrop" : "primary";
   const imageTag =

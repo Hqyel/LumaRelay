@@ -9,11 +9,11 @@ import {
   redirect,
   useRouterState,
 } from "@tanstack/react-router";
-import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
+import { HeaderSearch } from "../components/header-search.js";
 import { sessionQuery } from "../session-query.js";
 import { useUiStore } from "../stores/ui-store.js";
 
@@ -92,19 +92,6 @@ function renderNavigationLink({
       </Link>
     );
 
-  if (item.href === "/search")
-    return (
-      <Link
-        aria-current={item.active ? "page" : undefined}
-        aria-label={item.label}
-        className={className}
-        search={{ q: "" }}
-        to="/search"
-      >
-        {children}
-      </Link>
-    );
-
   return <span className={className}>{children}</span>;
 }
 
@@ -122,15 +109,7 @@ function HeaderActions({ user }: { user: UserProfile }) {
 
   return (
     <>
-      <Link
-        aria-label="全局搜索"
-        className="grid size-8 place-items-center rounded-control text-text-muted transition-colors duration-150 hover:bg-accent/10 hover:text-text"
-        search={{ q: "" }}
-        title="全局搜索"
-        to="/search"
-      >
-        <Search aria-hidden="true" size={17} />
-      </Link>
+      <HeaderSearch />
       <span className="hidden items-center gap-1.5 text-label text-text-muted lg:flex">
         <span aria-hidden="true" className="size-2 rounded-full bg-warning" />
         Bridge 未连接
@@ -193,11 +172,9 @@ function FrontAppLayout() {
         ? "剧集"
         : pathname === "/libraries" || pathname.startsWith("/library/")
           ? "媒体库"
-          : pathname === "/search"
-            ? "搜索"
-            : pathname.startsWith("/item/")
-              ? "详情"
-              : "首页";
+          : pathname.startsWith("/item/")
+            ? "详情"
+            : "首页";
 
   return (
     <AppShell

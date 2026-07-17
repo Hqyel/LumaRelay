@@ -79,6 +79,51 @@ const seriesItems = Array.from({ length: 8 }, (_, index) => ({
   unplayedItemCount: index + 1,
 }));
 
+const movieDetail = {
+  ...movieItems[0],
+  backdropImageTag: "backdrop-movie-1",
+  genres: ["科幻", "剧情", "冒险"],
+  overview:
+    "穿越群星之后，一名旅人沿着失落的航线重新寻找属于自己的家园，也重新理解那些被时间留下的人。",
+  premiereDate: "2026-03-14T00:00:00.000Z",
+  tagline: "每一次远行，都是为了回家。",
+};
+
+const seriesDetail = {
+  ...seriesItems[0],
+  backdropImageTag: "backdrop-series-1",
+  genres: ["科幻", "悬疑"],
+  overview:
+    "一群来自不同星球的旅人被卷入同一场失踪事件，他们必须在群星之间找到真相。",
+  premiereDate: "2026-01-12T00:00:00.000Z",
+};
+
+const people = ["林岚", "周屿", "苏野", "程墨"].map((name, index) => ({
+  kind: index === 3 ? "director" : "actor",
+  name,
+  personId: `person-${index + 1}`,
+  primaryImageTag: `person-image-${index + 1}`,
+  role: index === 3 ? "导演" : ["旅人", "领航员", "工程师"][index],
+  serverId: "server-1",
+}));
+
+const episodes = Array.from({ length: 6 }, (_, index) => ({
+  episodeId: `episode-${index + 1}`,
+  episodeNumber: index + 1,
+  isPlayed: index === 0,
+  name: ["离港", "静默信号", "重力井", "无名坐标", "回声", "归途"][index],
+  overview: "新的线索将众人带向未知星域。",
+  playbackPositionSeconds: index === 1 ? 1320 : 0,
+  premiereDate: `2026-0${index + 1}-12T08:00:00.000Z`,
+  primaryImageTag: `episode-image-${index + 1}`,
+  runtimeSeconds: 2880,
+  seasonId: "season-1",
+  seasonNumber: 1,
+  seriesId: "series-1",
+  seriesName: "群星之间",
+  serverId: "server-1",
+}));
+
 const mediaHome = {
   favoriteItems: [mediaItem],
   genreRows: [],
@@ -100,8 +145,11 @@ async function mockPageApi(page: Page, selected: boolean) {
 
     if (path.includes("/images/")) {
       const isSeries = path.includes("series-");
+      const isBackdrop = path.endsWith("/backdrop");
       await route.fulfill({
-        body: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${isSeries ? "#0e7490" : "#7c3aed"}"/><stop offset="1" stop-color="${isSeries ? "#312e81" : "#be185d"}"/></linearGradient></defs><rect width="240" height="360" fill="url(#g)"/><circle cx="190" cy="70" r="88" fill="#fff" opacity=".08"/><path d="M-20 300L90 170l65 78 40-48 70 100v80H-20z" fill="#fff" opacity=".12"/><path d="M30 40h80v8H30zm0 18h52v5H30z" fill="#fff" opacity=".55"/></svg>`,
+        body: isBackdrop
+          ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${isSeries ? "#082f49" : "#312e81"}"/><stop offset=".55" stop-color="${isSeries ? "#155e75" : "#7e22ce"}"/><stop offset="1" stop-color="#0f0f23"/></linearGradient></defs><rect width="1280" height="720" fill="url(#g)"/><circle cx="940" cy="180" r="220" fill="#fff" opacity=".08"/><path d="M0 620L310 280l180 210 150-170 250 300 180-220 300 320H0z" fill="#fff" opacity=".09"/><g fill="#fff" opacity=".65"><circle cx="720" cy="100" r="3"/><circle cx="1060" cy="380" r="2"/><circle cx="550" cy="210" r="2"/><circle cx="1180" cy="90" r="4"/></g></svg>`
+          : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${isSeries ? "#0e7490" : "#7c3aed"}"/><stop offset="1" stop-color="${isSeries ? "#312e81" : "#be185d"}"/></linearGradient></defs><rect width="240" height="360" fill="url(#g)"/><circle cx="190" cy="70" r="88" fill="#fff" opacity=".08"/><path d="M-20 300L90 170l65 78 40-48 70 100v80H-20z" fill="#fff" opacity=".12"/><path d="M30 40h80v8H30zm0 18h52v5H30z" fill="#fff" opacity=".55"/></svg>`,
         contentType: "image/svg+xml",
       });
       return;
@@ -172,6 +220,74 @@ async function mockPageApi(page: Page, selected: boolean) {
       });
       return;
     }
+    if (path === "/api/v1/media/search") {
+      await route.fulfill({
+        json: {
+          episodes: [],
+          movies: movieItems.slice(0, 3),
+          people: [],
+          requestId: "request-search",
+          series: seriesItems.slice(0, 3),
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/items/movie-1") {
+      await route.fulfill({
+        json: {
+          item: movieDetail,
+          people,
+          relatedItems: movieItems.slice(1, 7),
+          requestId: "request-movie-detail",
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/items/series-1") {
+      await route.fulfill({
+        json: {
+          item: seriesDetail,
+          people,
+          relatedItems: seriesItems.slice(1, 7),
+          requestId: "request-series-detail",
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/series/series-1/seasons") {
+      await route.fulfill({
+        json: {
+          requestId: "request-seasons",
+          seasons: [
+            {
+              indexNumber: 1,
+              isPlayed: false,
+              name: "第 1 季",
+              seasonId: "season-1",
+              seriesId: "series-1",
+              serverId: "server-1",
+              unplayedEpisodeCount: 5,
+            },
+            {
+              indexNumber: 2,
+              isPlayed: false,
+              name: "第 2 季",
+              seasonId: "season-2",
+              seriesId: "series-1",
+              serverId: "server-1",
+              unplayedEpisodeCount: 8,
+            },
+          ],
+        },
+      });
+      return;
+    }
+    if (path === "/api/v1/media/series/series-1/episodes") {
+      await route.fulfill({
+        json: { episodes, requestId: "request-episodes" },
+      });
+      return;
+    }
 
     await route.abort();
   });
@@ -182,8 +298,8 @@ async function expectNoAccessibilityViolations(page: Page) {
   expect(result.violations).toEqual([]);
 }
 
-async function waitForMediaImages(page: Page) {
-  await page.locator(".home-poster-image").evaluateAll(async (images) => {
+async function waitForImages(page: Page) {
+  await page.locator("img").evaluateAll(async (images) => {
     await Promise.all(
       images.map((image) =>
         image instanceof HTMLImageElement ? image.decode() : Promise.resolve(),
@@ -254,7 +370,9 @@ test("application shell is accessible and matches its baseline", async ({
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "跳到主要内容" })).toBeFocused();
-  await expect(page.getByRole("link", { name: "全局搜索" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "打开全局搜索" }),
+  ).toBeVisible();
   await page
     .getByRole("link", { name: "跳到主要内容" })
     .evaluate((element: HTMLElement) => element.blur());
@@ -263,6 +381,58 @@ test("application shell is accessible and matches its baseline", async ({
   await expect(page).toHaveScreenshot("application-shell.png", {
     fullPage: true,
   });
+});
+
+test("header search expands and shows reference dropdown results", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto("/home");
+  await page.getByRole("button", { name: "打开全局搜索" }).click();
+  const searchInput = page.getByRole("combobox", {
+    name: "搜索电影或剧集",
+  });
+  await expect(searchInput).toBeFocused();
+  await searchInput.fill("星海");
+  const dropdown = page.locator("#header-search-results");
+  await expect(dropdown.getByRole("link", { name: /星海归途/ })).toBeVisible();
+  await expect(dropdown.getByRole("link", { name: /群星之间/ })).toBeVisible();
+  await waitForImages(page);
+  await expectNoAccessibilityViolations(page);
+  await expect(page).toHaveScreenshot("header-search-dropdown.png", {
+    fullPage: true,
+  });
+  await searchInput.press("Escape");
+  await expect(searchInput).toBeHidden();
+});
+
+test("legacy search route returns to home", async ({ page }) => {
+  await mockPageApi(page, true);
+  await page.goto("/search?q=星海");
+  await expect(page).toHaveURL(/\/home$/);
+});
+
+test("movie details match the reference immersive layout", async ({ page }) => {
+  await mockPageApi(page, true);
+  await page.goto("/item/movie-1");
+  await expect(page.getByRole("heading", { name: "星海归途" })).toBeVisible();
+  await expect(page.getByText("每一次远行，都是为了回家。")).toBeVisible();
+  await waitForImages(page);
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("movie-detail.png", { fullPage: true });
+});
+
+test("series details show season and horizontal episodes", async ({ page }) => {
+  await mockPageApi(page, true);
+  await page.goto("/item/series-1");
+  await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
+  await expect(page.getByLabel("选择季")).toHaveValue("season-1");
+  await expect(page.getByText("1. 离港")).toBeVisible();
+  await waitForImages(page);
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("series-detail.png", { fullPage: true });
 });
 
 test("movie library matches the reference card grid", async ({ page }) => {
@@ -277,7 +447,7 @@ test("movie library matches the reference card grid", async ({ page }) => {
   );
   await page.mouse.move(0, 0);
   await page.waitForTimeout(300);
-  await waitForMediaImages(page);
+  await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("movie-library.png", { fullPage: true });
@@ -287,7 +457,7 @@ test("series library matches the reference card grid", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/series?page=1");
   await expect(page.getByRole("heading", { name: "全部剧集" })).toBeVisible();
-  await waitForMediaImages(page);
+  await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("series-library.png", { fullPage: true });
@@ -315,7 +485,7 @@ test("generic media library matches the reference card grid", async ({
   await mockPageApi(page, true);
   await page.goto("/library/library-1?page=1");
   await expect(page.getByRole("heading", { name: "我的电影" })).toBeVisible();
-  await waitForMediaImages(page);
+  await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("generic-library.png", {

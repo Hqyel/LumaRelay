@@ -6,7 +6,6 @@ import {
   Home,
   Library,
   ListVideo,
-  Search,
   Settings,
   Shield,
   Tv,
@@ -63,12 +62,6 @@ export function navigationForUser(
       href: "/playlists",
       icon: <ListVideo size={20} />,
       label: "播放列表",
-    },
-    {
-      active: pathname === "/search",
-      href: "/search",
-      icon: <Search size={20} />,
-      label: "搜索",
     },
   ];
 
