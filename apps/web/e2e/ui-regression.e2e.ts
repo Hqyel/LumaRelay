@@ -144,6 +144,8 @@ async function mockPageApi(
   itemState:
     "normal" | "empty" | "error" | "forbidden" | "unauthenticated" = "normal",
 ) {
+  let favoriteState = true;
+
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const path = requestUrl.pathname;
@@ -156,6 +158,16 @@ async function mockPageApi(
           ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${isSeries ? "#082f49" : "#312e81"}"/><stop offset=".55" stop-color="${isSeries ? "#155e75" : "#7e22ce"}"/><stop offset="1" stop-color="#0f0f23"/></linearGradient></defs><rect width="1280" height="720" fill="url(#g)"/><circle cx="940" cy="180" r="220" fill="#fff" opacity=".08"/><path d="M0 620L310 280l180 210 150-170 250 300 180-220 300 320H0z" fill="#fff" opacity=".09"/><g fill="#fff" opacity=".65"><circle cx="720" cy="100" r="3"/><circle cx="1060" cy="380" r="2"/><circle cx="550" cy="210" r="2"/><circle cx="1180" cy="90" r="4"/></g></svg>`
           : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${isSeries ? "#0e7490" : "#7c3aed"}"/><stop offset="1" stop-color="${isSeries ? "#312e81" : "#be185d"}"/></linearGradient></defs><rect width="240" height="360" fill="url(#g)"/><circle cx="190" cy="70" r="88" fill="#fff" opacity=".08"/><path d="M-20 300L90 170l65 78 40-48 70 100v80H-20z" fill="#fff" opacity=".12"/><path d="M30 40h80v8H30zm0 18h52v5H30z" fill="#fff" opacity=".55"/></svg>`,
         contentType: "image/svg+xml",
+      });
+      return;
+    }
+
+    if (path === "/api/v1/security/csrf") {
+      await route.fulfill({
+        json: {
+          csrfToken: "e2e-csrf-token-with-at-least-32-characters",
+          requestId: "request-csrf",
+        },
       });
       return;
     }
@@ -186,7 +198,23 @@ async function mockPageApi(
       return;
     }
     if (path === "/api/v1/media/home") {
-      await route.fulfill({ json: mediaHome });
+      await route.fulfill({
+        json: {
+          ...mediaHome,
+          favoriteItems: favoriteState
+            ? [{ ...mediaItem, isFavorite: true }]
+            : [],
+          hero:
+            mediaHome.hero === null
+              ? null
+              : { ...mediaHome.hero, isFavorite: favoriteState },
+          latestMovies: mediaHome.latestMovies.map((item) => ({
+            ...item,
+            isFavorite:
+              item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+          })),
+        },
+      });
       return;
     }
     if (path === "/api/v1/media/libraries") {
@@ -233,14 +261,18 @@ async function mockPageApi(
         return;
       }
       const requestedKinds = requestUrl.searchParams.getAll("kind");
-      const items =
+      const items = (
         itemState === "empty"
           ? []
           : requestedKinds.length > 1
             ? [...movieItems.slice(0, 4), ...seriesItems.slice(0, 4)]
             : requestedKinds.includes("series")
               ? seriesItems
-              : movieItems;
+              : movieItems
+      ).map((item) => ({
+        ...item,
+        isFavorite: item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+      }));
       await route.fulfill({
         json: {
           items,
@@ -256,7 +288,11 @@ async function mockPageApi(
       await route.fulfill({
         json: {
           episodes: [],
-          movies: movieItems.slice(0, 3),
+          movies: movieItems.slice(0, 3).map((item) => ({
+            ...item,
+            isFavorite:
+              item.itemId === "movie-1" ? favoriteState : item.isFavorite,
+          })),
           people: [],
           requestId: "request-search",
           series: seriesItems.slice(0, 3),
@@ -267,10 +303,30 @@ async function mockPageApi(
     if (path === "/api/v1/media/items/movie-1") {
       await route.fulfill({
         json: {
-          item: movieDetail,
+          item: { ...movieDetail, isFavorite: favoriteState },
           people,
           relatedItems: movieItems.slice(1, 7),
           requestId: "request-movie-detail",
+        },
+      });
+      return;
+    }
+    if (
+      path === "/api/v1/media/items/movie-1/favorite" &&
+      route.request().method() === "PUT"
+    ) {
+      const body = route.request().postDataJSON() as { favorite: boolean };
+      favoriteState = body.favorite;
+      await route.fulfill({
+        json: {
+          requestId: "request-favorite",
+          state: {
+            isFavorite: favoriteState,
+            isPlayed: false,
+            itemId: "movie-1",
+            playbackPositionSeconds: 0,
+            serverId: "server-1",
+          },
         },
       });
       return;
@@ -580,6 +636,32 @@ test("media 401 continues to use the global login recovery", async ({
   await expect(
     page.getByRole("heading", { name: "登录媒体服务器" }),
   ).toBeVisible();
+});
+
+test("favorite updates optimistically, survives refresh, and is restored", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto("/item/movie-1");
+  const favoriteButton = page.getByRole("button", { name: "已收藏" });
+  await expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+  await favoriteButton.click();
+  await expect(page.getByRole("button", { name: "收藏" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "收藏" })).toBeVisible();
+  await page.goto("/home");
+  await expect(page.getByRole("heading", { name: "我的收藏" })).toHaveCount(0);
+
+  await page.goto("/item/movie-1");
+  await page.getByRole("button", { name: "收藏" }).click();
+  await expect(page.getByRole("button", { name: "已收藏" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 });
 
 test("administrator entry matches the compact glass management shell", async ({

@@ -8,6 +8,7 @@ import {
   type MediaItemsQuery,
   type MediaLibrary,
   type MediaSearchResponse,
+  type MediaUserState,
   type PagedMediaResponse,
   type SeasonsResponse,
 } from "@newemby/contracts";
@@ -181,6 +182,45 @@ async function fetchEmby(
   }
 }
 
+async function writeEmby(
+  url: URL,
+  input: AuthenticatedMediaRequest,
+  method: "DELETE" | "POST",
+  options: MediaClientOptions,
+): Promise<void> {
+  const fetcher = options.fetch ?? globalThis.fetch;
+
+  try {
+    const response = await fetcher(url, {
+      headers: {
+        ...authenticatedHeaders(input),
+        accept: "application/json",
+      },
+      method,
+      redirect: "error",
+      signal: AbortSignal.timeout(options.timeoutMs ?? 8000),
+    });
+
+    if (response.status === 401)
+      throw new EmbyMediaError("unauthorized", "The Emby session has expired");
+    if (response.status === 403)
+      throw new EmbyMediaError("forbidden", "This media is not available");
+    if (response.status === 404)
+      throw new EmbyMediaError("not-found", "The media item was not found");
+    if (!response.ok)
+      throw new EmbyMediaError("write-failed", "The Emby write failed");
+  } catch (error) {
+    if (error instanceof EmbyMediaError) throw error;
+    if (error instanceof DOMException && error.name === "TimeoutError")
+      throw new EmbyMediaError("timeout", "The Emby write timed out", {
+        cause: error,
+      });
+    throw new EmbyMediaError("write-failed", "The Emby write failed", {
+      cause: error,
+    });
+  }
+}
+
 function listUrl(
   baseUrl: string,
   userId: string,
@@ -206,6 +246,43 @@ async function readItemsResponse(
       "The Emby media response is invalid",
     );
   return parsed.data.Items;
+}
+
+async function getUserItem(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  itemId: string,
+  options: MediaClientOptions,
+): Promise<EmbyBaseItemDto> {
+  const url = embyApiUrl(
+    baseUrl,
+    `/Users/${encodeURIComponent(input.userId)}/Items/${encodeURIComponent(itemId)}`,
+  );
+  url.searchParams.set("EnableUserData", "true");
+  const parsed = EmbyBaseItemDtoSchema.safeParse(
+    await (await fetchEmby(url, input, options)).json(),
+  );
+  if (!parsed.success)
+    throw new EmbyMediaError(
+      "invalid-response",
+      "The Emby user item response is invalid",
+    );
+  return parsed.data;
+}
+
+function mediaUserState(
+  item: EmbyBaseItemDto,
+  serverId: string,
+): MediaUserState {
+  const card = toMediaCard(item, serverId);
+  return {
+    isFavorite: card.isFavorite,
+    isPlayed: card.isPlayed,
+    itemId: card.itemId,
+    playbackPositionSeconds: card.playbackPositionSeconds,
+    playedPercentage: card.playedPercentage,
+    serverId,
+  };
 }
 
 async function readLatestResponse(
@@ -536,6 +613,28 @@ export async function getSeriesEpisodes(
       await readItemsResponse(await fetchEmby(url, input, options))
     ).map((episode) => toEpisodeSummary(episode, input.serverId)),
   };
+}
+
+export async function setFavoriteState(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  itemId: string,
+  favorite: boolean,
+  options: MediaClientOptions = {},
+): Promise<MediaUserState> {
+  const current = await getUserItem(baseUrl, input, itemId, options);
+  if ((current.UserData?.IsFavorite === true) === favorite)
+    return mediaUserState(current, input.serverId);
+
+  const url = embyApiUrl(
+    baseUrl,
+    `/Users/${encodeURIComponent(input.userId)}/FavoriteItems/${encodeURIComponent(itemId)}`,
+  );
+  await writeEmby(url, input, favorite ? "POST" : "DELETE", options);
+  return mediaUserState(
+    await getUserItem(baseUrl, input, itemId, options),
+    input.serverId,
+  );
 }
 
 function imageType(

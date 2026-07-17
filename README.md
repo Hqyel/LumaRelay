@@ -31,6 +31,12 @@ authenticated path checks the current user, views, filtered media items, one
 image and logout. It prints only version, status and counts, and always attempts
 logout in `finally`; never place these temporary values in `.env`.
 
+The explicitly enabled `pnpm smoke:emby:write` additionally requires
+`EMBY_WRITE_SMOKE_CONFIRM=true` and both temporary credential variables. It
+selects a zero-progress unplayed item, toggles its favorite state, verifies the
+write, restores the original state in `finally`, and then logs out. The command
+does not print the server address, account, item metadata, cookie or token.
+
 The development Web server is served by Vite. Production uses the same public
 origin for Web and `/api/*`; the browser never receives the Emby access token.
 The smoke command uses isolated ports and a temporary SQLite database, then

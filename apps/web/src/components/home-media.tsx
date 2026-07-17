@@ -1,7 +1,13 @@
 import type { MediaCard, MediaLibrary } from "@newemby/contracts";
 import { ImageFallback } from "@newemby/ui";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, PlayCircle, Star } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  PlayCircle,
+  Star,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -227,6 +233,11 @@ export function HomeMediaCard({
               {item.communityRating.toFixed(1)}
             </span>
           )}
+          {item.isFavorite ? (
+            <span aria-label="已收藏" className="home-favorite-badge">
+              <Heart aria-hidden="true" fill="currentColor" size={13} />
+            </span>
+          ) : null}
           {item.unplayedItemCount === undefined ||
           item.unplayedItemCount === 0 ? null : (
             <span className="home-episode-badge">

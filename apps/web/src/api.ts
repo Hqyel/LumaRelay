@@ -11,6 +11,7 @@ import type {
   MediaItemsQuery,
   MediaLibrariesResponse,
   MediaSearchResponse,
+  MediaUserStateResponse,
   PagedMediaResponse,
   ProbeServerResponse,
   PublicUsersResponse,
@@ -167,6 +168,20 @@ export function getSeriesEpisodes(
   const params = new URLSearchParams({ seasonId });
   return requestJson(
     `/api/v1/media/series/${encodeURIComponent(seriesId)}/episodes?${params.toString()}`,
+  );
+}
+
+export function setFavorite(
+  itemId: string,
+  favorite: boolean,
+): Promise<MediaUserStateResponse> {
+  return requestJson(
+    `/api/v1/media/items/${encodeURIComponent(itemId)}/favorite`,
+    {
+      body: JSON.stringify({ favorite }),
+      headers: { "content-type": "application/json" },
+      method: "PUT",
+    },
   );
 }
 

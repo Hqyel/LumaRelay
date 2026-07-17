@@ -561,6 +561,22 @@
   box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
 }
 
+.home-favorite-badge {
+  position: absolute;
+  top: 2.35rem;
+  right: 0.5rem;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 68%);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+  color: #f093fb;
+  place-items: center;
+  backdrop-filter: blur(8px);
+}
+
 .home-progress-bar {
   position: absolute;
   right: 0;
@@ -1232,6 +1248,17 @@
   flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 1.15rem;
+}
+
+.detail-action-error {
+  width: fit-content;
+  padding: 0.4rem 0.65rem;
+  margin: 0.75rem 0 0;
+  border: 1px solid rgb(240 101 101 / 25%);
+  border-radius: 0.5rem;
+  background: rgb(240 101 101 / 10%);
+  color: #ff9d9d;
+  font-size: 0.75rem;
 }
 
 .detail-play-button {

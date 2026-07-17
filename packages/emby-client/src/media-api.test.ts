@@ -8,6 +8,7 @@ import {
   getSeriesEpisodes,
   getSeriesSeasons,
   searchMedia,
+  setFavoriteState,
 } from "./media-api.js";
 
 const input = {
@@ -274,5 +275,50 @@ describe("authenticated media client", () => {
         runtimeSeconds: 180,
       }),
     );
+  });
+
+  it("sets favorite state idempotently and returns refreshed user data", async () => {
+    let favorite = false;
+    const methods: string[] = [];
+    const fetcher = vi.fn(async (request: string | URL | Request, init) => {
+      const url = new URL(String(request));
+      const method = init?.method ?? "GET";
+      methods.push(method);
+
+      if (url.pathname.includes("/FavoriteItems/")) {
+        favorite = method === "POST";
+        return new Response(undefined, { status: 204 });
+      }
+
+      expect(url.pathname).toBe("/Users/user-1/Items/movie-1");
+      return new Response(
+        JSON.stringify({
+          Id: "movie-1",
+          Name: "Movie",
+          Type: "Movie",
+          UserData: { IsFavorite: favorite, Played: false },
+        }),
+      );
+    });
+
+    const first = await setFavoriteState(
+      "https://emby.example.com",
+      input,
+      "movie-1",
+      true,
+      { fetch: fetcher as typeof fetch },
+    );
+    const repeated = await setFavoriteState(
+      "https://emby.example.com",
+      input,
+      "movie-1",
+      true,
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(first.isFavorite).toBe(true);
+    expect(repeated.isFavorite).toBe(true);
+    expect(methods.filter((method) => method === "POST")).toHaveLength(1);
+    expect(JSON.stringify(first)).not.toContain(input.accessToken);
   });
 });

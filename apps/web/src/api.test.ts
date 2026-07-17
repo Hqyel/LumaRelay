@@ -8,6 +8,7 @@ import {
   login,
   logout,
   selectServer,
+  setFavorite,
   subscribeToUnauthorized,
 } from "./api.js";
 
@@ -201,6 +202,37 @@ describe("Web Gateway client", () => {
     expect(fetcher).toHaveBeenCalledWith(
       "/api/v1/auth/logout",
       expect.objectContaining({ credentials: "include", method: "POST" }),
+    );
+  });
+
+  it("puts favorite state through the CSRF-protected Gateway", async () => {
+    const fetcher = csrfAwareFetcher(
+      new Response(
+        JSON.stringify({
+          requestId: "request-favorite",
+          state: {
+            isFavorite: true,
+            isPlayed: false,
+            itemId: "movie-1",
+            playbackPositionSeconds: 0,
+            serverId: "server-1",
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(setFavorite("movie-1", true)).resolves.toMatchObject({
+      state: { isFavorite: true },
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/v1/media/items/movie-1/favorite",
+      expect.objectContaining({
+        body: JSON.stringify({ favorite: true }),
+        credentials: "include",
+        method: "PUT",
+      }),
     );
   });
 

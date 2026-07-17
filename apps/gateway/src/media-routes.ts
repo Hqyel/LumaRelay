@@ -6,6 +6,7 @@ import {
   type MediaItemsQuery,
   type MediaLibrary,
   type MediaSearchResponse,
+  type MediaUserState,
   type PagedMediaResponse,
   type SeasonsResponse,
 } from "@newemby/contracts";
@@ -19,6 +20,7 @@ import {
   getSeriesSeasons,
   loadAuthenticatedImage,
   searchMedia,
+  setFavoriteState,
   type AuthenticatedImage,
   type AuthenticatedImageRequest,
   type AuthenticatedMediaRequest,
@@ -29,6 +31,7 @@ import type { GatewayConfig } from "./config.js";
 import type { AuthSessionStore } from "./database/auth-session-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope } from "./errors.js";
+import { validateStateChange } from "./csrf.js";
 
 interface MediaContext {
   baseUrl: string;
@@ -77,6 +80,12 @@ export interface MediaRouteDependencies {
     input: AuthenticatedMediaRequest,
     request: AuthenticatedImageRequest,
   ) => Promise<AuthenticatedImage>;
+  setFavorite?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    itemId: string,
+    favorite: boolean,
+  ) => Promise<MediaUserState>;
   serverStore: ServerStore;
 }
 
@@ -180,7 +189,9 @@ async function mediaFailure(
         ? ({ code: "MEDIA_NOT_FOUND", status: 404 } as const)
         : mediaError.kind === "timeout"
           ? ({ code: "SERVER_TIMEOUT", status: 408 } as const)
-          : ({ code: "SERVER_UNREACHABLE", status: 502 } as const);
+          : mediaError.kind === "write-failed"
+            ? ({ code: "EMBY_WRITE_FAILED", status: 502 } as const)
+            : ({ code: "SERVER_UNREACHABLE", status: 502 } as const);
   await reply
     .status(response.status)
     .send(errorEnvelope(response.code, mediaError.message, request.id));
@@ -305,6 +316,29 @@ export function registerMediaRoutes(
             (request.params as { itemId: string }).itemId,
           )),
           requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.put(ApiRoutes.mediaFavorite.url, {
+    schema: ApiRoutes.mediaFavorite.schema,
+    async handler(request, reply) {
+      if (!validateStateChange(request, reply, dependencies.config)) return;
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          requestId: request.id,
+          state: await (dependencies.setFavorite ?? setFavoriteState)(
+            context.baseUrl,
+            context.input,
+            (request.params as { itemId: string }).itemId,
+            (request.body as { favorite: boolean }).favorite,
+          ),
         };
       } catch (error) {
         await mediaFailure(error, request, reply, dependencies);

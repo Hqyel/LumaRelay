@@ -1,4 +1,5 @@
 import type { MediaHomeResponse, MediaItemResponse } from "@newemby/contracts";
+import { EmbyMediaError } from "@newemby/emby-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
@@ -10,6 +11,23 @@ const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 afterEach(async () => {
   await Promise.all(apps.splice(0).map(async (app) => app.close()));
 });
+
+async function stateChangeHeaders(app: Awaited<ReturnType<typeof buildApp>>) {
+  const response = await app.inject({
+    method: "GET",
+    url: "/api/v1/security/csrf",
+  });
+  const setCookie = response.headers["set-cookie"];
+  const csrfCookie = (
+    Array.isArray(setCookie) ? setCookie[0] : setCookie
+  )?.split(";")[0];
+
+  return {
+    cookie: `${csrfCookie}; newemby_session=session-cookie`,
+    origin: "http://127.0.0.1:5173",
+    "x-newemby-csrf": response.json().csrfToken as string,
+  };
+}
 
 function authStore(): AuthSessionStore {
   return {
@@ -277,6 +295,77 @@ describe("authenticated media routes", () => {
       "series-1",
       "season-1",
     );
+  });
+
+  it("protects favorite writes and returns only the refreshed user state", async () => {
+    const setFavorite = vi.fn().mockResolvedValue({
+      isFavorite: true,
+      isPlayed: false,
+      itemId: "movie-1",
+      playbackPositionSeconds: 0,
+      serverId: "server-1",
+    });
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: { setFavorite },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const rejected = await app.inject({
+      headers: { cookie: "newemby_session=session-cookie" },
+      method: "PUT",
+      payload: { favorite: true },
+      url: "/api/v1/media/items/movie-1/favorite",
+    });
+    const response = await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "PUT",
+      payload: { favorite: true },
+      url: "/api/v1/media/items/movie-1/favorite",
+    });
+
+    expect(rejected.statusCode).toBe(403);
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      requestId: expect.any(String),
+      state: expect.objectContaining({
+        isFavorite: true,
+        itemId: "movie-1",
+      }),
+    });
+    expect(response.body).not.toContain("encrypted-at-rest-token");
+    expect(setFavorite).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ userId: "user-1" }),
+      "movie-1",
+      true,
+    );
+
+    setFavorite.mockRejectedValueOnce(
+      new EmbyMediaError("write-failed", "Upstream write failed"),
+    );
+    const failure = await app.inject({
+      headers: await stateChangeHeaders(app),
+      method: "PUT",
+      payload: { favorite: false },
+      url: "/api/v1/media/items/movie-1/favorite",
+    });
+    expect(failure.statusCode).toBe(502);
+    expect(failure.json().error.code).toBe("EMBY_WRITE_FAILED");
   });
 
   it("rejects a library ID outside the current user's views", async () => {

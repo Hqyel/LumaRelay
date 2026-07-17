@@ -7,6 +7,7 @@ import { Button, ImageFallback } from "@newemby/ui";
 import { CheckCircle2, Heart, Play, Sparkles, Users } from "lucide-react";
 
 import { mediaImageUrl } from "../api.js";
+import { useFavoriteMutation } from "../use-favorite-mutation.js";
 import {
   HomeMediaCard,
   HomeScroller,
@@ -26,6 +27,11 @@ export function MediaDetailHero({
   item: MediaDetail;
   series?: boolean;
 }) {
+  const favoriteMutation = useFavoriteMutation();
+  const favoritePending =
+    favoriteMutation.isPending &&
+    favoriteMutation.variables.item.itemId === item.itemId;
+
   return (
     <section className="detail-hero">
       <ImageFallback
@@ -94,19 +100,39 @@ export function MediaDetailHero({
             <Play aria-hidden="true" fill="currentColor" size={18} />
             播放
           </Button>
-          <Button disabled title="收藏操作将在 M1-021 开放" variant="secondary">
+          <Button
+            aria-pressed={item.isFavorite}
+            disabled={favoritePending}
+            onClick={() =>
+              favoriteMutation.mutate({
+                favorite: !item.isFavorite,
+                item,
+              })
+            }
+            title={item.isFavorite ? "取消收藏" : "收藏"}
+            variant="secondary"
+          >
             <Heart
               aria-hidden="true"
               fill={item.isFavorite ? "currentColor" : "none"}
               size={18}
             />
-            {item.isFavorite ? "已收藏" : "收藏"}
+            {favoritePending
+              ? "正在更新…"
+              : item.isFavorite
+                ? "已收藏"
+                : "收藏"}
           </Button>
           <Button disabled title="观看状态将在 M1-022 开放" variant="secondary">
             <CheckCircle2 aria-hidden="true" size={18} />
             {item.isPlayed ? "已看" : "标记已看"}
           </Button>
         </div>
+        {favoriteMutation.isError ? (
+          <p aria-live="polite" className="detail-action-error" role="alert">
+            收藏状态更新失败，已恢复原状态，请重试。
+          </p>
+        ) : null}
         {item.overview === undefined ? null : (
           <p className="detail-overview">{item.overview}</p>
         )}
