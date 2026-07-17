@@ -1,11 +1,13 @@
 import {
   ApiRoutes,
+  type EpisodesResponse,
   type MediaHomeResponse,
   type MediaItemResponse,
   type MediaItemsQuery,
   type MediaLibrary,
   type MediaSearchResponse,
   type PagedMediaResponse,
+  type SeasonsResponse,
 } from "@newemby/contracts";
 import {
   EmbyMediaError,
@@ -13,6 +15,8 @@ import {
   getMediaItem,
   getMediaItems,
   getMediaLibraries,
+  getSeriesEpisodes,
+  getSeriesSeasons,
   loadAuthenticatedImage,
   searchMedia,
   type AuthenticatedImage,
@@ -47,11 +51,22 @@ export interface MediaRouteDependencies {
     baseUrl: string,
     input: AuthenticatedMediaRequest,
   ) => Promise<MediaLibrary[]>;
+  getEpisodes?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    seriesId: string,
+    seasonId: string,
+  ) => Promise<Omit<EpisodesResponse, "requestId">>;
   getItems?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
     query: MediaItemsQuery,
   ) => Promise<Omit<PagedMediaResponse, "requestId">>;
+  getSeasons?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    seriesId: string,
+  ) => Promise<Omit<SeasonsResponse, "requestId">>;
   search?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
@@ -288,6 +303,49 @@ export function registerMediaRoutes(
             context.baseUrl,
             context.input,
             (request.params as { itemId: string }).itemId,
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.seriesSeasons.url, {
+    schema: ApiRoutes.seriesSeasons.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.getSeasons ?? getSeriesSeasons)(
+            context.baseUrl,
+            context.input,
+            (request.params as { seriesId: string }).seriesId,
+          )),
+          requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.seriesEpisodes.url, {
+    schema: ApiRoutes.seriesEpisodes.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+
+      try {
+        return {
+          ...(await (dependencies.getEpisodes ?? getSeriesEpisodes)(
+            context.baseUrl,
+            context.input,
+            (request.params as { seriesId: string }).seriesId,
+            (request.query as { seasonId: string }).seasonId,
           )),
           requestId: request.id,
         };

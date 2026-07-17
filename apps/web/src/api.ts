@@ -2,6 +2,7 @@ import type {
   CurrentServerResponse,
   CsrfResponse,
   ErrorEnvelope,
+  EpisodesResponse,
   LoginRequest,
   LoginResponse,
   LogoutResponse,
@@ -14,6 +15,7 @@ import type {
   ProbeServerResponse,
   PublicUsersResponse,
   SessionResponse,
+  SeasonsResponse,
 } from "@newemby/contracts";
 
 type UnauthorizedListener = () => void;
@@ -150,6 +152,22 @@ export function getMediaItems(
 
 export function getMediaItem(itemId: string): Promise<MediaItemResponse> {
   return requestJson(`/api/v1/media/items/${encodeURIComponent(itemId)}`);
+}
+
+export function getSeriesSeasons(seriesId: string): Promise<SeasonsResponse> {
+  return requestJson(
+    `/api/v1/media/series/${encodeURIComponent(seriesId)}/seasons`,
+  );
+}
+
+export function getSeriesEpisodes(
+  seriesId: string,
+  seasonId: string,
+): Promise<EpisodesResponse> {
+  const params = new URLSearchParams({ seasonId });
+  return requestJson(
+    `/api/v1/media/series/${encodeURIComponent(seriesId)}/episodes?${params.toString()}`,
+  );
 }
 
 export function searchMedia(

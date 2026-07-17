@@ -6,6 +6,8 @@ import {
   buildEmbyImageUrl,
   embyApiUrl,
   getAuthenticatedUser,
+  getSeriesEpisodes,
+  getSeriesSeasons,
   logoutEmbySession,
   probeEmbyServer,
 } from "../packages/emby-client/dist/index.js";
@@ -110,6 +112,48 @@ try {
     const items = itemCollection(itemsPayload);
     if (items === null) throw new Error("Emby items response is invalid");
 
+    const mediaInput = {
+      accessToken,
+      deviceId,
+      serverId: server.serverId,
+      userId: authentication.user.userId,
+    };
+    const seriesUrl = embyApiUrl(
+      server.baseUrl,
+      `/Users/${encodeURIComponent(authentication.user.userId)}/Items`,
+    );
+    seriesUrl.searchParams.set("IncludeItemTypes", "Series");
+    seriesUrl.searchParams.set("Recursive", "true");
+    seriesUrl.searchParams.set("Limit", "1");
+    const seriesPayload = await fetchJson(seriesUrl, accessToken, deviceId);
+    const seriesItems = itemCollection(seriesPayload);
+    if (seriesItems === null)
+      throw new Error("Emby series response is invalid");
+
+    let seasonCount = 0;
+    let episodeCount = 0;
+    const seriesItem = EmbyBaseItemDtoSchema.safeParse(seriesItems.items[0]);
+    if (seriesItem.success) {
+      const seasons = await getSeriesSeasons(
+        server.baseUrl,
+        mediaInput,
+        seriesItem.data.Id,
+        { timeoutMs: 10_000 },
+      );
+      seasonCount = seasons.seasons.length;
+      const season = seasons.seasons[0];
+      if (season !== undefined) {
+        const episodes = await getSeriesEpisodes(
+          server.baseUrl,
+          mediaInput,
+          seriesItem.data.Id,
+          season.seasonId,
+          { timeoutMs: 10_000 },
+        );
+        episodeCount = episodes.episodes.length;
+      }
+    }
+
     const imageItem = items.items
       .map((item) => EmbyBaseItemDtoSchema.safeParse(item))
       .find((result) => result.success && result.data.ImageTags?.Primary);
@@ -136,7 +180,8 @@ try {
     await imageResponse.arrayBuffer();
 
     console.log(
-      `Emby smoke: auth=ok views=${views.total} media=${items.total} image=ok`,
+      `Emby smoke: auth=ok views=${views.total} media=${items.total} ` +
+        `seasons=${seasonCount} episodes=${episodeCount} image=ok`,
     );
   }
 } finally {

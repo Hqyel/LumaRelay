@@ -5,6 +5,8 @@ import {
   getMediaItem,
   getMediaItems,
   getMediaLibraries,
+  getSeriesEpisodes,
+  getSeriesSeasons,
   searchMedia,
 } from "./api.js";
 
@@ -82,6 +84,29 @@ export function mediaItemQuery(itemId: string) {
   return queryOptions({
     queryFn: () => getMediaItem(itemId),
     queryKey: ["media", "item", itemId],
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function seriesSeasonsQuery(seriesId: string) {
+  return queryOptions({
+    queryFn: () => getSeriesSeasons(seriesId),
+    queryKey: ["media", "series", seriesId, "seasons"],
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function seriesEpisodesQuery(
+  seriesId: string,
+  seasonId: string | undefined,
+) {
+  return queryOptions({
+    enabled: seasonId !== undefined,
+    queryFn: () => {
+      if (seasonId === undefined) throw new Error("Select a season first");
+      return getSeriesEpisodes(seriesId, seasonId);
+    },
+    queryKey: ["media", "series", seriesId, "episodes", seasonId],
     staleTime: 5 * 60_000,
   });
 }

@@ -207,6 +207,78 @@ describe("authenticated media routes", () => {
     );
   });
 
+  it("returns seasons and episodes for the authenticated user", async () => {
+    const getSeasons = vi.fn().mockResolvedValue({
+      seasons: [
+        {
+          isPlayed: false,
+          name: "Season 1",
+          seasonId: "season-1",
+          serverId: "server-1",
+          unplayedEpisodeCount: 1,
+        },
+      ],
+    });
+    const getEpisodes = vi.fn().mockResolvedValue({
+      episodes: [
+        {
+          episodeId: "episode-1",
+          isPlayed: false,
+          name: "Pilot",
+          playbackPositionSeconds: 0,
+          seasonId: "season-1",
+          seriesId: "series-1",
+          serverId: "server-1",
+        },
+      ],
+    });
+    const app = await buildApp({
+      authSessionStore: authStore(),
+      config: loadConfig({ NODE_ENV: "test" }),
+      logger: false,
+      media: { getEpisodes, getSeasons },
+      serverStore: {
+        getCurrent: vi.fn().mockResolvedValue({
+          baseUrl: "http://127.0.0.1:8096/",
+          capabilityFlags: { ping: true, publicInfo: true },
+          latencyMs: 1,
+          name: "Emby",
+          serverId: "server-1",
+          supportsHttps: false,
+          version: "4.8.11.0",
+        }),
+        select: vi.fn(),
+      },
+    });
+    apps.push(app);
+
+    const headers = { cookie: "newemby_session=session-cookie" };
+    const seasons = await app.inject({
+      headers,
+      method: "GET",
+      url: "/api/v1/media/series/series-1/seasons",
+    });
+    const episodes = await app.inject({
+      headers,
+      method: "GET",
+      url: "/api/v1/media/series/series-1/episodes?seasonId=season-1",
+    });
+
+    expect(seasons.statusCode).toBe(200);
+    expect(episodes.statusCode).toBe(200);
+    expect(getSeasons).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ userId: "user-1" }),
+      "series-1",
+    );
+    expect(getEpisodes).toHaveBeenCalledWith(
+      "http://127.0.0.1:8096/",
+      expect.objectContaining({ userId: "user-1" }),
+      "series-1",
+      "season-1",
+    );
+  });
+
   it("rejects a library ID outside the current user's views", async () => {
     const getItems = vi.fn();
     const app = await buildApp({

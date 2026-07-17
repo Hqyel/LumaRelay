@@ -5,6 +5,8 @@ import {
   getMediaItem,
   getMediaItems,
   getMediaLibraries,
+  getSeriesEpisodes,
+  getSeriesSeasons,
   searchMedia,
 } from "./media-api.js";
 
@@ -203,5 +205,74 @@ describe("authenticated media client", () => {
     );
     expect(result.relatedItems[0]?.itemId).toBe("movie-2");
     expect(JSON.stringify(result)).not.toContain(input.accessToken);
+  });
+
+  it("maps user-scoped seasons and episodes", async () => {
+    const fetcher = vi.fn(async (request: string | URL | Request) => {
+      const url = new URL(String(request));
+      expect(url.searchParams.get("UserId")).toBe("user-1");
+      if (url.pathname.endsWith("/Seasons"))
+        return new Response(
+          JSON.stringify({
+            Items: [
+              {
+                Id: "season-1",
+                IndexNumber: 1,
+                Name: "Season 1",
+                SeriesId: "series-1",
+                Type: "Season",
+                UserData: { UnplayedItemCount: 2 },
+              },
+            ],
+          }),
+        );
+      expect(url.pathname).toBe("/Shows/series-1/Episodes");
+      expect(url.searchParams.get("SeasonId")).toBe("season-1");
+      return new Response(
+        JSON.stringify({
+          Items: [
+            {
+              Id: "episode-1",
+              IndexNumber: 1,
+              Name: "Pilot",
+              ParentIndexNumber: 1,
+              RunTimeTicks: 1_800_000_000,
+              SeasonId: "season-1",
+              SeriesId: "series-1",
+              Type: "Episode",
+              UserData: { PlaybackPositionTicks: 300_000_000 },
+            },
+          ],
+        }),
+      );
+    });
+
+    const seasons = await getSeriesSeasons(
+      "https://emby.example.com",
+      input,
+      "series-1",
+      { fetch: fetcher as typeof fetch },
+    );
+    const episodes = await getSeriesEpisodes(
+      "https://emby.example.com",
+      input,
+      "series-1",
+      "season-1",
+      { fetch: fetcher as typeof fetch },
+    );
+
+    expect(seasons.seasons[0]).toEqual(
+      expect.objectContaining({
+        seasonId: "season-1",
+        unplayedEpisodeCount: 2,
+      }),
+    );
+    expect(episodes.episodes[0]).toEqual(
+      expect.objectContaining({
+        episodeId: "episode-1",
+        playbackPositionSeconds: 30,
+        runtimeSeconds: 180,
+      }),
+    );
   });
 });

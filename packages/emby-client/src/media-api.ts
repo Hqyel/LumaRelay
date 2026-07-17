@@ -1,4 +1,5 @@
 import {
+  type EpisodesResponse,
   MediaHomeResponseSchema,
   type MediaCard,
   type MediaDetail,
@@ -8,6 +9,7 @@ import {
   type MediaLibrary,
   type MediaSearchResponse,
   type PagedMediaResponse,
+  type SeasonsResponse,
 } from "@newemby/contracts";
 import { z } from "zod";
 
@@ -22,7 +24,9 @@ import {
   toMediaCard,
   toMediaDetail,
   toMediaLibrary,
+  toEpisodeSummary,
   toPersonSummary,
+  toSeasonSummary,
   type EmbyBaseItemDto,
 } from "./media-adapters.js";
 import { embyApiUrl } from "./url.js";
@@ -485,6 +489,52 @@ export async function getMediaItem(
       ),
     ),
     relatedItems: related.map((item) => toMediaCard(item, input.serverId)),
+  };
+}
+
+export async function getSeriesSeasons(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  seriesId: string,
+  options: MediaClientOptions = {},
+): Promise<Omit<SeasonsResponse, "requestId">> {
+  const url = embyApiUrl(
+    baseUrl,
+    `/Shows/${encodeURIComponent(seriesId)}/Seasons`,
+  );
+  url.searchParams.set("EnableImages", "true");
+  url.searchParams.set("EnableUserData", "true");
+  url.searchParams.set("Fields", HOME_FIELDS);
+  url.searchParams.set("UserId", input.userId);
+
+  return {
+    seasons: (
+      await readItemsResponse(await fetchEmby(url, input, options))
+    ).map((season) => toSeasonSummary(season, input.serverId)),
+  };
+}
+
+export async function getSeriesEpisodes(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  seriesId: string,
+  seasonId: string,
+  options: MediaClientOptions = {},
+): Promise<Omit<EpisodesResponse, "requestId">> {
+  const url = embyApiUrl(
+    baseUrl,
+    `/Shows/${encodeURIComponent(seriesId)}/Episodes`,
+  );
+  url.searchParams.set("EnableImages", "true");
+  url.searchParams.set("EnableUserData", "true");
+  url.searchParams.set("Fields", HOME_FIELDS);
+  url.searchParams.set("SeasonId", seasonId);
+  url.searchParams.set("UserId", input.userId);
+
+  return {
+    episodes: (
+      await readItemsResponse(await fetchEmby(url, input, options))
+    ).map((episode) => toEpisodeSummary(episode, input.serverId)),
   };
 }
 
