@@ -1,4 +1,5 @@
 using NewEmby.PlayerBridge.Hosting;
+using NewEmby.PlayerBridge.Lifecycle;
 using NewEmby.PlayerBridge.Protocol;
 using NewEmby.PlayerBridge.Startup;
 
@@ -6,16 +7,17 @@ namespace NewEmby.PlayerBridge;
 
 internal static class Program
 {
-  private static async Task<int> Main(string[] args)
+  [STAThread]
+  private static int Main(string[] args)
   {
     var command = BridgeCommandLine.Parse(args);
+    if (command.Action is BridgeStartupAction.Shutdown)
+      return BridgeRuntime.SignalShutdown();
+
     if (command.Action is not BridgeStartupAction.Run)
       return RunProtocolRegistration(command.Action);
 
-    await using var application = BridgeHost.Build(command.HostArguments);
-
-    await application.RunAsync();
-    return 0;
+    return BridgeRuntime.Run(command.HostArguments);
   }
 
   private static int RunProtocolRegistration(BridgeStartupAction action)

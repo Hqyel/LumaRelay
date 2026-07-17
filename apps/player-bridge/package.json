@@ -5,7 +5,7 @@
   "scripts": {
     "build": "dotnet build NewEmby.PlayerBridge.sln --configuration Release",
     "lint": "dotnet format NewEmby.PlayerBridge.sln --verify-no-changes",
-    "publish:win-x64": "dotnet publish src/NewEmby.PlayerBridge/NewEmby.PlayerBridge.csproj --configuration Release --output artifacts/win-x64",
+    "publish:win-x64": "dotnet publish src/NewEmby.PlayerBridge/NewEmby.PlayerBridge.csproj --configuration Release --framework net8.0-windows10.0.19041.0 --output artifacts/win-x64",
     "test": "dotnet test NewEmby.PlayerBridge.sln --configuration Release",
     "typecheck": "dotnet build NewEmby.PlayerBridge.sln --configuration Release"
   }

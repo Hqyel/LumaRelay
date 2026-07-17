@@ -40,3 +40,9 @@ The Windows installer can register the per-user `newemby://` protocol by running
 `NewEmby.PlayerBridge.exe --register-protocol`. It writes only below
 `HKCU\Software\Classes\newemby`, quotes both the executable and `%1`, and needs
 no administrator access. Use `--unregister-protocol` during uninstall.
+
+The Windows build runs without a console window and remains available through a
+notification-area icon. Its compact menu shows the Bridge version and an exit
+action. Only one Bridge instance can run per user. For automated maintenance,
+`NewEmby.PlayerBridge.exe --shutdown` signals the running instance to stop its
+HTTP host and exit cleanly.
