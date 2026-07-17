@@ -44,6 +44,21 @@ export const RedeemBridgePairingCodeResponseSchema = z.object({
   requestId: RequestIdSchema,
 });
 
+export const BridgeDeviceParamsSchema = z.object({
+  deviceId: z.uuid(),
+});
+
+export const BridgeDeviceAuthHeadersSchema = z.object({
+  authorization: z.string().optional(),
+  "x-newemby-nonce": z.string().optional(),
+});
+
+export const BridgeHeartbeatResponseSchema = z.object({
+  requestId: RequestIdSchema,
+  serverTime: z.iso.datetime(),
+  status: z.literal("ok"),
+});
+
 export type BridgePairingCodeResponse = z.infer<
   typeof BridgePairingCodeResponseSchema
 >;
@@ -53,4 +68,7 @@ export type RedeemBridgePairingCodeRequest = z.infer<
 >;
 export type RedeemBridgePairingCodeResponse = z.infer<
   typeof RedeemBridgePairingCodeResponseSchema
+>;
+export type BridgeHeartbeatResponse = z.infer<
+  typeof BridgeHeartbeatResponseSchema
 >;

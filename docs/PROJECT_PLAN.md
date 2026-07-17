@@ -143,6 +143,18 @@ Bridge 版本。Gateway 在同一 SQLite 事务中删除配对码、创建设备
 Bridge 将 Gateway Origin、设备 ID、凭证和允许来源保存到当前用户的 Credential
 Manager Generic Credential，不写入文件、注册表、命令行或日志。
 
+已配对 Bridge 调用 Gateway 时使用 `Authorization: NewEmbyDevice <credential>`
+和 `X-NewEmby-Nonce`。`POST /api/v1/bridge/devices/:deviceId/heartbeat` 作为首个
+认证探针；Gateway 只保存 nonce 的 HMAC 摘要，并以设备 ID + 摘要唯一约束提供
+跨进程、跨重启的五分钟重放窗口。无效凭证、非法 nonce 和重放分别返回
+`BRIDGE_CREDENTIAL_INVALID`、`NONCE_INVALID` 和 `REPLAY_DETECTED`。
+
+浏览器访问 Bridge 回环服务时，带 Origin 的请求必须与配对时下发的来源逐字
+匹配；未配对或其他网页不能获得 CORS 授权。无 Origin 的只读状态请求保留给
+本机诊断，状态写请求必须同时具有允许 Origin 和 22–128 字符的 Base64URL
+nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network Access
+预检；`POST /v1/pairing/verify` 用于验证这条安全边界。
+
 ### 4.2 点击播放
 
 1. Web 端打开“播放准备”弹层。

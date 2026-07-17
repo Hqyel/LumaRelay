@@ -42,9 +42,11 @@ import {
   validateStateChange,
 } from "./csrf.js";
 import type { AuthSessionStore } from "./database/auth-session-store.js";
+import type { BridgeDeviceStore } from "./database/bridge-device-store.js";
 import type { PairingCodeStore } from "./database/pairing-code-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
+import { registerDeviceRoutes } from "./device-routes.js";
 import {
   registerMediaRoutes,
   type MediaRouteDependencies,
@@ -55,6 +57,7 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
 export interface BuildAppOptions {
   authSessionStore?: AuthSessionStore;
+  bridgeDeviceStore?: BridgeDeviceStore;
   authenticateUser?: (
     baseUrl: string,
     credentials: LoginRequest & { deviceId: string },
@@ -644,6 +647,9 @@ export async function buildApp(
     config: options.config,
     pairingCodeStore: options.pairingCodeStore,
     serverStore,
+  });
+  registerDeviceRoutes(app, {
+    bridgeDeviceStore: options.bridgeDeviceStore,
   });
 
   registerNotFoundHandler(app);

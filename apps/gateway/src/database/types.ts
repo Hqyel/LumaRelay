@@ -58,10 +58,17 @@ export interface BridgeDevicesTable {
   serverId: string;
 }
 
+export interface BridgeRequestNoncesTable {
+  deviceId: string;
+  expiresAt: string;
+  nonceHash: string;
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
   bridgeDevices: BridgeDevicesTable;
   bridgePairingCodes: BridgePairingCodesTable;
+  bridgeRequestNonces: BridgeRequestNoncesTable;
   servers: ServersTable;
 }

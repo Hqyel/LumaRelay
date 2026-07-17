@@ -11,6 +11,9 @@ import { HealthResponseSchema } from "./health.js";
 import { CsrfResponseSchema } from "./security.js";
 import {
   BridgePairingCodeResponseSchema,
+  BridgeDeviceAuthHeadersSchema,
+  BridgeDeviceParamsSchema,
+  BridgeHeartbeatResponseSchema,
   RedeemBridgePairingCodeRequestSchema,
   RedeemBridgePairingCodeResponseSchema,
 } from "./bridge.js";
@@ -81,6 +84,21 @@ export const ApiRoutes = {
         200: RedeemBridgePairingCodeResponseSchema,
         400: ErrorEnvelopeSchema,
         401: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  bridgeHeartbeat: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/devices/:deviceId/heartbeat`,
+    schema: {
+      headers: BridgeDeviceAuthHeadersSchema,
+      params: BridgeDeviceParamsSchema,
+      response: {
+        200: BridgeHeartbeatResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
         429: ErrorEnvelopeSchema,
       },
     },

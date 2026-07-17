@@ -22,6 +22,8 @@ export const ErrorCodeSchema = z.enum([
   "EMBY_WRITE_FAILED",
   "PAIRING_CODE_INVALID",
   "BRIDGE_CREDENTIAL_INVALID",
+  "NONCE_INVALID",
+  "REPLAY_DETECTED",
   "INTERNAL_ERROR",
 ]);
 

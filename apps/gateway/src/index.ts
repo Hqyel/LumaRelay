@@ -4,6 +4,7 @@ import { createDatabase } from "./database/database.js";
 import { migrateToLatest } from "./database/migrator.js";
 import { createServerStore } from "./database/server-store.js";
 import { createAuthSessionStore } from "./database/auth-session-store.js";
+import { createBridgeDeviceStore } from "./database/bridge-device-store.js";
 import { createPairingCodeStore } from "./database/pairing-code-store.js";
 
 const config = loadConfig();
@@ -13,9 +14,11 @@ const authSessionStore = createAuthSessionStore(database, config);
 await authSessionStore.pruneInactive();
 const pairingCodeStore = createPairingCodeStore(database, config);
 await pairingCodeStore.pruneExpired();
+const bridgeDeviceStore = createBridgeDeviceStore(database, config);
 
 const app = await buildApp({
   authSessionStore,
+  bridgeDeviceStore,
   config,
   pairingCodeStore,
   serverStore: createServerStore(database),

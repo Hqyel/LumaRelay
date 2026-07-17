@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
   BridgePairingCodeResponseSchema,
+  BridgeHeartbeatResponseSchema,
   RedeemBridgePairingCodeResponseSchema,
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
@@ -120,6 +121,16 @@ describe("shared API contracts", () => {
         },
         deviceCredential: "B".repeat(43),
         requestId: "request-redeem-pairing",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a Bridge heartbeat response", () => {
+    expect(
+      BridgeHeartbeatResponseSchema.safeParse({
+        requestId: "request-heartbeat",
+        serverTime: "2026-07-17T12:00:00.000Z",
+        status: "ok",
       }).success,
     ).toBe(true);
   });
