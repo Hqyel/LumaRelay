@@ -35,3 +35,8 @@ range, target platform, pairing state and discovered-player summary. Pass the
 optional integer query `apiVersion` to evaluate client compatibility. Until
 pairing and player discovery are implemented, `isPaired` is false and `players`
 is empty.
+
+The Windows installer can register the per-user `newemby://` protocol by running
+`NewEmby.PlayerBridge.exe --register-protocol`. It writes only below
+`HKCU\Software\Classes\newemby`, quotes both the executable and `%1`, and needs
+no administrator access. Use `--unregister-protocol` during uninstall.
