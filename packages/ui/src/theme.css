@@ -1,14 +1,14 @@
 @theme static {
-  --color-bg: #090b0f;
-  --color-bg-elevated: #10141b;
-  --color-surface: #161b23;
-  --color-surface-hover: #1d2430;
-  --color-border: rgb(255 255 255 / 8%);
-  --color-text: #f5f7fa;
-  --color-text-muted: #9aa4b2;
+  --color-bg: #0f0f23;
+  --color-bg-elevated: #1a1a2e;
+  --color-surface: rgb(26 26 46 / 80%);
+  --color-surface-hover: rgb(124 92 255 / 10%);
+  --color-border: rgb(255 255 255 / 10%);
+  --color-text: #ffffff;
+  --color-text-muted: rgb(255 255 255 / 60%);
   --color-accent: #7c5cff;
   --color-accent-hover: #9177ff;
-  --color-on-accent: #090b0f;
+  --color-on-accent: #ffffff;
   --color-success: #35c78a;
   --color-warning: #f0b35a;
   --color-danger: #f06565;
@@ -33,17 +33,17 @@
   --text-label--line-height: 1rem;
 
   --spacing: 0.25rem;
-  --radius-poster: 0.5rem;
-  --radius-control: 0.625rem;
+  --radius-poster: 0.75rem;
+  --radius-control: 0.75rem;
   --radius-panel: 1rem;
-  --shadow-panel: 0 1.5rem 4rem rgb(0 0 0 / 36%);
-  --shadow-card: 0 0.75rem 2rem rgb(0 0 0 / 24%);
+  --shadow-panel: 0 1.25rem 3.75rem rgb(0 0 0 / 50%);
+  --shadow-card: 0 0.5rem 2.5rem rgb(0 0 0 / 40%);
 
   --breakpoint-sm: 40rem;
   --breakpoint-lg: 64rem;
   --breakpoint-2xl: 100rem;
 
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
@@ -53,9 +53,9 @@
   font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --duration-hover: 120ms;
-  --duration-panel: 200ms;
-  --duration-page: 240ms;
+  --duration-hover: 150ms;
+  --duration-panel: 250ms;
+  --duration-page: 250ms;
 }
 
 * {
@@ -65,6 +65,29 @@
 html {
   min-width: 20rem;
   background: var(--color-bg);
+}
+
+html {
+  scrollbar-color: rgb(255 255 255 / 40%) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 40%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 60%);
 }
 
 body {
@@ -95,6 +118,39 @@ a {
 ::selection {
   color: var(--color-text);
   background: rgb(124 92 255 / 42%);
+}
+
+@keyframes newemby-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes newemby-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+}
+
+@keyframes newemby-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes newemby-drawer-in {
+  from {
+    transform: translateX(1.5rem);
+    opacity: 0;
+  }
+}
+
+@keyframes newemby-toast-in {
+  from {
+    transform: translateY(0.75rem);
+    opacity: 0;
+  }
 }
 
 :focus-visible {

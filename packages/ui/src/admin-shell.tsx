@@ -26,24 +26,27 @@ export function AdminShell({
   title,
 }: AdminShellProps) {
   const homeClassName =
-    "flex h-18 items-center gap-3 px-6 text-text no-underline";
+    "flex h-12 items-center gap-2 border-b border-white/10 px-4 text-text no-underline " +
+    "transition-colors duration-150 hover:bg-accent/10";
   const homeContent = (
     <>
-      <BrandMark className="size-9 text-accent" />
-      <span className="text-h3 font-semibold">NewEmby</span>
+      <BrandMark className="size-6 text-accent drop-shadow-[0_0_8px_rgb(124_92_255_/_42%)]" />
+      <span className="bg-[linear-gradient(135deg,#7C5CFF,#A995FF)] bg-clip-text text-small font-bold text-transparent">
+        NewEmby
+      </span>
     </>
   );
 
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div className="min-h-screen bg-[#0f0f23] text-text">
       <a
-        className="fixed left-4 top-3 z-50 -translate-y-20 rounded-control bg-accent px-4 py-2 text-on-accent transition-transform focus:translate-y-0"
+        className="fixed left-4 top-1 z-50 -translate-y-16 rounded-control bg-[#6848dc] px-4 py-2 font-semibold text-white transition-transform focus:translate-y-0"
         href="#admin-main-content"
       >
         跳到管理内容
       </a>
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-bg-elevated lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 border-r border-white/10 bg-[#141423]/82 shadow-[4px_0_24px_rgb(0_0_0_/_24%)] backdrop-blur-xl lg:flex lg:flex-col">
         {renderHomeLink?.(homeContent, homeClassName) ?? (
           <a
             aria-label="NewEmby 管理概览"
@@ -53,17 +56,20 @@ export function AdminShell({
             {homeContent}
           </a>
         )}
-        <span className="px-6 pb-3 text-label font-semibold text-accent-hover">
+        <span className="px-4 pb-2 pt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-white/60">
           管理后台
         </span>
-        <nav aria-label="管理导航" className="flex flex-1 flex-col gap-1 px-3">
+        <nav
+          aria-label="管理导航"
+          className="flex flex-1 flex-col gap-1 px-2.5"
+        >
           {navigation.map((item) => {
-            const className = `flex min-h-11 items-center gap-3 rounded-control px-3 text-body no-underline transition-colors ${
+            const className = `flex min-h-10 items-center gap-2.5 rounded-control px-3 text-small font-medium no-underline transition-[background,color,box-shadow,transform] duration-150 ${
               item.disabled
-                ? "cursor-not-allowed text-text-muted opacity-45"
+                ? "cursor-not-allowed text-white/30"
                 : item.active
-                  ? "bg-accent/18 text-text"
-                  : "text-text-muted hover:bg-surface-hover hover:text-text"
+                  ? "bg-[linear-gradient(135deg,#7C5CFF_0%,#764BA2_100%)] text-white shadow-[0_2px_8px_rgb(0_0_0_/_20%),0_0_18px_rgb(124_92_255_/_22%)]"
+                  : "text-text-muted hover:bg-accent/10 hover:text-text active:scale-[0.98]"
             }`;
             const children = (
               <>
@@ -107,20 +113,20 @@ export function AdminShell({
         </nav>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-bg/92 px-4 backdrop-blur-xl sm:px-6 lg:left-60 lg:px-10">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-12 items-center justify-between border-b border-white/10 bg-[#141423]/80 px-4 shadow-[0_2px_8px_rgb(0_0_0_/_20%)] backdrop-blur-xl sm:px-6 lg:left-56 lg:px-8">
         <div>
           {breadcrumbs.length > 0 ? (
-            <p className="mb-0.5 text-label text-text-muted">
+            <p className="text-[0.6875rem] text-white/60">
               {breadcrumbs.join(" / ")}
             </p>
           ) : null}
-          <h1 className="text-h3 font-semibold">{title}</h1>
+          <h1 className="text-small font-semibold">{title}</h1>
         </div>
         <div className="flex items-center gap-3">{actions}</div>
       </header>
 
-      <main className="min-h-screen pt-16 lg:pl-60" id="admin-main-content">
-        <div className="mx-auto w-full max-w-[90rem] p-4 sm:p-6 lg:p-10">
+      <main className="min-h-screen pt-12 lg:pl-56" id="admin-main-content">
+        <div className="mx-auto w-full max-w-[90rem] p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

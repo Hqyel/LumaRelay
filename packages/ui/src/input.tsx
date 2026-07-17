@@ -31,8 +31,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-errormessage={errorId}
           aria-invalid={error === undefined ? undefined : true}
           className={cn(
-            "h-11 w-full rounded-control border border-border bg-bg-elevated px-3 " +
-              "text-body text-text placeholder:text-text-muted/70 hover:border-white/18 " +
+            "h-11 w-full rounded-control border border-white/10 bg-[#1a1a2e]/80 px-3 " +
+              "text-body text-text shadow-[inset_0_1px_rgb(255_255_255_/_4%)] outline-none " +
+              "backdrop-blur-xl transition-[border-color,box-shadow,background] duration-150 " +
+              "placeholder:text-white/40 hover:border-white/15 focus:border-accent " +
+              "focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgb(124_92_255_/_20%)] " +
               "disabled:cursor-not-allowed disabled:opacity-45",
             error !== undefined && "border-danger",
             className,

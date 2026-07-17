@@ -136,7 +136,7 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-[#0f0f23] text-text">
       <a
-        className="fixed left-4 top-1 z-[60] -translate-y-16 rounded-control bg-accent px-4 py-2 text-on-accent transition-transform focus:translate-y-0"
+        className="fixed left-4 top-1 z-[60] -translate-y-16 rounded-control bg-[#6848dc] px-4 py-2 font-semibold text-white transition-transform focus:translate-y-0"
         href="#main-content"
       >
         跳到主要内容

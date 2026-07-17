@@ -892,6 +892,13 @@
   border-radius: 1rem;
 }
 
+#main-content > [data-newemby-state] {
+  width: calc(100% - 4rem);
+  max-width: 60rem;
+  margin: 5rem auto;
+  animation: home-fade-in 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .header-search {
   position: relative;
   height: 2rem;
@@ -1560,6 +1567,11 @@
 
   .media-library-list-item {
     padding: 0.875rem;
+  }
+
+  #main-content > [data-newemby-state] {
+    width: calc(100% - 2rem);
+    margin: 3rem auto;
   }
 
   .detail-hero {

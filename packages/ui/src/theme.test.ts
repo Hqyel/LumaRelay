@@ -10,9 +10,9 @@ const mark = readFileSync(
 
 describe("NewEmby design foundation", () => {
   it.each([
-    "--color-bg: #090b0f",
+    "--color-bg: #0f0f23",
     "--color-accent: #7c5cff",
-    "--color-on-accent: #090b0f",
+    "--color-on-accent: #ffffff",
     "--radius-panel: 1rem",
     "--breakpoint-sm: 40rem",
     "--breakpoint-lg: 64rem",

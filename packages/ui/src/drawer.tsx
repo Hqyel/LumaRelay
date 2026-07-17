@@ -29,8 +29,8 @@ export function Drawer({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
-        <DialogPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-surface p-6 shadow-panel sm:p-8">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+        <DialogPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-white/10 bg-[#141423]/94 p-6 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-drawer-in_250ms_cubic-bezier(0.16,1,0.3,1)] sm:p-8">
           <DialogPrimitive.Title className="pr-12 text-h3 font-semibold">
             {title}
           </DialogPrimitive.Title>
@@ -41,7 +41,7 @@ export function Drawer({
           )}
           <div className="mt-6 flex-1 overflow-auto">{children}</div>
           {footer === undefined ? null : (
-            <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
+            <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-5">
               {footer}
             </div>
           )}

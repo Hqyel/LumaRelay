@@ -138,7 +138,11 @@ const mediaHome = {
   resumeItems: [],
 };
 
-async function mockPageApi(page: Page, selected: boolean) {
+async function mockPageApi(
+  page: Page,
+  selected: boolean,
+  itemState: "normal" | "empty" | "error" = "normal",
+) {
   await page.route("**/api/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     const path = requestUrl.pathname;
@@ -202,13 +206,24 @@ async function mockPageApi(page: Page, selected: boolean) {
       return;
     }
     if (path === "/api/v1/media/items") {
+      if (itemState === "error") {
+        await route.fulfill({
+          body: "Upstream gateway unavailable",
+          contentType: "text/plain",
+          headers: { "x-request-id": "request-items-error" },
+          status: 503,
+        });
+        return;
+      }
       const requestedKinds = requestUrl.searchParams.getAll("kind");
       const items =
-        requestedKinds.length > 1
-          ? [...movieItems.slice(0, 4), ...seriesItems.slice(0, 4)]
-          : requestedKinds.includes("series")
-            ? seriesItems
-            : movieItems;
+        itemState === "empty"
+          ? []
+          : requestedKinds.length > 1
+            ? [...movieItems.slice(0, 4), ...seriesItems.slice(0, 4)]
+            : requestedKinds.includes("series")
+              ? seriesItems
+              : movieItems;
       await route.fulfill({
         json: {
           items,
@@ -489,6 +504,56 @@ test("generic media library matches the reference card grid", async ({
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("generic-library.png", {
+    fullPage: true,
+  });
+});
+
+test("empty media state matches the shared glass treatment", async ({
+  page,
+}) => {
+  await mockPageApi(page, true, "empty");
+  await page.goto("/movies?page=1");
+  await expect(
+    page.getByRole("heading", { name: "没有找到电影" }),
+  ).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("media-empty-state.png", {
+    fullPage: true,
+  });
+});
+
+test("offline media state keeps a visible retry action", async ({ page }) => {
+  await mockPageApi(page, true, "error");
+  await page.goto("/movies?page=1");
+  await expect(
+    page.getByRole("heading", { name: "电影库暂时不可用" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "重新加载" })).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("media-error-state.png", {
+    fullPage: true,
+  });
+});
+
+test("administrator entry matches the compact glass management shell", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto("/admin");
+  await expect(
+    page.getByRole("heading", { exact: true, name: "概览" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "服务器概览" })).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "跳到管理内容" })).toBeFocused();
+  await page
+    .getByRole("link", { name: "跳到管理内容" })
+    .evaluate((element: HTMLElement) => element.blur());
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("admin-foundation.png", {
     fullPage: true,
   });
 });

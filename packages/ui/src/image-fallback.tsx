@@ -39,7 +39,7 @@ export function ImageFallback({
       {hasSource && !loaded && !failed ? (
         <span
           aria-hidden="true"
-          className="absolute inset-0 animate-pulse bg-surface-hover motion-reduce:animate-none"
+          className="absolute inset-0 overflow-hidden bg-white/[0.055] before:absolute before:inset-0 before:-translate-x-full before:animate-[newemby-shimmer_1.6s_infinite] before:bg-[linear-gradient(90deg,transparent,rgb(255_255_255_/_7%),transparent)] motion-reduce:before:animate-none"
         />
       ) : null}
       {!hasSource || failed ? (
