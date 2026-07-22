@@ -40,14 +40,41 @@ export const PlaybackDisplayTitleSchema = z
 const EmbyPlaybackIdSchema = z.string().trim().min(1).max(256);
 
 export const PlaybackTrackSchema = z.object({
+  bitrate: z.number().int().positive().optional(),
+  channelLayout: z.string().trim().min(1).max(64).optional(),
+  channels: z.number().int().positive().optional(),
   codec: z.string().trim().min(1).max(64).optional(),
+  codecTag: z.string().trim().min(1).max(64).optional(),
   displayTitle: z.string().trim().min(1).max(256),
   index: PlaybackStreamIndexSchema,
   isDefault: z.boolean(),
   isExternal: z.boolean(),
+  isForced: z.boolean().optional(),
+  isHearingImpaired: z.boolean().optional(),
   isText: z.boolean(),
   kind: z.enum(["audio", "subtitle"]),
   language: z.string().trim().min(1).max(64).optional(),
+  profile: z.string().trim().min(1).max(128).optional(),
+  sampleRate: z.number().int().positive().optional(),
+});
+
+export const PlaybackVideoInfoSchema = z.object({
+  aspectRatio: z.string().trim().min(1).max(64).optional(),
+  bitDepth: z.number().int().positive().optional(),
+  bitrate: z.number().int().positive().optional(),
+  codec: z.string().trim().min(1).max(64).optional(),
+  codecTag: z.string().trim().min(1).max(64).optional(),
+  displayTitle: z.string().trim().min(1).max(256).optional(),
+  dolbyVisionProfile: z.string().trim().min(1).max(128).optional(),
+  frameRate: z.number().positive().optional(),
+  height: z.number().int().positive().optional(),
+  isInterlaced: z.boolean().optional(),
+  level: z.number().nonnegative().optional(),
+  pixelFormat: z.string().trim().min(1).max(64).optional(),
+  profile: z.string().trim().min(1).max(128).optional(),
+  refFrames: z.number().int().nonnegative().optional(),
+  videoRange: z.string().trim().min(1).max(64).optional(),
+  width: z.number().int().positive().optional(),
 });
 
 export const PlaybackMediaSourceSchema = z.object({
@@ -59,8 +86,10 @@ export const PlaybackMediaSourceSchema = z.object({
   mediaSourceId: EmbyPlaybackIdSchema,
   name: z.string().trim().min(1).max(256),
   runtimeTicks: PlaybackTicksSchema,
+  sizeBytes: z.number().int().nonnegative().optional(),
   subtitleTracks: z.array(PlaybackTrackSchema),
   supportsDirectStream: z.boolean(),
+  video: PlaybackVideoInfoSchema.optional(),
 });
 
 export const PlaybackOptionsResponseSchema = z.object({
@@ -117,6 +146,7 @@ export type PlaybackOptionsResponse = z.infer<
   typeof PlaybackOptionsResponseSchema
 >;
 export type PlaybackTrack = z.infer<typeof PlaybackTrackSchema>;
+export type PlaybackVideoInfo = z.infer<typeof PlaybackVideoInfoSchema>;
 export type LocalPlaybackStartRequest = z.infer<
   typeof LocalPlaybackStartRequestSchema
 >;

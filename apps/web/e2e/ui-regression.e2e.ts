@@ -379,6 +379,7 @@ async function mockPageApi(
               audioTracks: [
                 {
                   codec: "aac",
+                  codecTag: "mp4a",
                   displayTitle: "中文 AAC 5.1",
                   index: 1,
                   isDefault: true,
@@ -386,14 +387,21 @@ async function mockPageApi(
                   isText: false,
                   kind: "audio",
                   language: "chi",
+                  profile: "LC",
+                  sampleRate: 48_000,
+                  bitrate: 640_000,
+                  channelLayout: "5.1",
+                  channels: 6,
                 },
               ],
+              bitrate: 8_000_000,
               container: "mkv",
               defaultAudioStreamIndex: 1,
               defaultSubtitleStreamIndex: 2,
               mediaSourceId: "source-1",
               name: "1080p 原始版本",
               runtimeTicks: 72_000_000_000,
+              sizeBytes: 4_294_967_296,
               subtitleTracks: [
                 {
                   codec: "srt",
@@ -407,6 +415,23 @@ async function mockPageApi(
                 },
               ],
               supportsDirectStream: true,
+              video: {
+                aspectRatio: "16:9",
+                bitDepth: 10,
+                bitrate: 8_000_000,
+                codec: "hevc",
+                codecTag: "hvc1",
+                displayTitle: "1080p HEVC Main 10",
+                frameRate: 23.976,
+                height: 1080,
+                isInterlaced: false,
+                level: 150,
+                pixelFormat: "yuv420p10le",
+                profile: "Main 10",
+                refFrames: 1,
+                videoRange: "HDR10",
+                width: 1920,
+              },
             },
           ],
         },
@@ -519,7 +544,7 @@ async function mockPageApi(
         json: {
           item: episodeDetail,
           people,
-          relatedItems: [],
+          relatedItems: seriesItems.slice(1, 4),
           requestId: "request-episode-detail",
         },
       });
@@ -736,8 +761,27 @@ test("application shell is accessible and matches its baseline", async ({
     .getByRole("link", { name: /静默信号/ })
     .first()
     .click();
-  await expect(page.getByText("单集详情")).toBeVisible();
+  await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
+  await expect(
+    page.getByText("一段静默信号让所有线索重新指向失落的航线。"),
+  ).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "演职人员" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "相关推荐" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "媒体信息" })).toBeVisible();
+  await expect(page.getByText("1920×1080")).toBeVisible();
+  await expect(page.getByText("yuv420p10le")).toBeVisible();
+  await expect(page.getByText("48,000 Hz")).toBeVisible();
+  await expect(page.locator(".detail-content > :last-child")).toContainText(
+    "媒体信息",
+  );
   await expect(page.getByRole("button", { name: "继续播放" })).toBeVisible();
+  await waitForImages(page);
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("episode-detail.png", {
+    fullPage: true,
+  });
 });
 
 test("header search expands and shows reference dropdown results", async ({
@@ -962,7 +1006,7 @@ test("series details show season and horizontal episodes", async ({ page }) => {
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: /2\. 静默信号/ }).click();
-  await expect(page.getByText("单集详情")).toBeVisible();
+  await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
 });
 
 test("movie library matches the reference card grid", async ({ page }) => {

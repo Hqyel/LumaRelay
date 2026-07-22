@@ -15,15 +15,35 @@ import {
 import { embyApiUrl } from "./url.js";
 
 const EmbyMediaStreamSchema = z.object({
+  AspectRatio: z.string().nullish(),
+  BitDepth: z.number().int().positive().nullish(),
+  BitRate: z.number().int().positive().nullish(),
+  ChannelLayout: z.string().nullish(),
+  Channels: z.number().int().positive().nullish(),
   Codec: z.string().nullish(),
+  CodecTag: z.string().nullish(),
   DisplayTitle: z.string().nullish(),
+  ExtendedVideoSubTypeDescription: z.string().nullish(),
+  Height: z.number().int().positive().nullish(),
   Index: z.number().int().nonnegative(),
   IsDefault: z.boolean().nullish(),
   IsExternal: z.boolean().nullish(),
+  IsForced: z.boolean().nullish(),
+  IsHearingImpaired: z.boolean().nullish(),
+  IsInterlaced: z.boolean().nullish(),
   IsTextSubtitleStream: z.boolean().nullish(),
   Language: z.string().nullish(),
+  Level: z.number().nonnegative().nullish(),
+  PixelFormat: z.string().nullish(),
+  Profile: z.string().nullish(),
+  RealFrameRate: z.number().positive().nullish(),
+  RefFrames: z.number().int().nonnegative().nullish(),
+  SampleRate: z.number().int().positive().nullish(),
   Title: z.string().nullish(),
   Type: z.enum(["Audio", "Subtitle", "Video"]).catch("Video"),
+  VideoRange: z.string().nullish(),
+  VideoRangeType: z.string().nullish(),
+  Width: z.number().int().positive().nullish(),
 });
 
 const EmbyMediaSourceSchema = z.object({
@@ -41,6 +61,7 @@ const EmbyMediaSourceSchema = z.object({
   Protocol: z.string().nullish(),
   RequiredHttpHeaders: z.record(z.string(), z.string()).nullish(),
   RunTimeTicks: z.number().int().nonnegative().nullish(),
+  Size: z.number().int().nonnegative().nullish(),
   SupportsDirectPlay: z.boolean().nullish(),
   SupportsDirectStream: z.boolean().nullish(),
 });
@@ -76,7 +97,11 @@ function track(
   const language = clean(input.Language);
   const codec = clean(input.Codec);
   return {
+    bitrate: input.BitRate ?? undefined,
+    channelLayout: clean(input.ChannelLayout),
+    channels: input.Channels ?? undefined,
     codec,
+    codecTag: clean(input.CodecTag),
     displayTitle:
       clean(input.DisplayTitle) ??
       clean(input.Title) ??
@@ -85,9 +110,13 @@ function track(
     index: input.Index,
     isDefault: input.IsDefault ?? false,
     isExternal: input.IsExternal ?? false,
+    isForced: input.IsForced ?? false,
+    isHearingImpaired: input.IsHearingImpaired ?? false,
     isText: kind === "subtitle" && (input.IsTextSubtitleStream ?? false),
     kind,
     language,
+    profile: clean(input.Profile),
+    sampleRate: input.SampleRate ?? undefined,
   };
 }
 
@@ -117,6 +146,7 @@ function hasDirectLocation(source: EmbyMediaSource): boolean {
 
 function mapSource(source: EmbyMediaSource): PlaybackMediaSource {
   const streams = source.MediaStreams ?? [];
+  const videoStream = streams.find((stream) => stream.Type === "Video");
   const audioTracks = streams
     .filter((stream) => stream.Type === "Audio")
     .map((stream) => track(stream, "audio"));
@@ -127,7 +157,7 @@ function mapSource(source: EmbyMediaSource): PlaybackMediaSource {
 
   return {
     audioTracks,
-    bitrate: source.Bitrate ?? undefined,
+    bitrate: source.Bitrate ?? videoStream?.BitRate ?? undefined,
     container,
     defaultAudioStreamIndex: defaultTrackIndex(
       source.DefaultAudioStreamIndex,
@@ -143,11 +173,37 @@ function mapSource(source: EmbyMediaSource): PlaybackMediaSource {
       clean(source.Name) ??
       (container === undefined ? "默认版本" : container.toUpperCase()),
     runtimeTicks: source.RunTimeTicks ?? 0,
+    sizeBytes: source.Size ?? undefined,
     subtitleTracks,
     supportsDirectStream:
       source.SupportsDirectStream === true ||
       source.SupportsDirectPlay === true ||
       hasDirectLocation(source),
+    video:
+      videoStream === undefined
+        ? undefined
+        : {
+            aspectRatio: clean(videoStream.AspectRatio),
+            bitDepth: videoStream.BitDepth ?? undefined,
+            bitrate: videoStream.BitRate ?? undefined,
+            codec: clean(videoStream.Codec),
+            codecTag: clean(videoStream.CodecTag),
+            displayTitle: clean(videoStream.DisplayTitle),
+            dolbyVisionProfile: clean(
+              videoStream.ExtendedVideoSubTypeDescription,
+            ),
+            frameRate: videoStream.RealFrameRate ?? undefined,
+            height: videoStream.Height ?? undefined,
+            isInterlaced: videoStream.IsInterlaced ?? undefined,
+            level: videoStream.Level ?? undefined,
+            pixelFormat: clean(videoStream.PixelFormat),
+            profile: clean(videoStream.Profile),
+            refFrames: videoStream.RefFrames ?? undefined,
+            videoRange:
+              clean(videoStream.VideoRangeType) ??
+              clean(videoStream.VideoRange),
+            width: videoStream.Width ?? undefined,
+          },
   };
 }
 

@@ -9,12 +9,14 @@ import { HomeScroller } from "../components/home-media.js";
 import {
   EpisodeCard,
   MediaDetailHero,
+  MediaSourceDetails,
   PeopleScroller,
   RelatedScroller,
 } from "../components/media-detail.js";
 import { MediaErrorState } from "../components/media-state.js";
 import {
   mediaItemQuery,
+  playbackOptionsQuery,
   seriesEpisodesQuery,
   seriesSeasonsQuery,
 } from "../media-query.js";
@@ -164,9 +166,24 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
 
 function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
   const { item, people, relatedItems } = detail;
+  const series = useQuery({
+    ...mediaItemQuery(item.seriesId ?? ""),
+    enabled: item.seriesId !== undefined,
+  });
   const episodes = useQuery(
     seriesEpisodesQuery(item.seriesId ?? "", item.seasonId),
   );
+  const playbackOptions = useQuery(playbackOptionsQuery(item.itemId));
+  const episodePosition = [
+    item.seasonNumber === undefined ? undefined : `第 ${item.seasonNumber} 季`,
+    item.episodeNumber === undefined
+      ? undefined
+      : `第 ${item.episodeNumber} 集`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const visualItem =
+    series.data?.item.kind === "series" ? series.data.item : item;
   const playbackTarget = {
     displayTitle: mediaPlaybackTitle(item, episodes.data?.episodes.length),
     itemId: item.itemId,
@@ -176,10 +193,49 @@ function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
 
   return (
     <div className="detail-page">
-      <MediaDetailHero item={item} playbackTarget={playbackTarget} />
+      <MediaDetailHero
+        item={item}
+        kicker={[episodePosition, item.title].filter(Boolean).join(" · ")}
+        overview={item.overview ?? visualItem.overview}
+        playbackTarget={playbackTarget}
+        title={visualItem.title}
+        visualItem={visualItem}
+      />
       <div className="detail-content">
+        {episodes.data === undefined ||
+        episodes.data.episodes.length === 0 ? null : (
+          <HomeScroller icon={<Tv size={20} />} title="本季单集">
+            {episodes.data.episodes.map((episode) => (
+              <EpisodeCard
+                episode={episode}
+                episodeCount={episodes.data.episodes.length}
+                key={episode.episodeId}
+              />
+            ))}
+          </HomeScroller>
+        )}
         <PeopleScroller people={people} />
         <RelatedScroller items={relatedItems} />
+        {playbackOptions.isPending ? (
+          <div
+            aria-label="正在读取媒体信息"
+            className="detail-source-loading"
+            role="status"
+          >
+            <span />
+            <span />
+          </div>
+        ) : null}
+        {playbackOptions.isError ? (
+          <MediaErrorState
+            error={playbackOptions.error}
+            onRetry={() => void playbackOptions.refetch()}
+            subject="媒体信息"
+          />
+        ) : null}
+        {playbackOptions.data === undefined ? null : (
+          <MediaSourceDetails sources={playbackOptions.data.sources} />
+        )}
       </div>
     </div>
   );

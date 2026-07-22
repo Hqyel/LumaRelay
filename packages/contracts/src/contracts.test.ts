@@ -14,6 +14,7 @@ import {
   LocalPlaybackStatusResponseSchema,
   MediaHomeResponseSchema,
   PLAY_TICKET_LIFETIME_SECONDS,
+  PlaybackOptionsResponseSchema,
   PlayTicketSchema,
   PlayTicketSelectionSchema,
   RedeemPlayTicketResponseSchema,
@@ -175,6 +176,61 @@ describe("shared API contracts", () => {
         subtitleStreamIndex: null,
       }).success,
     ).toBe(true);
+  });
+
+  it("validates safe video format details without a media path", () => {
+    const result = PlaybackOptionsResponseSchema.safeParse({
+      itemId: "episode-1",
+      requestId: "request-playback-options",
+      sources: [
+        {
+          audioTracks: [
+            {
+              bitrate: 256_000,
+              channelLayout: "stereo",
+              channels: 2,
+              codec: "aac",
+              codecTag: "mp4a",
+              displayTitle: "Chinese AAC stereo",
+              index: 1,
+              isDefault: true,
+              isExternal: false,
+              isText: false,
+              kind: "audio",
+              language: "chi",
+              profile: "LC",
+              sampleRate: 48_000,
+            },
+          ],
+          bitrate: 8_000_000,
+          container: "mkv",
+          defaultAudioStreamIndex: null,
+          defaultSubtitleStreamIndex: null,
+          mediaSourceId: "source-1",
+          name: "1080p",
+          runtimeTicks: 72_000_000_000,
+          sizeBytes: 4_294_967_296,
+          subtitleTracks: [],
+          supportsDirectStream: true,
+          video: {
+            aspectRatio: "16:9",
+            bitDepth: 10,
+            codec: "hevc",
+            codecTag: "hvc1",
+            height: 1080,
+            isInterlaced: false,
+            level: 150,
+            pixelFormat: "yuv420p10le",
+            refFrames: 1,
+            videoRange: "HDR10",
+            width: 1920,
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("Path");
   });
 
   it("validates the local Bridge capability response", () => {

@@ -4,13 +4,14 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Play, Radio } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { ApiError, createPlayTicket, getPlaybackOptions } from "../api.js";
+import { ApiError, createPlayTicket } from "../api.js";
 import {
   bridgeCapabilityModel,
   LocalBridgeError,
   startLocalPlayback,
 } from "../bridge-client.js";
 import { bridgeStatusQuery } from "../bridge-query.js";
+import { playbackOptionsQuery } from "../media-query.js";
 
 function formatResume(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -64,10 +65,8 @@ export function PlayPreparationDialog({
   const statusQuery = useQuery(bridgeStatusQuery);
   const bridge = bridgeCapabilityModel(statusQuery.data);
   const optionsQuery = useQuery({
+    ...playbackOptionsQuery(item.itemId),
     enabled: open,
-    queryFn: () => getPlaybackOptions(item.itemId),
-    queryKey: ["playback-options", item.itemId],
-    staleTime: 30_000,
   });
   const selectedSource = useMemo(
     () =>
@@ -251,6 +250,10 @@ export function PlayPreparationDialog({
             将从 {formatResume(item.playbackPositionSeconds)} 继续播放。
           </p>
         ) : null}
+        <p className="play-preparation-policy">
+          进度每 10 秒同步；短时间试播若未达到 Emby
+          媒体库设置的最小续播百分比，服务器不会生成“继续观看”记录。
+        </p>
 
         {!connected ? (
           <div className="play-preparation-warning">

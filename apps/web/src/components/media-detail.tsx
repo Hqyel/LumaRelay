@@ -2,10 +2,22 @@ import type {
   EpisodeSummary,
   MediaDetail,
   PersonSummary,
+  PlaybackMediaSource,
+  PlaybackTrack,
 } from "@newemby/contracts";
 import { Button, ImageFallback } from "@newemby/ui";
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, Heart, Play, Sparkles, Users } from "lucide-react";
+import {
+  AudioLines,
+  Captions,
+  CheckCircle2,
+  Film,
+  Heart,
+  Play,
+  Sparkles,
+  Users,
+  Video,
+} from "lucide-react";
 
 import { mediaImageUrl } from "../api.js";
 import { episodePlaybackTitle, mediaPlaybackTitle } from "../playback-title.js";
@@ -39,12 +51,20 @@ function formatPlaybackClock(seconds: number): string {
 
 export function MediaDetailHero({
   item,
+  kicker,
+  overview,
   playbackTarget,
   series = false,
+  title,
+  visualItem = item,
 }: {
   item: MediaDetail;
+  kicker?: string;
+  overview?: string;
   playbackTarget?: PlaybackTarget | null;
   series?: boolean;
+  title?: string;
+  visualItem?: MediaDetail;
 }) {
   const favoriteMutation = useFavoriteMutation();
   const playedMutation = usePlayedMutation();
@@ -60,6 +80,10 @@ export function MediaDetailHero({
     playbackPositionSeconds: item.playbackPositionSeconds,
     title: item.title,
   };
+  const displayGenres =
+    item.genres.length > 0 ? item.genres : visualItem.genres;
+  const displayOverview = overview ?? item.overview;
+  const displayTitle = title ?? visualItem.title;
 
   return (
     <section className="detail-hero">
@@ -72,39 +96,40 @@ export function MediaDetailHero({
         loading="eager"
         src={mediaImageUrl({
           imageType: "backdrop",
-          itemId: item.itemId,
+          itemId: visualItem.itemId,
           preset: "hero",
-          tag: item.backdropImageTag,
+          tag: visualItem.backdropImageTag,
         })}
         width={1280}
       />
       <span aria-hidden="true" className="detail-hero-shade" />
       <div className="detail-hero-content">
         <span className="detail-kicker">
-          {series
-            ? item.seriesStatus === "ended"
-              ? "已完结剧集"
-              : "连载剧集"
-            : item.kind === "episode"
-              ? "单集详情"
-              : item.kind === "movie"
-                ? "电影详情"
-                : "媒体详情"}
+          {kicker ??
+            (series
+              ? item.seriesStatus === "ended"
+                ? "已完结剧集"
+                : "连载剧集"
+              : item.kind === "episode"
+                ? "单集详情"
+                : item.kind === "movie"
+                  ? "电影详情"
+                  : "媒体详情")}
         </span>
-        {item.logoImageTag === undefined ? (
-          <h1 className="detail-title">{item.title}</h1>
+        {visualItem.logoImageTag === undefined ? (
+          <h1 className="detail-title">{displayTitle}</h1>
         ) : (
           <ImageFallback
-            alt={item.title}
+            alt={displayTitle}
             className="detail-logo-image"
             containerClassName="detail-logo"
             height={112}
             loading="eager"
             src={mediaImageUrl({
               imageType: "logo",
-              itemId: item.itemId,
+              itemId: visualItem.itemId,
               preset: "logo",
-              tag: item.logoImageTag,
+              tag: visualItem.logoImageTag,
             })}
             width={480}
           />
@@ -125,8 +150,8 @@ export function MediaDetailHero({
             </span>
           )}
         </div>
-        {item.tagline === undefined ? null : (
-          <p className="detail-tagline">{item.tagline}</p>
+        {visualItem.tagline === undefined ? null : (
+          <p className="detail-tagline">{visualItem.tagline}</p>
         )}
         <div className="detail-action-row">
           {series && playbackTarget == null ? (
@@ -186,16 +211,224 @@ export function MediaDetailHero({
             状态更新失败，已恢复原状态，请重试。
           </p>
         ) : null}
-        {item.overview === undefined ? null : (
-          <p className="detail-overview">{item.overview}</p>
+        {displayOverview === undefined ? null : (
+          <p className="detail-overview">{displayOverview}</p>
         )}
-        {item.genres.length === 0 ? null : (
+        {displayGenres.length === 0 ? null : (
           <div className="detail-genres">
-            {item.genres.map((genre) => (
+            {displayGenres.map((genre) => (
               <span key={genre}>{genre}</span>
             ))}
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+function formatBitrate(bitrate: number | undefined): string | undefined {
+  if (bitrate === undefined) return undefined;
+  return `${(bitrate / 1_000_000).toFixed(bitrate >= 10_000_000 ? 0 : 1)} Mbps`;
+}
+
+function formatFileSize(sizeBytes: number | undefined): string | undefined {
+  if (sizeBytes === undefined || sizeBytes === 0) return undefined;
+  return `${(sizeBytes / 1024 ** 3).toFixed(2)} GB`;
+}
+
+type MediaFact = { label: string; value: string | undefined };
+
+function presentFacts(facts: MediaFact[]): MediaFact[] {
+  return facts.filter(
+    (fact): fact is { label: string; value: string } =>
+      fact.value !== undefined && fact.value !== "",
+  );
+}
+
+function yesNo(value: boolean | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return value ? "是" : "否";
+}
+
+function resolution(
+  width: number | undefined,
+  height: number | undefined,
+): string | undefined {
+  if (width !== undefined && height !== undefined) return `${width}×${height}`;
+  return height === undefined ? undefined : `${height}p`;
+}
+
+function MediaFactList({ facts }: { facts: MediaFact[] }) {
+  const available = presentFacts(facts);
+  if (available.length === 0) return <p>详细信息不可用</p>;
+  return (
+    <dl className="detail-stream-facts">
+      {available.map((fact) => (
+        <div key={fact.label}>
+          <dt>{fact.label}</dt>
+          <dd>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function AudioOrSubtitleStream({ track }: { track: PlaybackTrack }) {
+  const audio = track.kind === "audio";
+  return (
+    <section className="detail-stream-column">
+      <h4>
+        {audio ? (
+          <AudioLines aria-hidden="true" size={16} />
+        ) : (
+          <Captions aria-hidden="true" size={16} />
+        )}
+        {audio ? "音频" : "字幕"}
+      </h4>
+      <MediaFactList
+        facts={[
+          { label: "标题", value: track.displayTitle },
+          { label: "语言", value: track.language },
+          { label: "编解码器", value: track.codec?.toUpperCase() },
+          { label: "编解码器标签", value: track.codecTag },
+          { label: "配置", value: track.profile },
+          { label: "布局", value: track.channelLayout },
+          {
+            label: "声道",
+            value:
+              track.channels === undefined ? undefined : `${track.channels} ch`,
+          },
+          { label: "比特率", value: formatBitrate(track.bitrate) },
+          {
+            label: "采样率",
+            value:
+              track.sampleRate === undefined
+                ? undefined
+                : `${track.sampleRate.toLocaleString("en-US")} Hz`,
+          },
+          { label: "默认", value: yesNo(track.isDefault) },
+          { label: "强制", value: yesNo(track.isForced) },
+          { label: "外部", value: yesNo(track.isExternal) },
+        ]}
+      />
+    </section>
+  );
+}
+
+export function MediaSourceDetails({
+  sources,
+}: {
+  sources: PlaybackMediaSource[];
+}) {
+  if (sources.length === 0) return null;
+  return (
+    <section className="detail-source-section">
+      <div className="detail-source-heading">
+        <Film aria-hidden="true" size={20} />
+        <h2>媒体信息</h2>
+      </div>
+      <div className="detail-source-grid">
+        {sources.map((source) => (
+          <article className="detail-source-card" key={source.mediaSourceId}>
+            <header className="detail-source-summary">
+              <h3>{source.name}</h3>
+              <p>
+                {[
+                  source.container?.toUpperCase(),
+                  formatFileSize(source.sizeBytes),
+                  formatBitrate(source.bitrate),
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "受保护的媒体源"}
+              </p>
+            </header>
+            <div className="detail-stream-grid">
+              {source.video === undefined ? null : (
+                <section className="detail-stream-column">
+                  <h4>
+                    <Video aria-hidden="true" size={16} />
+                    视频
+                  </h4>
+                  <MediaFactList
+                    facts={[
+                      { label: "标题", value: source.video.displayTitle },
+                      {
+                        label: "编解码器",
+                        value: source.video.codec?.toUpperCase(),
+                      },
+                      {
+                        label: "杜比 Profile",
+                        value: source.video.dolbyVisionProfile,
+                      },
+                      {
+                        label: "编解码器标签",
+                        value: source.video.codecTag,
+                      },
+                      { label: "配置", value: source.video.profile },
+                      {
+                        label: "等级",
+                        value: source.video.level?.toString(),
+                      },
+                      {
+                        label: "分辨率",
+                        value: resolution(
+                          source.video.width,
+                          source.video.height,
+                        ),
+                      },
+                      { label: "长宽比", value: source.video.aspectRatio },
+                      {
+                        label: "交错",
+                        value: yesNo(source.video.isInterlaced),
+                      },
+                      {
+                        label: "帧率",
+                        value:
+                          source.video.frameRate === undefined
+                            ? undefined
+                            : source.video.frameRate
+                                .toFixed(3)
+                                .replace(/\.0+$/u, "")
+                                .replace(/(\.\d*?)0+$/u, "$1"),
+                      },
+                      {
+                        label: "比特率",
+                        value: formatBitrate(
+                          source.video.bitrate ?? source.bitrate,
+                        ),
+                      },
+                      { label: "视频范围", value: source.video.videoRange },
+                      {
+                        label: "位深度",
+                        value:
+                          source.video.bitDepth === undefined
+                            ? undefined
+                            : `${source.video.bitDepth} bit`,
+                      },
+                      { label: "像素格式", value: source.video.pixelFormat },
+                      {
+                        label: "参考帧",
+                        value: source.video.refFrames?.toString(),
+                      },
+                    ]}
+                  />
+                </section>
+              )}
+              {source.audioTracks.map((track) => (
+                <AudioOrSubtitleStream
+                  key={`audio-${track.index}`}
+                  track={track}
+                />
+              ))}
+              {source.subtitleTracks.map((track) => (
+                <AudioOrSubtitleStream
+                  key={`subtitle-${track.index}`}
+                  track={track}
+                />
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

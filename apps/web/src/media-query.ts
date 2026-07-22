@@ -5,6 +5,7 @@ import {
   getMediaItem,
   getMediaItems,
   getMediaLibraries,
+  getPlaybackOptions,
   getSeriesEpisodes,
   getSeriesSeasons,
   searchMedia,
@@ -82,6 +83,15 @@ export function mediaItemQuery(itemId: string) {
     queryKey: ["media", "item", itemId],
     refetchOnMount: "always",
     staleTime: 5 * 60_000,
+  });
+}
+
+export function playbackOptionsQuery(itemId: string) {
+  return queryOptions({
+    enabled: itemId !== "",
+    queryFn: () => getPlaybackOptions(itemId),
+    queryKey: ["playback-options", itemId],
+    staleTime: 30_000,
   });
 }
 
