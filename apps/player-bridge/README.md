@@ -128,6 +128,21 @@ AccessToken to the process command line. M2-014 establishes this adapter
 boundary; the protected local play and streaming endpoints connect it to a
 redeemed PlayTicket in subsequent M2 work.
 
+After a successful process start, the Bridge tracks the process ID, its launch
+time and the PlaySession ID. The GSMTC matcher accepts a session only when the
+recorded process is still the same live process, the source application is an
+exact supported PotPlayer executable identity, and the media title exactly
+matches `NewEmby:<play-session-id>`. A unique PotPlayer session without that
+title is never guessed. Duplicate exact candidates remain `ambiguous`; a live
+process without a candidate remains `awaiting` for 15 seconds and then becomes
+`timedOut`; an exited or reused process becomes `processExited`.
+
+Matching is refreshed on session-list and media-property events and by a
+one-second bounded fallback poll. Multiple NewEmby PotPlayer instances are
+isolated by their distinct PlaySession IDs. The matched session handle remains
+inside the Bridge for the M2-017 timeline reader and is removed explicitly when
+the playback lifecycle ends; it is not exposed by `/v1/status`.
+
 To revoke the current portable Bridge from both sides, run:
 
 ```text

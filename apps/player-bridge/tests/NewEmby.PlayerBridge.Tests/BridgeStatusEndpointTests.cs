@@ -189,6 +189,7 @@ public sealed class BridgeStatusEndpointTests
 
     public SmtcMonitorSnapshot Snapshot { get; private set; } =
       SmtcMonitorSnapshot.Unsupported;
+    public IReadOnlyList<ISmtcSession> Sessions => [];
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

@@ -85,6 +85,23 @@ internal sealed class WindowsSmtcSession : ISmtcSession
     }
   }
 
+  public async Task<SmtcMediaProperties?> GetMediaPropertiesAsync(
+    CancellationToken cancellationToken)
+  {
+    ObjectDisposedException.ThrowIf(isDisposed, this);
+    cancellationToken.ThrowIfCancellationRequested();
+    var properties = await session.TryGetMediaPropertiesAsync();
+    cancellationToken.ThrowIfCancellationRequested();
+    if (properties is null)
+      return null;
+
+    return new SmtcMediaProperties(
+      properties.Title ?? string.Empty,
+      properties.Subtitle ?? string.Empty,
+      properties.Artist ?? string.Empty,
+      properties.AlbumTitle ?? string.Empty);
+  }
+
   public void Dispose()
   {
     if (isDisposed)

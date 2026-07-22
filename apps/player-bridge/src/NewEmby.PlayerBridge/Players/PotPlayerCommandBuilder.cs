@@ -58,7 +58,7 @@ internal static class PotPlayerCommandBuilder
     }
 
     startInfo.ArgumentList.Add(
-      $"/title=NewEmby:{request.PlaySessionId:D}");
+      $"/title={PlayerSessionTitle.Create(request.PlaySessionId)}");
     if (request.SubtitleUri is not null)
       startInfo.ArgumentList.Add($"/sub={request.SubtitleUri.AbsoluteUri}");
 

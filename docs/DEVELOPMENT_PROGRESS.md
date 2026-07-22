@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 14/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 15/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -81,7 +81,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
     M2-015 完成 GSMTC 技术验证。
 - [x] `D0-002` 确认首版完整支持的本地播放器。
   - 结论：PotPlayer 为第一适配器，mpv 为第二适配器。
-  - PotPlayer 最低版本在 M2 SMTC 技术验证后锁定。
+  - 最低支持版本：PotPlayer `1.7.22398.0`；已完成 Windows GSMTC
+    来源和 `/title` 媒体属性实测。
 - [x] `D0-003` 确认部署拓扑。
   - 需要确定 Web、Gateway、Emby 是否同机，以及内外网访问地址。
   - 完成定义：补充一张最终部署图和环境变量清单。
@@ -288,7 +289,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M2-015` 实现 Windows SMTC 能力检查和会话事件订阅。
   - 已验证 GSMTC API 能力并订阅会话、媒体属性、播放信息和时间线事件；
     PotPlayer 空闲且没有会话时标记为“尚未观察”，不误判设置已关闭。
-- [ ] `M2-016` 匹配 NewEmby 启动的 PotPlayer 会话。
+- [x] `M2-016` 匹配 NewEmby 启动的 PotPlayer 会话。
   - 综合进程生命周期、`/title` 会话标识和媒体属性，处理多实例。
 - [ ] `M2-017` 读取时长、位置、更新时间、暂停、跳转和结束状态。
 
@@ -519,7 +520,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-016`，匹配由 NewEmby 启动的 PotPlayer 会话。
+1. 开始 `M2-017`，读取匹配会话的时间线和播放状态。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -539,6 +540,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-17 | 设计 | 搜索不再使用独立页面，按参考应用 `SearchDropdown.vue` 迁移到顶栏展开输入框与玻璃结果浮层；`/search` 仅保留兼容重定向 | M1、UX-005 | 项目组 |
 | 2026-07-17 | 范围 | `M2-006` Windows 安装与卸载延期；当前 Bridge 采用 self-contained single-file 便携发布，延期项不计完成且不阻塞 `M2-007` | M2、M3 | 项目组 |
 | 2026-07-22 | 技术决策 | Bridge 运行基线锁定为 Windows 10 version 2004（build 19041）或更新版本，与 `net8.0-windows10.0.19041.0` TFM 一致；GSMTC 管理器在 Windows build 26100 单文件实机验证为可用 | D0、M2 | 项目组 |
+| 2026-07-22 | 技术决策 | PotPlayer 最低支持版本锁定为 `1.7.22398.0`；会话匹配必须同时满足存活启动进程、受支持来源和精确 `NewEmby:<PlaySessionId>` 标题，重复候选不得猜测绑定 | D0、M2 | 项目组 |
 
 ## 15. 开发记录
 
@@ -546,6 +548,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-016 | 完成 | 已在 PotPlayer 安全启动成功后记录进程 ID、启动时间和 PlaySessionId，并实现托管的 GSMTC 会话匹配器：只接受仍为同一存活进程、来源精确属于受支持 PotPlayer 且媒体标题等于 `NewEmby:<PlaySessionId>` 的唯一候选；单一但标题不符时不猜测，重复精确候选标记为歧义，15 秒内等待后超时，进程退出或 PID 复用立即失效。匹配随会话/媒体属性事件刷新并以一秒轮询兜底，多实例按 PlaySessionId 隔离，内部会话句柄可供 M2-017 读取并支持显式解除跟踪，不通过状态 API 泄露。Windows build 26100 使用 PotPlayer `1.7.22398.0` 和系统短音频实测确认 GSMTC 来源为受支持标识、临时媒体标题不会误匹配，最终精确 `/title` 标识仅匹配一次；测试进程已关闭。最新 self-contained 单文件发布成功并以 PID 436 保留后台运行，状态为 Bridge/SMTC `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、88 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、README、项目计划、进度表 | M2-017 |
+| 2026-07-22 | M2-016 | 进行中 | 正在建立 NewEmby 启动记录与 PotPlayer GSMTC 会话之间的确定性匹配：优先使用唯一 `/title` 播放会话标识，并以受控进程生命周期和媒体属性辅助确认；多实例候选冲突时保持未匹配，不把状态写入错误媒体 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、进度表 | 完成匹配状态机、歧义隔离和 Windows 实机验证 |
 | 2026-07-22 | M2-015 | 完成 | 已接入 Windows `GlobalSystemMediaTransportControlsSessionManager`，由 Bridge 生命周期托管并订阅会话增删、媒体属性、播放信息和时间线变化；状态接口只公开 API 能力、监控状态和聚合数量，不泄露其他应用的会话标识。PotPlayer 空闲且没有 GSMTC 会话时返回“尚未观察”，与 API 不可用或平台不支持明确区分；旧会话刷新、初始化失败和退出均释放订阅及管理器。Windows build 26100 的最新 self-contained 单文件实测为 `ready`、监控中、0 个会话且 PotPlayer 尚未观察，Bridge 已保留运行供本地验证。完整 `verify:local` 通过：215 项 JS/TS 单测、77 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；首次全量验证遇到既有滚动恢复用例偶发偏差，定向复跑和第二次完整质量门均通过。本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、Windows GSMTC、状态契约、README、项目计划、进度表 | M2-016 |
 | 2026-07-22 | M2-015 | 进行中 | 正在实现 Windows `GlobalSystemMediaTransportControlsSessionManager` 能力检查和 Bridge 生命周期托管；订阅会话增删、媒体属性、播放信息与时间线变化，仅公开聚合状态，不泄露其他应用会话信息。PotPlayer 空闲且没有 GSMTC 会话时标记为“尚未观察”，不误判为已关闭；会话精确匹配和时间线读取仍留给 M2-016/017 | Player Bridge、Windows GSMTC、状态契约、README、进度表 | 完成订阅释放、事件刷新和实机 API 验证 |
 | 2026-07-22 | M2-014 | 完成 | 已将启动能力纳入 `IPlayerAdapter`，实现 PotPlayer 无 shell 进程启动和独立 `ArgumentList` 参数传递：固定 `/new`，非零续播点使用不跨天回绕的 `/seek=HH:MM:SS.mmm`，`/title` 只含 NewEmby 前缀与规范播放会话 UUID，可选 `/sub` 与最终媒体参数仅接受 Bridge 配置端口上的 `127.0.0.1`/`::1` 精确会话路径。已拒绝错误可执行文件、非回环 Host、其他端口、用户信息、查询、片段、会话错配、非法 Ticks 及空会话 ID，不生成 `/headers`，启动失败统一脱敏；本任务未提前开放浏览器播放入口，也未在尚无本地流端点时实际唤起桌面播放器。完整 `verify:local` 通过：215 项 JS/TS 单测、72 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；Windows self-contained 单文件发布、本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、`IPlayerAdapter`、PotPlayer 参数安全、项目计划、README、进度表 | M2-015 |

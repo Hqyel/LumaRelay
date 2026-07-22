@@ -28,6 +28,12 @@ internal sealed record SmtcMonitorSnapshot(
     0);
 }
 
+internal sealed record SmtcMediaProperties(
+  string Title,
+  string Subtitle,
+  string Artist,
+  string AlbumTitle);
+
 internal sealed class SmtcSessionEventArgs(
   SmtcSessionEventKind kind,
   string? sourceAppUserModelId,
@@ -43,6 +49,7 @@ internal interface ISystemMediaSessionMonitor
   event EventHandler<SmtcSessionEventArgs>? Changed;
 
   SmtcMonitorSnapshot Snapshot { get; }
+  IReadOnlyList<ISmtcSession> Sessions { get; }
 
   Task StartAsync(CancellationToken cancellationToken);
   Task StopAsync(CancellationToken cancellationToken);
@@ -55,6 +62,9 @@ internal interface ISmtcSession : IDisposable
   event EventHandler? TimelinePropertiesChanged;
 
   string SourceAppUserModelId { get; }
+
+  Task<SmtcMediaProperties?> GetMediaPropertiesAsync(
+    CancellationToken cancellationToken);
 }
 
 internal interface ISmtcSessionManager : IDisposable
@@ -80,6 +90,7 @@ internal sealed class UnsupportedSystemMediaSessionMonitor
   }
 
   public SmtcMonitorSnapshot Snapshot => SmtcMonitorSnapshot.Unsupported;
+  public IReadOnlyList<ISmtcSession> Sessions => [];
 
   public Task StartAsync(CancellationToken cancellationToken)
   {

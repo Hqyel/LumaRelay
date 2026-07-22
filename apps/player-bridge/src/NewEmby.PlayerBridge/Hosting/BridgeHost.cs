@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Status;
 using NewEmby.PlayerBridge.Pairing;
@@ -32,9 +33,16 @@ internal static class BridgeHost
 
     var mediaSessionMonitor = smtcMonitor
       ?? SystemMediaSessionMonitorFactory.Create();
+    var discovery = playerDiscovery ?? new PotPlayerDiscovery();
+    var sessionMatcher = new PotPlayerSessionMatcher(mediaSessionMonitor);
     builder.Services.AddSingleton<ISystemMediaSessionMonitor>(
       mediaSessionMonitor);
     builder.Services.AddHostedService<SmtcMonitorHostedService>();
+    builder.Services.AddSingleton<IHostedService>(sessionMatcher);
+    builder.Services.AddSingleton<IPlayerAdapter>(new PotPlayerLauncher(
+      serverOptions.Port,
+      discovery,
+      launchTracker: sessionMatcher));
 
     var application = builder.Build();
 
@@ -46,7 +54,7 @@ internal static class BridgeHost
       application,
       credentials,
       security,
-      playerDiscovery ?? new PotPlayerDiscovery(),
+      discovery,
       mediaSessionMonitor);
     BridgeSecurityEndpoint.Map(application, security, credentials);
     return application;

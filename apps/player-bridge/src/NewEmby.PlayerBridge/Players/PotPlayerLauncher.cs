@@ -7,6 +7,7 @@ internal sealed class PotPlayerLauncher : IPlayerAdapter
 {
   private readonly int bridgePort;
   private readonly IPlayerDiscovery discovery;
+  private readonly IPlayerLaunchTracker? launchTracker;
   private readonly IPlayerProcessStarter processStarter;
   private readonly TimeProvider timeProvider;
 
@@ -14,12 +15,14 @@ internal sealed class PotPlayerLauncher : IPlayerAdapter
     int bridgePort,
     IPlayerDiscovery discovery,
     IPlayerProcessStarter? processStarter = null,
-    TimeProvider? timeProvider = null)
+    TimeProvider? timeProvider = null,
+    IPlayerLaunchTracker? launchTracker = null)
   {
     this.bridgePort = bridgePort;
     this.discovery = discovery;
     this.processStarter = processStarter ?? new WindowsPlayerProcessStarter();
     this.timeProvider = timeProvider ?? TimeProvider.System;
+    this.launchTracker = launchTracker;
   }
 
   public string AdapterId => PotPlayerIdentity.AdapterId;
@@ -44,10 +47,12 @@ internal sealed class PotPlayerLauncher : IPlayerAdapter
     try
     {
       var processId = processStarter.Start(startInfo);
-      return new PlayerLaunchResult(
+      var result = new PlayerLaunchResult(
         processId,
         request.PlaySessionId,
         timeProvider.GetUtcNow());
+      launchTracker?.Track(result);
+      return result;
     }
     catch (Exception exception) when (
       exception is Win32Exception

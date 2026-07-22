@@ -34,6 +34,29 @@ public sealed record PlayerLaunchResult(
   Guid PlaySessionId,
   DateTimeOffset StartedAt);
 
+internal interface IPlayerLaunchTracker
+{
+  void Track(PlayerLaunchResult result);
+}
+
+internal static class PlayerSessionTitle
+{
+  private const string Prefix = "NewEmby:";
+
+  public static string Create(Guid playSessionId)
+  {
+    return $"{Prefix}{playSessionId:D}";
+  }
+
+  public static bool Matches(string? value, Guid playSessionId)
+  {
+    return string.Equals(
+      value?.Trim(),
+      Create(playSessionId),
+      StringComparison.OrdinalIgnoreCase);
+  }
+}
+
 internal interface IPlayerProcessStarter
 {
   int Start(ProcessStartInfo startInfo);

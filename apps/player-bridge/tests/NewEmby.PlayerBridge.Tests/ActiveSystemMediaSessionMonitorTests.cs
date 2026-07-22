@@ -174,6 +174,14 @@ public sealed class ActiveSystemMediaSessionMonitorTests
     public bool IsDisposed { get; private set; }
     public string SourceAppUserModelId { get; } = sourceAppUserModelId;
 
+    public Task<SmtcMediaProperties?> GetMediaPropertiesAsync(
+      CancellationToken cancellationToken)
+    {
+      return Task.FromResult<SmtcMediaProperties?>(
+        new SmtcMediaProperties(string.Empty, string.Empty,
+          string.Empty, string.Empty));
+    }
+
     public void RaiseMediaPropertiesChanged()
     {
       MediaPropertiesChanged?.Invoke(this, EventArgs.Empty);

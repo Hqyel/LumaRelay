@@ -268,6 +268,10 @@ IDLE
 关闭了“Use system media transport control”，Bridge 必须提示用户启用，
 不能降级为伪造的计时进度。
 
+首版 PotPlayer 最低支持版本锁定为 `1.7.22398.0`，该版本已在 Windows
+build 26100 完成发现、启动、GSMTC 来源及 `/title` 媒体属性实测；更低版本
+不进入正式兼容范围。
+
 Bridge 只从运行中进程、Windows App Paths、DAUM 安装信息和有界标准目录
 发现 PotPlayer，并校验为实际存在的受支持可执行文件。重复路径合并后优先
 运行中实例，其次优先 x64。状态接口只公开版本、架构和运行状态；安装路径
@@ -286,6 +290,14 @@ NewEmby 启动的 SMTC 会话。
 查询参数或片段。`/new` 固定启用；非零续播点转换为
 `/seek=HH:MM:SS.mmm`；`/title` 只包含 NewEmby 前缀和规范播放会话 UUID，
 不接受媒体标题等可注入文本。
+
+Bridge 在进程创建成功后记录进程 ID、启动时间和 PlaySessionId。GSMTC
+匹配只接受仍为同一存活进程、来源是受支持 PotPlayer 标识且媒体标题精确等于
+`NewEmby:<play_session_id>` 的唯一候选；单一但标题不符的会话不得猜测绑定，
+重复精确候选必须标记为歧义。匹配在会话和媒体属性事件后刷新，并使用一秒
+轮询兜底；15 秒内没有候选标记为超时，进程退出或 PID 已复用则立即失效。
+多实例通过不同 PlaySessionId 隔离，匹配到的内部会话句柄不得通过状态 API
+公开，并由后续时间线和停止流程显式解除跟踪。
 
 ## 5. 前台信息架构
 

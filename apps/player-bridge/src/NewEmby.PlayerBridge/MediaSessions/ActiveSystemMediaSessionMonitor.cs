@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using NewEmby.PlayerBridge.Players;
 
 namespace NewEmby.PlayerBridge.MediaSessions;
 
@@ -23,6 +24,15 @@ internal sealed class ActiveSystemMediaSessionMonitor(
     {
       lock (sync)
         return snapshot;
+    }
+  }
+
+  public IReadOnlyList<ISmtcSession> Sessions
+  {
+    get
+    {
+      lock (sync)
+        return sessions.ToArray();
     }
   }
 
@@ -196,8 +206,8 @@ internal sealed class ActiveSystemMediaSessionMonitor(
 
   private static bool IsPotPlayerSession(ISmtcSession session)
   {
-    return ReadSourceAppUserModelId(session)
-      .Contains("PotPlayer", StringComparison.OrdinalIgnoreCase);
+    return PotPlayerIdentity.IsSourceAppId(
+      ReadSourceAppUserModelId(session));
   }
 
   private static string ReadSourceAppUserModelId(ISmtcSession session)

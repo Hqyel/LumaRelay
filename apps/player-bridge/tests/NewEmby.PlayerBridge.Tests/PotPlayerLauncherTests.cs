@@ -21,11 +21,13 @@ public sealed class PotPlayerLauncherTests
   public void StartsDiscoveredPotPlayerAndReturnsProcessIdentity()
   {
     var processStarter = new RecordingProcessStarter(4242);
+    var launchTracker = new RecordingLaunchTracker();
     var launcher = new PotPlayerLauncher(
       58080,
       new InstalledPlayerDiscovery(),
       processStarter,
-      new FixedTimeProvider(StartedAt));
+      new FixedTimeProvider(StartedAt),
+      launchTracker);
     var request = CreateRequest();
 
     var result = launcher.Launch(request);
@@ -36,6 +38,7 @@ public sealed class PotPlayerLauncherTests
     Assert.Equal(4242, result.ProcessId);
     Assert.Equal(PlaySessionId, result.PlaySessionId);
     Assert.Equal(StartedAt, result.StartedAt);
+    Assert.Equal(result, launchTracker.Result);
     Assert.NotNull(processStarter.StartInfo);
     Assert.False(processStarter.StartInfo.UseShellExecute);
     Assert.Equal(
@@ -132,6 +135,16 @@ public sealed class PotPlayerLauncherTests
     public int Start(ProcessStartInfo startInfo)
     {
       throw new Win32Exception(5, "sensitive operating system detail");
+    }
+  }
+
+  private sealed class RecordingLaunchTracker : IPlayerLaunchTracker
+  {
+    public PlayerLaunchResult? Result { get; private set; }
+
+    public void Track(PlayerLaunchResult result)
+    {
+      Result = result;
     }
   }
 
