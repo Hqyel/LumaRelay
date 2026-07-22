@@ -100,6 +100,7 @@ describe("playback options", () => {
       input,
       {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 0,
@@ -164,6 +165,7 @@ describe("playback options", () => {
       input,
       {
         audioStreamIndex: null,
+        displayTitle: "示例影片",
         itemId: "strm-item",
         mediaSourceId: "source-1",
         resumeTicks: 0,
@@ -217,6 +219,7 @@ describe("playback options", () => {
       input,
       {
         audioStreamIndex: null,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 0,

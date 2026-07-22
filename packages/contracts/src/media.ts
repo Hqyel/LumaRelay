@@ -32,6 +32,7 @@ export const MediaLibrarySchema = z.object({
 export const MediaCardSchema = z.object({
   backdropImageTag: z.string().min(1).optional(),
   communityRating: z.number().nonnegative().optional(),
+  episodeNumber: z.number().int().nonnegative().optional(),
   isFavorite: z.boolean(),
   isPlayed: z.boolean(),
   itemId: z.string().min(1),
@@ -44,7 +45,10 @@ export const MediaCardSchema = z.object({
   primaryImageTag: z.string().min(1).optional(),
   productionYear: z.number().int().nonnegative().optional(),
   runtimeSeconds: z.number().int().nonnegative().optional(),
+  seasonId: z.string().min(1).optional(),
+  seasonNumber: z.number().int().nonnegative().optional(),
   serverId: z.string().min(1),
+  seriesId: z.string().min(1).optional(),
   seriesStatus: z.enum(["continuing", "ended"]).optional(),
   subtitle: z.string().min(1).optional(),
   title: z.string().min(1),

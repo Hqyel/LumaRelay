@@ -248,10 +248,11 @@ redeemed_at
 `M2-012` 提供两个 Gateway 接口：
 
 - `POST /api/v1/bridge/play-tickets`：当前 Web 登录会话提交 `deviceId`、
-  `itemId`、`mediaSourceId`、`resumeTicks`、`audioStreamIndex` 和
-  `subtitleStreamIndex`。接口要求精确 Origin、CSRF，并在同一事务内确认会话和
-  未撤销设备属于同一 Server、同一 Emby 用户；成功返回 `playTicket`、
-  `playSessionId`、`expiresAt` 和固定 `expiresInSeconds: 60`。
+  `displayTitle`、`itemId`、`mediaSourceId`、`resumeTicks`、
+  `audioStreamIndex` 和 `subtitleStreamIndex`。接口要求精确 Origin、CSRF，
+  并在同一事务内确认会话和未撤销设备属于同一 Server、同一 Emby 用户；
+  成功返回 `playTicket`、`playSessionId`、`expiresAt` 和固定
+  `expiresInSeconds: 60`。
 - `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`：Bridge 提交
   `playTicket`，同时使用 `NewEmbyDevice` 设备凭证与新 nonce。Gateway 原子写入
   `redeemedAt` 后返回 `playSessionId` 和播放选择；响应不包含 Emby AccessToken、
@@ -314,24 +315,26 @@ Bridge 只从运行中进程、Windows App Paths、DAUM 安装信息和有界标
 
 PotPlayer 启动参数只允许携带短时 PlayTicket 或本地 Bridge URL，不能把
 Emby AccessToken 放入 `/headers`、媒体 URL 或进程命令行。Bridge 使用
-`/seek` 设置续播位置，并用 `/title` 加入短播放会话标识，帮助匹配由
-NewEmby 启动的 SMTC 会话。
+`/seek` 设置续播位置，并用 `/title` 传递用户可读的规范媒体标题，帮助匹配由
+NewEmby 启动的 SMTC 会话。电影标题仅使用电影名；单集标题使用
+`剧集名称-单集名称-第x/y集`。
 
 实际进程启动固定使用 `UseShellExecute=false` 和逐项 `ArgumentList`，禁止
 拼接命令行字符串。媒体与外置字幕参数只接受配置端口上的字面量 IPv4/IPv6
 回环 HTTP URL，路径必须分别匹配当前播放会话的
 `/v1/playback/<play_session_id>/media` 与 `.../subtitle`，且不得带用户信息、
 查询参数或片段。`/new` 固定启用；非零续播点转换为
-`/seek=HH:MM:SS.mmm`；`/title` 只包含 NewEmby 前缀和规范播放会话 UUID，
-不接受媒体标题等可注入文本。
+`/seek=HH:MM:SS.mmm`；`/title` 只接受去除首尾空白后 1～256 字符且不含控制
+字符的 `displayTitle`，并通过 `ArgumentList` 作为单独参数传递，禁止拼接命令。
 
 Bridge 在进程创建成功后记录进程 ID、启动时间和 PlaySessionId。GSMTC
 匹配只接受仍为同一存活进程、来源是受支持 PotPlayer 标识且媒体标题精确等于
-`NewEmby:<play_session_id>` 的唯一候选；单一但标题不符的会话不得猜测绑定，
-重复精确候选必须标记为歧义。匹配在会话和媒体属性事件后刷新，并使用一秒
-轮询兜底；15 秒内没有候选标记为超时，进程退出或 PID 已复用则立即失效。
-多实例通过不同 PlaySessionId 隔离，匹配到的内部会话句柄不得通过状态 API
-公开，并由后续时间线和停止流程显式解除跟踪。
+该 PlaySession 规范 `displayTitle` 的唯一候选；单一但标题不符的会话不得猜测
+绑定，重复精确候选必须标记为歧义。同一时间存在多个相同 `displayTitle` 的
+NewEmby 启动记录时，即使只观察到一个候选也不得猜测。匹配在会话和媒体属性
+事件后刷新，并使用一秒轮询兜底；15 秒内没有候选标记为超时，进程退出或 PID
+已复用则立即失效。内部仍按 PlaySessionId 隔离，匹配到的会话句柄不得通过状态
+API 公开，并由后续时间线和停止流程显式解除跟踪。
 
 匹配成功后，Bridge 同时读取 GSMTC PlaybackInfo 和 TimelineProperties，
 将开始、结束、位置及可跳转范围归一化为相对媒体起点的非负 Ticks，并保留

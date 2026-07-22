@@ -25,6 +25,7 @@ internal static class PotPlayerCommandBuilder
     ValidateExecutablePath(player.ExecutablePath);
     ValidatePort(bridgePort);
     ValidateTicks(request.ResumeTicks);
+    ValidateDisplayTitle(request.DisplayTitle);
     if (request.PlaySessionId == Guid.Empty)
       throw InvalidRequest("The playback session ID is invalid.");
 
@@ -58,7 +59,7 @@ internal static class PotPlayerCommandBuilder
     }
 
     startInfo.ArgumentList.Add(
-      $"/title={PlayerSessionTitle.Create(request.PlaySessionId)}");
+      $"/title={PlayerSessionTitle.Normalize(request.DisplayTitle)}");
     if (request.SubtitleUri is not null)
       startInfo.ArgumentList.Add($"/sub={request.SubtitleUri.AbsoluteUri}");
 
@@ -86,6 +87,16 @@ internal static class PotPlayerCommandBuilder
   {
     if (ticks is < 0 or > MaximumPlaybackTicks)
       throw InvalidRequest("The resume position is invalid.");
+  }
+
+  private static void ValidateDisplayTitle(string value)
+  {
+    if (string.IsNullOrWhiteSpace(value)
+      || value.Length > 256
+      || value.Any(char.IsControl))
+    {
+      throw InvalidRequest("The player display title is invalid.");
+    }
   }
 
   private static void ValidatePlaybackUri(

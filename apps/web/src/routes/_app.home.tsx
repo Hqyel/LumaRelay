@@ -137,7 +137,7 @@ function HomePage() {
           title="继续观看"
         >
           {data.resumeItems.map((item) => (
-            <HomeMediaCard item={item} key={item.itemId} landscape showPlay />
+            <HomeMediaCard item={item} key={item.itemId} landscape resume />
           ))}
         </HomeScroller>
       )}

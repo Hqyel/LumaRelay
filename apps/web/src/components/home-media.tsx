@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  PlayCircle,
   Star,
 } from "lucide-react";
 import {
@@ -186,25 +185,62 @@ function cardSubtitle(item: MediaCard): string | undefined {
   return item.productionYear?.toString() ?? item.subtitle;
 }
 
+function formatClock(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+  return hours > 0
+    ? `${hours}:${minutes.toString().padStart(2, "0")}:${remainder
+        .toString()
+        .padStart(2, "0")}`
+    : `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function episodePosition(item: MediaCard): string | undefined {
+  if (item.kind !== "episode" || item.episodeNumber === undefined)
+    return undefined;
+  return item.seasonNumber === undefined
+    ? `第 ${item.episodeNumber} 集`
+    : `第 ${item.seasonNumber} 季 · 第 ${item.episodeNumber} 集`;
+}
+
+function resumeTime(item: MediaCard): string {
+  const watched = `已观看 ${formatClock(item.playbackPositionSeconds)}`;
+  if (item.runtimeSeconds === undefined) return watched;
+  const remaining = Math.max(
+    0,
+    item.runtimeSeconds - item.playbackPositionSeconds,
+  );
+  return `${watched} · 剩余 ${formatClock(remaining)}`;
+}
+
 export interface HomeMediaCardProps {
   item: MediaCard;
   landscape?: boolean;
   priority?: boolean;
+  resume?: boolean;
   secondaryText?: string;
-  showPlay?: boolean;
 }
 
 export function HomeMediaCard({
   item,
   landscape = false,
   priority = false,
+  resume = false,
   secondaryText,
-  showPlay = false,
 }: HomeMediaCardProps) {
   const imageType =
     landscape && item.backdropImageTag !== undefined ? "backdrop" : "primary";
   const imageTag =
     imageType === "backdrop" ? item.backdropImageTag : item.primaryImageTag;
+  const displayTitle =
+    resume && item.kind === "episode"
+      ? (item.subtitle ?? item.title)
+      : item.title;
+  const displaySubtitle =
+    resume && item.kind === "episode"
+      ? [episodePosition(item), item.title].filter(Boolean).join(" · ")
+      : (secondaryText ?? cardSubtitle(item));
 
   return (
     <article className={`home-card-slot${landscape ? " landscape" : ""}`}>
@@ -232,11 +268,6 @@ export function HomeMediaCard({
             width={landscape ? 640 : 240}
           />
           <span aria-hidden="true" className="home-poster-overlay" />
-          {showPlay ? (
-            <span aria-hidden="true" className="home-play-overlay">
-              <PlayCircle fill="currentColor" size={48} />
-            </span>
-          ) : null}
           {item.communityRating === undefined ? null : (
             <span className="home-rating-badge">
               <Star aria-hidden="true" fill="currentColor" size={12} />
@@ -278,14 +309,15 @@ export function HomeMediaCard({
           )}
         </span>
         <span className="home-card-info">
-          <span className="home-card-title" title={item.title}>
-            {item.title}
+          <span className="home-card-title" title={displayTitle}>
+            {displayTitle}
           </span>
-          {(secondaryText ?? cardSubtitle(item)) === undefined ? null : (
-            <span className="home-card-subtitle">
-              {secondaryText ?? cardSubtitle(item)}
-            </span>
+          {displaySubtitle === "" || displaySubtitle === undefined ? null : (
+            <span className="home-card-subtitle">{displaySubtitle}</span>
           )}
+          {resume ? (
+            <span className="home-card-resume-time">{resumeTime(item)}</span>
+          ) : null}
         </span>
       </Link>
     </article>

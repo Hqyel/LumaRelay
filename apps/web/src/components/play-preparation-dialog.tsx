@@ -25,6 +25,7 @@ function firstSource(
 }
 
 export interface PlaybackTarget {
+  displayTitle: string;
   itemId: string;
   playbackPositionSeconds: number;
   title: string;
@@ -91,6 +92,7 @@ export function PlayPreparationDialog({
       const issued = await createPlayTicket({
         audioStreamIndex: audioIndex,
         deviceId: statusQuery.data.deviceId,
+        displayTitle: item.displayTitle,
         itemId: item.itemId,
         mediaSourceId: selectedSource.mediaSourceId,
         resumeTicks: item.playbackPositionSeconds * 10_000_000,
@@ -123,7 +125,7 @@ export function PlayPreparationDialog({
         trigger ?? (
           <Button className="detail-play-button">
             <Play aria-hidden="true" fill="currentColor" size={18} />
-            播放
+            {item.playbackPositionSeconds > 0 ? "继续播放" : "播放"}
           </Button>
         )
       }

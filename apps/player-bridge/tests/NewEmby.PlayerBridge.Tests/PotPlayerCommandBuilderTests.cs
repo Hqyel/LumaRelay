@@ -24,7 +24,8 @@ public sealed class PotPlayerCommandBuilderTests
       PlaybackUri("media"),
       resume,
       PlaySessionId,
-      PlaybackUri("subtitle", ipv6: true));
+      PlaybackUri("subtitle", ipv6: true),
+      "示例剧集-新的开始-第3/12集");
 
     var startInfo = PotPlayerCommandBuilder.Build(
       Player,
@@ -41,7 +42,7 @@ public sealed class PotPlayerCommandBuilderTests
     [
       "/new",
       "/seek=01:02:03.456",
-      "/title=NewEmby:22222222-2222-4222-8222-222222222222",
+      "/title=示例剧集-新的开始-第3/12集",
       "/sub=http://[::1]:58080/v1/playback/"
         + "22222222-2222-4222-8222-222222222222/subtitle",
       "http://127.0.0.1:58080/v1/playback/"
@@ -62,7 +63,8 @@ public sealed class PotPlayerCommandBuilderTests
       PlaybackUri("media"),
       0,
       PlaySessionId,
-      null);
+      null,
+      "示例电影");
 
     var startInfo = PotPlayerCommandBuilder.Build(
       Player,
@@ -72,7 +74,7 @@ public sealed class PotPlayerCommandBuilderTests
     Assert.Equal(
     [
       "/new",
-      "/title=NewEmby:22222222-2222-4222-8222-222222222222",
+      "/title=示例电影",
       "http://127.0.0.1:58080/v1/playback/"
         + "22222222-2222-4222-8222-222222222222/media",
     ],

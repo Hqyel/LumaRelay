@@ -135,10 +135,13 @@ timeouts and exited players are returned as explicit degraded states.
 
 The PotPlayer adapter builds process launches without a command shell and adds
 every value through `ProcessStartInfo.ArgumentList`. It always requests `/new`,
-adds `/seek=HH:MM:SS.mmm` only for a non-zero resume point, identifies the
-session as `/title=NewEmby:<play-session-id>`, and adds `/sub=<loopback-uri>`
-only when an external subtitle is selected. The media URI is the final separate
-argument.
+adds `/seek=HH:MM:SS.mmm` only for a non-zero resume point, passes the validated
+user-facing media name through `/title=<display-title>`, and adds
+`/sub=<loopback-uri>` only when an external subtitle is selected. Movie titles
+contain only the movie name; episode titles use
+`series-episode-episode-position/episode-count`. The media URI is the final
+separate argument. If concurrent NewEmby launches have the same display title,
+SMTC matching reports them as ambiguous instead of guessing a session.
 
 Both media and subtitle inputs must be literal IPv4 or IPv6 loopback HTTP URLs
 on the configured Bridge port with the exact path
@@ -153,16 +156,18 @@ After a successful process start, the Bridge tracks the process ID, its launch
 time and the PlaySession ID. The GSMTC matcher accepts a session only when the
 recorded process is still the same live process, the source application is an
 exact supported PotPlayer executable identity, and the media title exactly
-matches `NewEmby:<play-session-id>`. A unique PotPlayer session without that
-title is never guessed. Duplicate exact candidates remain `ambiguous`; a live
-process without a candidate remains `awaiting` for 15 seconds and then becomes
-`timedOut`; an exited or reused process becomes `processExited`.
+matches the validated display title stored for the PlaySession. A unique
+PotPlayer session without that title is never guessed. Duplicate exact
+candidates and concurrent NewEmby launches with the same display title remain
+`ambiguous`; a live process without a candidate remains `awaiting` for 15
+seconds and then becomes `timedOut`; an exited or reused process becomes
+`processExited`.
 
 Matching is refreshed on session-list and media-property events and by a
-one-second bounded fallback poll. Multiple NewEmby PotPlayer instances are
-isolated by their distinct PlaySession IDs. The matched session handle remains
-inside the Bridge for the M2-017 timeline reader and is removed explicitly when
-the playback lifecycle ends; it is not exposed by `/v1/status`.
+one-second bounded fallback poll. Playback state is isolated by PlaySession ID;
+matching refuses identical concurrent titles rather than guessing. The matched
+session handle remains inside the Bridge for the timeline reader and is removed
+explicitly when the playback lifecycle ends; it is not exposed by `/v1/status`.
 
 For every matched session, the playback monitor reads GSMTC playback status,
 rate, timeline start/end, reported position, seek range and last-updated time.

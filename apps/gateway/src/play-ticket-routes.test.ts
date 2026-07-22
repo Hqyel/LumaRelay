@@ -95,6 +95,7 @@ function createPlayTicketStore(): PlayTicketStore & {
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 600_000_000,
@@ -115,6 +116,7 @@ function createPlayTicketStore(): PlayTicketStore & {
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 600_000_000,
@@ -190,6 +192,7 @@ function createRequestBody() {
   return {
     audioStreamIndex: 1,
     deviceId: DEVICE_ID,
+    displayTitle: "示例电影",
     itemId: "item-1",
     mediaSourceId: "source-1",
     resumeTicks: 600_000_000,
@@ -218,6 +221,7 @@ describe("PlayTicket routes", () => {
       bridgeDeviceId: DEVICE_ID,
       selection: {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 600_000_000,

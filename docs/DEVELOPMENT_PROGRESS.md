@@ -311,6 +311,14 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
   - 剧集主操作和单集卡片只以 Episode ID 准备播放；STRM 安全支持 Emby
     `DirectStreamUrl`、HTTP `Path` 和跨 Origin 重定向。
 
+### 7.6 M2 播放体验审计（独立计数：1/1）
+
+- [x] `M2-QA-001` 修正单集详情、继续观看信息、续播状态与播放器标题。
+  - 状态：完成。
+  - 单集详情必须保留 Episode 语义；返回剧集页时刷新真实观看进度。
+  - 继续观看显示季/集、已观看与剩余时长，不以整卡播放热区替代详情入口。
+  - PotPlayer 使用用户可读媒体标题，同名并发会话不得猜测匹配。
+
 ### M2 发布门
 
 - [x] 播放器命令行和浏览器中都不存在 Emby AccessToken。
@@ -506,8 +514,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 无正在编码的 M2 任务；等待使用新便携 Bridge 完成真实 PotPlayer 播放与
-  退出后进度误差验收。
+- 无正在编码的 M2 任务；等待使用新便携 Bridge 验收真实 PotPlayer 标题、播放
+  与退出后进度误差。
 
 ### 延期
 
@@ -546,6 +554,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-17 | 范围 | `M2-006` Windows 安装与卸载延期；当前 Bridge 采用 self-contained single-file 便携发布，延期项不计完成且不阻塞 `M2-007` | M2、M3 | 项目组 |
 | 2026-07-22 | 技术决策 | Bridge 运行基线锁定为 Windows 10 version 2004（build 19041）或更新版本，与 `net8.0-windows10.0.19041.0` TFM 一致；GSMTC 管理器在 Windows build 26100 单文件实机验证为可用 | D0、M2 | 项目组 |
 | 2026-07-22 | 技术决策 | PotPlayer 最低支持版本锁定为 `1.7.22398.0`；会话匹配必须同时满足存活启动进程、受支持来源和精确 `NewEmby:<PlaySessionId>` 标题，重复候选不得猜测绑定 | D0、M2 | 项目组 |
+| 2026-07-22 | 技术决策 | `M2-QA-001` 以经契约校验的用户可读 `displayTitle` 取代内部 UUID 标题；电影使用电影名，单集使用“剧集名称-单集名称-第x/y集”。会话仍以 PlaySessionId 隔离；同名并发启动直接标记歧义，不猜测绑定。本决策取代上一条标题匹配格式，保留其来源、存活进程和唯一候选约束 | M2 | 项目组 |
 
 ## 15. 开发记录
 
@@ -553,6 +562,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-QA-001 | 完成 | Episode 卡片补齐 Series/Season/Index 领域字段，继续观看显示剧集名、季集、单集名、已观看与剩余时间并移除白色圆形播放覆盖；点击继续观看或单集主体进入“单集详情”，中央独立按钮才快捷播放，返回剧集页强制刷新进度，有续播点时主操作和单集徽标分别显示“继续播放”与“已观看/总时长”。PlayTicket、SQLite PlaybackSession、Gateway 和 Bridge 全链路新增受控 `displayTitle`，电影仅显示片名，单集使用“剧集名称-单集名称-第x/y集”，同名并发拒绝猜测 SMTC 会话。新增 010 迁移完成显式 `up/down/up`；全仓 format/lint/typecheck、243 项 JS/TS 单测、123 项 Bridge 测试、应用与 Storybook 构建、2 项视觉/axe、30 项 Chromium E2E（1 项按设计跳过）、Chromium/Firefox 2 项兼容回归、本地 Smoke 和生产依赖审计全部通过。便携 Bridge 已重新发布并确认 ready/paired | Contracts、Emby Client、Gateway、SQLite、Web、Player Bridge、Playwright、项目规划、UX 规范、Bridge README、进度表 | 用户实测新标题、单集详情、STRM 播放和退出进度门 |
+| 2026-07-22 | M2-QA-001 | 进行中 | 正在修复继续观看进入单集却显示电影详情、返回剧集页仍显示旧观看状态、整张单集卡片直接触发播放、继续观看缺少季集与时间信息，以及 PotPlayer 仅显示内部会话标题的问题；同时保留同名多实例歧义保护 | Contracts、Emby Client、Web、Gateway、Player Bridge、进度表 | 完成领域契约、交互、标题匹配与回归验证 |
 | 2026-07-22 | M2-026 | 完成 | 播放生命周期与恢复 E2E 已收口，并针对真实测试修复三项缺口：系列页把 Series ID 解析为续播或首个未看 Episode，单集卡片可直接准备播放；默认字幕只允许文本流，避免部分电影因内嵌图形字幕被 Gateway 拒绝；Gateway 重新 POST PlaybackInfo，支持 STRM 的 HTTP Path、DirectStreamUrl 和最多五次安全重定向，跨 Origin 自动剥离 Emby Token/授权头并保留提供方签名。Bridge 上游失败返回稳定 502。真实 Emby 4.8.9.0 对电影和单集各完成一个匿名化 Range 首字节读取，均为 1 个媒体源与 HTTP 206，测试会话已退出。全仓 format/lint/typecheck、240 项 JS/TS 单测、122 项 Bridge 测试、应用与 Storybook 构建、2 项视觉/axe、本地 smoke、生产依赖审计、30 项 Chromium E2E（1 项按设计跳过）及 Chromium/Firefox 2 项兼容回归全部通过。便携 Bridge 已重新发布并以原配对凭据启动，回环状态为 ready | Emby Client、Gateway、Web、Player Bridge、Playwright、真实 Emby smoke、项目计划、README、进度表 | 用户实测电影/单集 STRM 并完成真实 PotPlayer 进度门 |
 | 2026-07-22 | M2-026 | 验证中 | 新增真实 `PlaybackEventReporter → GatewayPlaybackEventClient → HTTP` 生命周期 E2E，覆盖 Playing、Pause、Unpause、Seek、Ended、播放器会话消失和首次 Pause 503 断网恢复；确认重试保持同一负载/序号且使用新 nonce，后续事件严格递增。Web E2E 覆盖暂停、拖动位置、结束、Bridge 断开、SMTC 不可用、时间线陈旧、多实例歧义和匹配超时；修复轮询失败后浮层继续沿用最后绿色状态的 bug。未配对浏览器启动被 401 阻止；既有测试记录列表改为并发安全快照。Bridge 121 项连续三轮 121/121、Web 31 项、Chromium 恢复 E2E 2/2 通过。全仓门首轮发现 Gateway lint 并已修复，修复后的全量复跑因执行配额阻塞，因此尚未勾选或提交 | Player Bridge、Gateway HTTP 边界、Web、Playwright、项目计划、README、进度表 | 复跑完整质量门 |
 | 2026-07-22 | M2-026 | 进行中 | 正在为真实序列化与重试链路增加播放生命周期 E2E，并补充 Web 对暂停、跳转、结束、Bridge 断开、SMTC 不可用、时间线陈旧、多实例和匹配超时的恢复回归；同时修复断网后浮层继续沿用最后绿色状态的问题 | Player Bridge、Gateway 协议边界、Web、Playwright、进度表 | 完成稳定性、恢复说明和全量质量门 |

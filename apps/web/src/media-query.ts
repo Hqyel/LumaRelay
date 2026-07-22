@@ -17,6 +17,7 @@ import {
 export const mediaHomeQuery = queryOptions({
   queryFn: getMediaHome,
   queryKey: ["media", "home"],
+  refetchOnMount: "always",
   staleTime: 60_000,
 });
 
@@ -79,6 +80,7 @@ export function mediaItemQuery(itemId: string) {
   return queryOptions({
     queryFn: () => getMediaItem(itemId),
     queryKey: ["media", "item", itemId],
+    refetchOnMount: "always",
     staleTime: 5 * 60_000,
   });
 }
@@ -96,12 +98,13 @@ export function seriesEpisodesQuery(
   seasonId: string | undefined,
 ) {
   return queryOptions({
-    enabled: seasonId !== undefined,
+    enabled: seriesId !== "" && seasonId !== undefined,
     queryFn: () => {
       if (seasonId === undefined) throw new Error("Select a season first");
       return getSeriesEpisodes(seriesId, seasonId);
     },
     queryKey: ["media", "series", seriesId, "episodes", seasonId],
+    refetchOnMount: "always",
     staleTime: 5 * 60_000,
   });
 }

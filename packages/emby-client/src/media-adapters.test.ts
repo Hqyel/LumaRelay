@@ -285,6 +285,7 @@ describe("Emby media domain adapters", () => {
       },
     });
     const episode = toEpisodeSummary(dto, "server-1");
+    const card = toMediaCard(dto, "server-1");
 
     expect(episode).toMatchObject({
       episodeNumber: 4,
@@ -294,6 +295,13 @@ describe("Emby media domain adapters", () => {
       seriesName: "Fixture Series",
     });
     expect(EpisodeSummarySchema.safeParse(episode).success).toBe(true);
+    expect(card).toMatchObject({
+      episodeNumber: 4,
+      seasonId: "season-2",
+      seasonNumber: 2,
+      seriesId: "series-1",
+      subtitle: "Fixture Series",
+    });
   });
 
   it("maps person role and primary image tag", () => {

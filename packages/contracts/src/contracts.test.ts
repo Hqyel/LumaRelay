@@ -168,6 +168,7 @@ describe("shared API contracts", () => {
     expect(
       PlayTicketSelectionSchema.safeParse({
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 600_000_000,
@@ -240,10 +241,21 @@ describe("shared API contracts", () => {
     expect(
       PlayTicketSelectionSchema.safeParse({
         audioStreamIndex: -1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: Number.MAX_SAFE_INTEGER + 1,
         subtitleStreamIndex: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      PlayTicketSelectionSchema.safeParse({
+        audioStreamIndex: null,
+        displayTitle: "unsafe\nplayer title",
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: 0,
+        subtitleStreamIndex: null,
       }).success,
     ).toBe(false);
   });
@@ -264,6 +276,7 @@ describe("shared API contracts", () => {
       requestId: "request-redeem",
       selection: {
         audioStreamIndex: null,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 0,

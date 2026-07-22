@@ -149,6 +149,7 @@ export function registerPlayTicketRoutes(
         bridgeDeviceId: body.deviceId,
         selection: {
           audioStreamIndex: body.audioStreamIndex,
+          displayTitle: body.displayTitle,
           itemId: body.itemId,
           mediaSourceId: body.mediaSourceId,
           resumeTicks: body.resumeTicks,

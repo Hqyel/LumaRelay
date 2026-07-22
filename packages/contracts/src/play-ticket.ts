@@ -23,6 +23,20 @@ export const PlaybackTicksSchema = z
   .nonnegative()
   .max(Number.MAX_SAFE_INTEGER);
 
+export const PlaybackDisplayTitleSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(256)
+  .refine(
+    (value) =>
+      [...value].every((character) => {
+        const code = character.codePointAt(0) ?? 0;
+        return code >= 32 && code !== 127;
+      }),
+    "Playback display title cannot contain control characters",
+  );
+
 const EmbyPlaybackIdSchema = z.string().trim().min(1).max(256);
 
 export const PlaybackTrackSchema = z.object({
@@ -57,6 +71,7 @@ export const PlaybackOptionsResponseSchema = z.object({
 
 export const PlayTicketSelectionSchema = z.object({
   audioStreamIndex: PlaybackStreamIndexSchema.nullable(),
+  displayTitle: PlaybackDisplayTitleSchema,
   itemId: EmbyPlaybackIdSchema,
   mediaSourceId: EmbyPlaybackIdSchema,
   resumeTicks: PlaybackTicksSchema,

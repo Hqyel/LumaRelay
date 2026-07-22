@@ -7,7 +7,8 @@ internal sealed record LocalPlaybackSelection(
   string MediaSourceId,
   long ResumeTicks,
   int? AudioStreamIndex,
-  int? SubtitleStreamIndex);
+  int? SubtitleStreamIndex,
+  string DisplayTitle = "NewEmby");
 
 internal sealed record LocalPlaybackSession(
   Guid PlaySessionId,

@@ -98,6 +98,26 @@ const seriesDetail = {
   premiereDate: "2026-01-12T00:00:00.000Z",
 };
 
+const episodeDetail = {
+  backdropImageTag: "backdrop-series-1",
+  episodeNumber: 2,
+  genres: ["科幻", "悬疑"],
+  isFavorite: false,
+  isPlayed: false,
+  itemId: "episode-2",
+  kind: "episode" as const,
+  overview: "一段静默信号让所有线索重新指向失落的航线。",
+  playbackPositionSeconds: 1320,
+  primaryImageTag: "episode-image-2",
+  runtimeSeconds: 2880,
+  seasonId: "season-1",
+  seasonNumber: 1,
+  seriesId: "series-1",
+  serverId: "server-1",
+  subtitle: "群星之间",
+  title: "静默信号",
+};
+
 const people = ["林岚", "周屿", "苏野", "程墨"].map((name, index) => ({
   kind: index === 3 ? "director" : "actor",
   name,
@@ -135,7 +155,7 @@ const mediaHome = {
   latestMovies: [mediaItem],
   latestSeries: [],
   requestId: "request-home",
-  resumeItems: [],
+  resumeItems: [episodeDetail],
 };
 
 async function mockPageApi(
@@ -494,6 +514,17 @@ async function mockPageApi(
       });
       return;
     }
+    if (path === "/api/v1/media/items/episode-2") {
+      await route.fulfill({
+        json: {
+          item: episodeDetail,
+          people,
+          relatedItems: [],
+          requestId: "request-episode-detail",
+        },
+      });
+      return;
+    }
     if (path === "/api/v1/media/series/series-1/seasons") {
       await route.fulfill({
         json: {
@@ -684,6 +715,8 @@ test("application shell is accessible and matches its baseline", async ({
   await mockPageApi(page, true);
   await page.goto("/home");
   await expect(page.getByRole("heading", { name: "首页" })).toBeVisible();
+  await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
+  await expect(page.getByText("已观看 22:00 · 剩余 26:00")).toBeVisible();
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "跳到主要内容" })).toBeFocused();
@@ -698,6 +731,13 @@ test("application shell is accessible and matches its baseline", async ({
   await expect(page).toHaveScreenshot("application-shell.png", {
     fullPage: true,
   });
+
+  await page
+    .getByRole("link", { name: /静默信号/ })
+    .first()
+    .click();
+  await expect(page.getByText("单集详情")).toBeVisible();
+  await expect(page.getByRole("button", { name: "继续播放" })).toBeVisible();
 });
 
 test("header search expands and shows reference dropdown results", async ({
@@ -904,6 +944,7 @@ test("series details show season and horizontal episodes", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
   await expect(page.getByLabel("选择季")).toHaveValue("season-1");
   await expect(page.getByText("1. 离港")).toBeVisible();
+  await expect(page.getByText("22:00 / 48:00")).toBeVisible();
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
@@ -914,11 +955,14 @@ test("series details show season and horizontal episodes", async ({ page }) => {
       new URL(request.url()).pathname ===
       "/api/v1/media/items/episode-2/playback-options",
   );
-  await page.getByRole("button", { exact: true, name: "播放" }).click();
+  await page.getByRole("button", { exact: true, name: "继续播放" }).click();
   await episodeOptions;
   await expect(
     page.getByRole("heading", { name: "本地播放准备" }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: /2\. 静默信号/ }).click();
+  await expect(page.getByText("单集详情")).toBeVisible();
 });
 
 test("movie library matches the reference card grid", async ({ page }) => {

@@ -27,12 +27,14 @@ public sealed record PlayerLaunchRequest(
   Uri MediaUri,
   long ResumeTicks,
   Guid PlaySessionId,
-  Uri? SubtitleUri);
+  Uri? SubtitleUri,
+  string DisplayTitle = "NewEmby");
 
 public sealed record PlayerLaunchResult(
   int ProcessId,
   Guid PlaySessionId,
-  DateTimeOffset StartedAt);
+  DateTimeOffset StartedAt,
+  string SessionTitle = "NewEmby");
 
 internal interface IPlayerLaunchTracker
 {
@@ -41,18 +43,16 @@ internal interface IPlayerLaunchTracker
 
 internal static class PlayerSessionTitle
 {
-  private const string Prefix = "NewEmby:";
-
-  public static string Create(Guid playSessionId)
+  public static string Normalize(string value)
   {
-    return $"{Prefix}{playSessionId:D}";
+    return value.Trim();
   }
 
-  public static bool Matches(string? value, Guid playSessionId)
+  public static bool Matches(string? value, string expected)
   {
     return string.Equals(
       value?.Trim(),
-      Create(playSessionId),
+      expected,
       StringComparison.OrdinalIgnoreCase);
   }
 }

@@ -4,9 +4,11 @@ import type {
   PersonSummary,
 } from "@newemby/contracts";
 import { Button, ImageFallback } from "@newemby/ui";
+import { Link } from "@tanstack/react-router";
 import { CheckCircle2, Heart, Play, Sparkles, Users } from "lucide-react";
 
 import { mediaImageUrl } from "../api.js";
+import { episodePlaybackTitle, mediaPlaybackTitle } from "../playback-title.js";
 import { useFavoriteMutation } from "../use-favorite-mutation.js";
 import { usePlayedMutation } from "../use-played-mutation.js";
 import {
@@ -21,6 +23,18 @@ function formatRuntime(seconds: number | undefined): string | undefined {
   if (seconds === undefined) return undefined;
   const minutes = Math.round(seconds / 60);
   return `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分钟`;
+}
+
+function formatPlaybackClock(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remaining = seconds % 60;
+  return [hours, minutes, remaining]
+    .map((value, index) =>
+      index === 0 ? value.toString() : value.toString().padStart(2, "0"),
+    )
+    .filter((_, index) => hours > 0 || index > 0)
+    .join(":");
 }
 
 export function MediaDetailHero({
@@ -40,6 +54,12 @@ export function MediaDetailHero({
   const playedPending =
     playedMutation.isPending &&
     playedMutation.variables.item.itemId === item.itemId;
+  const effectivePlaybackTarget = playbackTarget ?? {
+    displayTitle: mediaPlaybackTitle(item),
+    itemId: item.itemId,
+    playbackPositionSeconds: item.playbackPositionSeconds,
+    title: item.title,
+  };
 
   return (
     <section className="detail-hero">
@@ -65,7 +85,11 @@ export function MediaDetailHero({
             ? item.seriesStatus === "ended"
               ? "已完结剧集"
               : "连载剧集"
-            : "电影详情"}
+            : item.kind === "episode"
+              ? "单集详情"
+              : item.kind === "movie"
+                ? "电影详情"
+                : "媒体详情"}
         </span>
         {item.logoImageTag === undefined ? (
           <h1 className="detail-title">{item.title}</h1>
@@ -112,8 +136,8 @@ export function MediaDetailHero({
             </Button>
           ) : (
             <PlayPreparationDialog
-              item={playbackTarget ?? item}
-              key={(playbackTarget ?? item).itemId}
+              item={effectivePlaybackTarget}
+              key={effectivePlaybackTarget.itemId}
             />
           )}
           <Button
@@ -223,7 +247,13 @@ export function RelatedScroller({
   );
 }
 
-export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
+export function EpisodeCard({
+  episode,
+  episodeCount,
+}: {
+  episode: EpisodeSummary;
+  episodeCount: number;
+}) {
   const progress =
     episode.runtimeSeconds === undefined || episode.runtimeSeconds === 0
       ? 0
@@ -235,25 +265,33 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
   return (
     <article className="detail-episode-card">
       <div className="detail-episode-thumb">
-        <ImageFallback
-          alt={episode.name}
-          className="detail-episode-image"
-          containerClassName="size-full"
-          height={360}
-          loading="lazy"
-          src={mediaImageUrl({
-            imageType: "primary",
-            itemId: episode.episodeId,
-            preset: "card",
-            tag: episode.primaryImageTag,
-          })}
-          width={640}
-        />
+        <Link
+          aria-label={`查看 ${episode.seriesName ?? "剧集"} ${episode.name} 详情`}
+          className="detail-episode-detail-link"
+          params={{ id: episode.episodeId }}
+          to="/item/$id"
+        >
+          <ImageFallback
+            alt={episode.name}
+            className="detail-episode-image"
+            containerClassName="size-full"
+            height={360}
+            loading="lazy"
+            src={mediaImageUrl({
+              imageType: "primary",
+              itemId: episode.episodeId,
+              preset: "card",
+              tag: episode.primaryImageTag,
+            })}
+            width={640}
+          />
+        </Link>
         <PlayPreparationDialog
           item={{
+            displayTitle: episodePlaybackTitle(episode, episodeCount),
             itemId: episode.episodeId,
             playbackPositionSeconds: episode.playbackPositionSeconds,
-            title: `${episode.seriesName} · ${episode.name}`,
+            title: `${episode.seriesName ?? "剧集"} · ${episode.name}`,
           }}
           trigger={
             <button
@@ -271,7 +309,12 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
           </span>
         )}
         <span className="detail-episode-state">
-          {episode.isPlayed ? "已观看" : "未观看"}
+          {episode.playbackPositionSeconds > 0 &&
+          episode.runtimeSeconds !== undefined
+            ? `${formatPlaybackClock(episode.playbackPositionSeconds)} / ${formatPlaybackClock(episode.runtimeSeconds)}`
+            : episode.isPlayed
+              ? "已观看"
+              : "未观看"}
         </span>
         {progress <= 0 ? null : (
           <span
@@ -286,7 +329,11 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
           </span>
         )}
       </div>
-      <div className="detail-episode-info">
+      <Link
+        className="detail-episode-info"
+        params={{ id: episode.episodeId }}
+        to="/item/$id"
+      >
         <p>
           {episode.episodeNumber === undefined
             ? episode.name
@@ -295,7 +342,7 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
         {episode.overview === undefined ? null : (
           <span>{episode.overview}</span>
         )}
-      </div>
+      </Link>
     </article>
   );
 }

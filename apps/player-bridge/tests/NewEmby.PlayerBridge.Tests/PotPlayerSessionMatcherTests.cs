@@ -23,12 +23,12 @@ public sealed class PotPlayerSessionMatcherTests
   {
     var expected = new FakeSession(
       "PotPlayerMini64.exe",
-      PlayerSessionTitle.Create(FirstPlaySessionId));
+      Title(FirstPlaySessionId));
     var monitor = new FakeMonitor(
     [
       new FakeSession(
         "browser.application",
-        PlayerSessionTitle.Create(FirstPlaySessionId)),
+        Title(FirstPlaySessionId)),
       new FakeSession("PotPlayerMini64.exe", "unrelated media"),
       expected,
     ]);
@@ -71,7 +71,7 @@ public sealed class PotPlayerSessionMatcherTests
   [Fact]
   public async Task KeepsDuplicateExactSessionsAmbiguous()
   {
-    var title = PlayerSessionTitle.Create(FirstPlaySessionId);
+    var title = Title(FirstPlaySessionId);
     var monitor = new FakeMonitor(
     [
       new FakeSession("PotPlayerMini64.exe", title),
@@ -121,7 +121,7 @@ public sealed class PotPlayerSessionMatcherTests
     [
       new FakeSession(
         "PotPlayerMini64.exe",
-        PlayerSessionTitle.Create(FirstPlaySessionId)),
+        Title(FirstPlaySessionId)),
     ]);
     var matcher = CreateMatcher(
       monitor,
@@ -140,10 +140,10 @@ public sealed class PotPlayerSessionMatcherTests
   {
     var first = new FakeSession(
       "PotPlayerMini64.exe",
-      PlayerSessionTitle.Create(FirstPlaySessionId));
+      Title(FirstPlaySessionId));
     var second = new FakeSession(
       "PotPlayerMini64.exe",
-      PlayerSessionTitle.Create(SecondPlaySessionId));
+      Title(SecondPlaySessionId));
     var matcher = CreateMatcher(new FakeMonitor([second, first]));
     matcher.Track(CreateLaunch(FirstPlaySessionId, 101));
     matcher.Track(CreateLaunch(SecondPlaySessionId, 202));
@@ -159,6 +159,34 @@ public sealed class PotPlayerSessionMatcherTests
       out var secondMatch));
     Assert.Same(first, firstMatch);
     Assert.Same(second, secondMatch);
+  }
+
+  [Fact]
+  public async Task DoesNotGuessBetweenConcurrentIdenticalTitles()
+  {
+    const string title = "同名电影";
+    var matcher = CreateMatcher(new FakeMonitor(
+    [
+      new FakeSession("PotPlayerMini64.exe", title),
+    ]));
+    matcher.Track(new PlayerLaunchResult(
+      101,
+      FirstPlaySessionId,
+      StartedAt,
+      title));
+    matcher.Track(new PlayerLaunchResult(
+      202,
+      SecondPlaySessionId,
+      StartedAt,
+      title));
+
+    await matcher.RefreshAsync(CancellationToken.None);
+
+    Assert.All(
+      matcher.Snapshot.Matches,
+      match => Assert.Equal(
+        PlayerSessionMatchState.Ambiguous,
+        match.State));
   }
 
   [Fact]
@@ -184,7 +212,7 @@ public sealed class PotPlayerSessionMatcherTests
         matched.TrySetResult();
       }
     };
-    session.Title = PlayerSessionTitle.Create(FirstPlaySessionId);
+    session.Title = Title(FirstPlaySessionId);
     monitor.RaiseChanged();
 
     await matched.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -211,7 +239,16 @@ public sealed class PotPlayerSessionMatcherTests
     Guid playSessionId,
     int processId)
   {
-    return new PlayerLaunchResult(processId, playSessionId, StartedAt);
+    return new PlayerLaunchResult(
+      processId,
+      playSessionId,
+      StartedAt,
+      Title(playSessionId));
+  }
+
+  private static string Title(Guid playSessionId)
+  {
+    return $"测试媒体-{playSessionId:D}";
   }
 
   private sealed class FakeMonitor(

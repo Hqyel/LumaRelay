@@ -38,6 +38,7 @@ public sealed class PotPlayerLauncherTests
     Assert.Equal(4242, result.ProcessId);
     Assert.Equal(PlaySessionId, result.PlaySessionId);
     Assert.Equal(StartedAt, result.StartedAt);
+    Assert.Equal("示例电影", result.SessionTitle);
     Assert.Equal(result, launchTracker.Result);
     Assert.NotNull(processStarter.StartInfo);
     Assert.False(processStarter.StartInfo.UseShellExecute);
@@ -84,7 +85,8 @@ public sealed class PotPlayerLauncherTests
           + "22222222-2222-4222-8222-222222222222/media"),
       0,
       PlaySessionId,
-      null);
+      null,
+      "示例电影");
   }
 
   private sealed class EmptyPlayerDiscovery : IPlayerDiscovery

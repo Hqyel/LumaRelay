@@ -98,6 +98,7 @@ async function createFixture() {
         bridgeDeviceId: DEVICE_ID,
         selection: {
           audioStreamIndex: 1,
+          displayTitle: "示例电影",
           itemId: "item-1",
           mediaSourceId: "source-1",
           resumeTicks: 600_000_000,
@@ -148,6 +149,7 @@ describe("PlayTicket store", () => {
           bridgeDeviceId: OTHER_DEVICE_ID,
           selection: {
             audioStreamIndex: null,
+            displayTitle: "示例电影",
             itemId: "item-1",
             mediaSourceId: "source-1",
             resumeTicks: 0,

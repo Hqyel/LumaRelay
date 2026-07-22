@@ -43,6 +43,7 @@ internal sealed class GatewayPlayTicketClient(
     if (!Guid.TryParse(payload.PlaySessionId, out var playSessionId)
         || string.IsNullOrWhiteSpace(payload.Selection?.ItemId)
         || string.IsNullOrWhiteSpace(payload.Selection.MediaSourceId)
+        || !IsValidDisplayTitle(payload.Selection.DisplayTitle)
         || payload.Selection.ResumeTicks < 0)
     {
       throw new JsonException(
@@ -56,7 +57,8 @@ internal sealed class GatewayPlayTicketClient(
         payload.Selection.MediaSourceId,
         payload.Selection.ResumeTicks,
         payload.Selection.AudioStreamIndex,
-        payload.Selection.SubtitleStreamIndex),
+        payload.Selection.SubtitleStreamIndex,
+        payload.Selection.DisplayTitle.Trim()),
       DateTimeOffset.UtcNow);
   }
 
@@ -69,5 +71,13 @@ internal sealed class GatewayPlayTicketClient(
     string MediaSourceId,
     long ResumeTicks,
     int? AudioStreamIndex,
-    int? SubtitleStreamIndex);
+    int? SubtitleStreamIndex,
+    string DisplayTitle);
+
+  private static bool IsValidDisplayTitle(string? value)
+  {
+    return !string.IsNullOrWhiteSpace(value)
+      && value.Length <= 256
+      && !value.Any(char.IsControl);
+  }
 }

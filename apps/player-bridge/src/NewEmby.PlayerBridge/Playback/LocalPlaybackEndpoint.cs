@@ -73,7 +73,8 @@ internal static class LocalPlaybackEndpoint
             mediaUri,
             session.Selection.ResumeTicks,
             session.PlaySessionId,
-            subtitleUri));
+            subtitleUri,
+            session.Selection.DisplayTitle));
         }
         catch
         {

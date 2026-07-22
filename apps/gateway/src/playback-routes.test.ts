@@ -67,6 +67,7 @@ function createDependencies() {
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 0,
@@ -227,6 +228,7 @@ describe("Bridge playback routes", () => {
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
+        displayTitle: "示例电影",
         itemId: "item-1",
         mediaSourceId: "source-1",
         resumeTicks: 0,

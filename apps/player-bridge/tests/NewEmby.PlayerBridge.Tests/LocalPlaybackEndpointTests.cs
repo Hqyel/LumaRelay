@@ -73,6 +73,7 @@ public sealed class LocalPlaybackEndpointTests
         .GetString());
     Assert.NotNull(player.Request);
     Assert.Equal(600_000_000, player.Request.ResumeTicks);
+    Assert.Equal("示例电影", player.Request.DisplayTitle);
     Assert.Equal(
       $"http://127.0.0.1:{port}/v1/playback/{PlaySessionId}/media",
       player.Request.MediaUri.AbsoluteUri);
@@ -196,6 +197,7 @@ public sealed class LocalPlaybackEndpointTests
             selection = new
             {
               audioStreamIndex = 1,
+              displayTitle = "示例电影",
               itemId = "item-1",
               mediaSourceId = "source-1",
               resumeTicks = 600_000_000,

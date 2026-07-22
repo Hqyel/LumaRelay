@@ -215,8 +215,20 @@ internal sealed class PotPlayerSessionMatcher
 
     var sessions = await ReadPotPlayerSessionsAsync(cancellationToken);
     var now = timeProvider.GetUtcNow();
+    var titleCounts = currentLaunches
+      .GroupBy(
+        launch => launch.SessionTitle,
+        StringComparer.OrdinalIgnoreCase)
+      .ToDictionary(
+        group => group.Key,
+        group => group.Count(),
+        StringComparer.OrdinalIgnoreCase);
     var matches = currentLaunches
-      .Select(launch => MatchLaunch(launch, sessions, now))
+      .Select(launch => MatchLaunch(
+        launch,
+        sessions,
+        now,
+        titleCounts[launch.SessionTitle] > 1))
       .OrderBy(match => match.StartedAt)
       .ToArray();
     var nextSnapshot = new PlayerSessionMatcherSnapshot(matches);
@@ -262,7 +274,8 @@ internal sealed class PotPlayerSessionMatcher
   private PlayerSessionMatch MatchLaunch(
     PlayerLaunchResult launch,
     IReadOnlyList<ObservedSmtcSession> sessions,
-    DateTimeOffset now)
+    DateTimeOffset now,
+    bool titleIsAmbiguous)
   {
     if (!processLifetime.IsAlive(launch))
     {
@@ -273,10 +286,19 @@ internal sealed class PotPlayerSessionMatcher
         now);
     }
 
+    if (titleIsAmbiguous)
+    {
+      return CreateMatch(
+        launch,
+        PlayerSessionMatchState.Ambiguous,
+        null,
+        now);
+    }
+
     var candidates = sessions
       .Where(item => PlayerSessionTitle.Matches(
         item.Properties.Title,
-        launch.PlaySessionId))
+        launch.SessionTitle))
       .ToArray();
     if (candidates.Length == 1)
     {

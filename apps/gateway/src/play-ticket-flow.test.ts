@@ -119,6 +119,7 @@ describe("PlayTicket integrated flow", () => {
         body: {
           audioStreamIndex: 1,
           deviceId: DEVICE_ID,
+          displayTitle: "示例电影",
           itemId: "item-1",
           mediaSourceId: "source-1",
           resumeTicks: 600_000_000,

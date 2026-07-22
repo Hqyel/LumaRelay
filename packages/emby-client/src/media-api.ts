@@ -46,10 +46,12 @@ const HOME_FIELDS = [
   "ImageTags",
   "OfficialRating",
   "Overview",
+  "ParentIndexNumber",
   "People",
   "PremiereDate",
   "ProductionYear",
   "RunTimeTicks",
+  "SeriesInfo",
   "Taglines",
   "UserData",
 ].join(",");

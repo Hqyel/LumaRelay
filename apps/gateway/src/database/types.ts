@@ -69,6 +69,7 @@ export interface PlayTicketsTable {
   authSessionId: string;
   bridgeDeviceId: string;
   createdAt: string;
+  displayTitle: string;
   embyItemId: string;
   embyUserId: string;
   expiresAt: string;
@@ -87,6 +88,7 @@ export interface PlaybackSessionsTable {
   authSessionId: string;
   bridgeDeviceId: string;
   createdAt: string;
+  displayTitle: string;
   embyItemId: string;
   embyUserId: string;
   id: string;

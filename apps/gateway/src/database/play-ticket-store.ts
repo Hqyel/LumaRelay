@@ -262,6 +262,7 @@ export function createPlayTicketStore(
         playSessionId: session.id,
         selection: {
           audioStreamIndex: session.audioStreamIndex,
+          displayTitle: session.displayTitle,
           itemId: session.embyItemId,
           mediaSourceId: session.mediaSourceId,
           resumeTicks: session.resumeTicks,
@@ -314,6 +315,7 @@ export function createPlayTicketStore(
             authSessionId: input.authSessionId,
             bridgeDeviceId: input.bridgeDeviceId,
             createdAt: createdAtIso,
+            displayTitle: input.selection.displayTitle,
             embyItemId: input.selection.itemId,
             embyUserId: input.userId,
             expiresAt: expiresAt.toISOString(),
@@ -482,6 +484,7 @@ export function createPlayTicketStore(
             authSessionId: ticket.authSessionId,
             bridgeDeviceId: ticket.bridgeDeviceId,
             createdAt: redeemedAt,
+            displayTitle: ticket.displayTitle,
             embyItemId: ticket.embyItemId,
             embyUserId: ticket.embyUserId,
             id: ticket.playSessionId,
@@ -501,6 +504,7 @@ export function createPlayTicketStore(
           playSessionId: ticket.playSessionId,
           selection: {
             audioStreamIndex: ticket.audioStreamIndex,
+            displayTitle: ticket.displayTitle,
             itemId: ticket.embyItemId,
             mediaSourceId: ticket.mediaSourceId,
             resumeTicks: ticket.resumeTicks,

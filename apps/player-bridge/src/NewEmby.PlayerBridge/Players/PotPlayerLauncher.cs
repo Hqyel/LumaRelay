@@ -50,7 +50,8 @@ internal sealed class PotPlayerLauncher : IPlayerAdapter
       var result = new PlayerLaunchResult(
         processId,
         request.PlaySessionId,
-        timeProvider.GetUtcNow());
+        timeProvider.GetUtcNow(),
+        PlayerSessionTitle.Normalize(request.DisplayTitle));
       launchTracker?.Track(result);
       return result;
     }

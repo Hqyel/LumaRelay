@@ -160,6 +160,7 @@ function cardInput(dto: EmbyBaseItemDto, serverId: string) {
   return {
     backdropImageTag: nonEmpty(dto.BackdropImageTags?.[0]),
     communityRating: dto.CommunityRating ?? undefined,
+    episodeNumber: dto.IndexNumber ?? undefined,
     isFavorite: dto.UserData?.IsFavorite === true,
     isPlayed: dto.UserData?.Played === true,
     itemId: dto.Id,
@@ -173,7 +174,10 @@ function cardInput(dto: EmbyBaseItemDto, serverId: string) {
     primaryImageTag: nonEmpty(dto.ImageTags?.Primary),
     productionYear: dto.ProductionYear ?? undefined,
     runtimeSeconds: ticksToSeconds(dto.RunTimeTicks),
+    seasonId: nonEmpty(dto.SeasonId),
+    seasonNumber: dto.ParentIndexNumber ?? undefined,
     serverId,
+    seriesId: nonEmpty(dto.SeriesId),
     seriesStatus: seriesStatus(dto.Status),
     subtitle: nonEmpty(dto.SeriesName),
     title: dto.Name,

@@ -18,6 +18,7 @@ import {
   seriesEpisodesQuery,
   seriesSeasonsQuery,
 } from "../media-query.js";
+import { episodePlaybackTitle, mediaPlaybackTitle } from "../playback-title.js";
 
 function DetailLoading() {
   return (
@@ -58,6 +59,10 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
     playbackEpisode === undefined
       ? null
       : {
+          displayTitle: episodePlaybackTitle(
+            playbackEpisode,
+            episodes.data?.episodes.length,
+          ),
           itemId: playbackEpisode.episodeId,
           playbackPositionSeconds: playbackEpisode.playbackPositionSeconds,
           title: `${item.title} · ${playbackEpisode.name}`,
@@ -142,10 +147,37 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
             title="季与单集"
           >
             {episodes.data.episodes.map((episode) => (
-              <EpisodeCard episode={episode} key={episode.episodeId} />
+              <EpisodeCard
+                episode={episode}
+                episodeCount={episodes.data.episodes.length}
+                key={episode.episodeId}
+              />
             ))}
           </HomeScroller>
         )}
+        <PeopleScroller people={people} />
+        <RelatedScroller items={relatedItems} />
+      </div>
+    </div>
+  );
+}
+
+function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
+  const { item, people, relatedItems } = detail;
+  const episodes = useQuery(
+    seriesEpisodesQuery(item.seriesId ?? "", item.seasonId),
+  );
+  const playbackTarget = {
+    displayTitle: mediaPlaybackTitle(item, episodes.data?.episodes.length),
+    itemId: item.itemId,
+    playbackPositionSeconds: item.playbackPositionSeconds,
+    title: `${item.subtitle ?? "剧集"} · ${item.title}`,
+  };
+
+  return (
+    <div className="detail-page">
+      <MediaDetailHero item={item} playbackTarget={playbackTarget} />
+      <div className="detail-content">
         <PeopleScroller people={people} />
         <RelatedScroller items={relatedItems} />
       </div>
@@ -169,6 +201,7 @@ function ItemPage() {
 
   const { item, people, relatedItems } = query.data;
   if (item.kind === "series") return <SeriesDetail detail={query.data} />;
+  if (item.kind === "episode") return <EpisodeDetail detail={query.data} />;
 
   return (
     <div className="detail-page">
