@@ -9,6 +9,11 @@ import {
 
 export const PlaybackEventParamsSchema = BridgeDeviceParamsSchema;
 
+export const PlaybackResourceParamsSchema = BridgeDeviceParamsSchema.extend({
+  playSessionId: z.uuid(),
+  resource: z.enum(["media", "subtitle"]),
+});
+
 export const PlaybackPlayingRequestSchema = z.object({
   eventType: z.literal("playing"),
   isPaused: z.boolean(),

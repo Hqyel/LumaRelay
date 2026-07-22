@@ -7,6 +7,7 @@ import {
   type MediaLibrary,
   type MediaSearchResponse,
   type MediaUserState,
+  type PlaybackMediaSource,
   type PagedMediaResponse,
   type SeasonsResponse,
 } from "@newemby/contracts";
@@ -16,6 +17,7 @@ import {
   getMediaItem,
   getMediaItems,
   getMediaLibraries,
+  getPlaybackOptions,
   getSeriesEpisodes,
   getSeriesSeasons,
   loadAuthenticatedImage,
@@ -55,6 +57,11 @@ export interface MediaRouteDependencies {
     baseUrl: string,
     input: AuthenticatedMediaRequest,
   ) => Promise<MediaLibrary[]>;
+  getPlaybackOptions?: (
+    baseUrl: string,
+    input: AuthenticatedMediaRequest,
+    itemId: string,
+  ) => Promise<PlaybackMediaSource[]>;
   getEpisodes?: (
     baseUrl: string,
     input: AuthenticatedMediaRequest,
@@ -323,6 +330,27 @@ export function registerMediaRoutes(
             (request.params as { itemId: string }).itemId,
           )),
           requestId: request.id,
+        };
+      } catch (error) {
+        await mediaFailure(error, request, reply, dependencies);
+      }
+    },
+  });
+
+  app.get(ApiRoutes.playbackOptions.url, {
+    schema: ApiRoutes.playbackOptions.schema,
+    async handler(request, reply) {
+      const context = await mediaContext(request, reply, dependencies);
+      if (context === null) return;
+      const itemId = (request.params as { itemId: string }).itemId;
+
+      try {
+        return {
+          itemId,
+          requestId: request.id,
+          sources: await (
+            dependencies.getPlaybackOptions ?? getPlaybackOptions
+          )(context.baseUrl, context.input, itemId),
         };
       } catch (error) {
         await mediaFailure(error, request, reply, dependencies);

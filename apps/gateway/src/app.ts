@@ -53,7 +53,10 @@ import {
   type MediaRouteDependencies,
 } from "./media-routes.js";
 import { registerPairingRoutes } from "./pairing-routes.js";
-import { registerPlayTicketRoutes } from "./play-ticket-routes.js";
+import {
+  registerPlayTicketRoutes,
+  type PlayTicketRouteDependencies,
+} from "./play-ticket-routes.js";
 import {
   registerPlaybackRoutes,
   type PlaybackRouteDependencies,
@@ -92,6 +95,14 @@ export interface BuildAppOptions {
   >;
   pairingCodeStore?: PairingCodeStore;
   playTicketStore?: PlayTicketStore;
+  playTicket?: Omit<
+    PlayTicketRouteDependencies,
+    | "authSessionStore"
+    | "bridgeDeviceStore"
+    | "config"
+    | "playTicketStore"
+    | "serverStore"
+  >;
   playback?: Omit<
     PlaybackRouteDependencies,
     "authSessionStore" | "bridgeDeviceStore" | "playTicketStore" | "serverStore"
@@ -672,6 +683,7 @@ export async function buildApp(
     serverStore,
   });
   registerPlayTicketRoutes(app, {
+    ...options.playTicket,
     authSessionStore: options.authSessionStore,
     bridgeDeviceStore: options.bridgeDeviceStore,
     config: options.config,

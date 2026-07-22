@@ -55,6 +55,7 @@ export const LocalBridgeStatusSchema = z.object({
   architecture: z.string().trim().min(1).max(32),
   bridgeVersion: BridgeVersionSchema,
   compatibility: BridgeApiCompatibilitySchema,
+  deviceId: z.uuid().nullable(),
   isPaired: z.boolean(),
   platform: BridgePlatformSchema,
   players: z.array(BridgePlayerStatusSchema),

@@ -345,6 +345,69 @@ async function mockPageApi(
       });
       return;
     }
+    if (path === "/api/v1/media/items/movie-1/playback-options") {
+      await route.fulfill({
+        json: {
+          itemId: "movie-1",
+          requestId: "request-playback-options",
+          sources: [
+            {
+              audioTracks: [
+                {
+                  codec: "aac",
+                  displayTitle: "中文 AAC 5.1",
+                  index: 1,
+                  isDefault: true,
+                  isExternal: false,
+                  isText: false,
+                  kind: "audio",
+                  language: "chi",
+                },
+              ],
+              container: "mkv",
+              defaultAudioStreamIndex: 1,
+              defaultSubtitleStreamIndex: 2,
+              mediaSourceId: "source-1",
+              name: "1080p 原始版本",
+              runtimeTicks: 72_000_000_000,
+              subtitleTracks: [
+                {
+                  codec: "srt",
+                  displayTitle: "简体中文",
+                  index: 2,
+                  isDefault: true,
+                  isExternal: true,
+                  isText: true,
+                  kind: "subtitle",
+                  language: "chi",
+                },
+              ],
+              supportsDirectStream: true,
+            },
+          ],
+        },
+      });
+      return;
+    }
+    if (
+      path === "/api/v1/bridge/play-tickets" &&
+      route.request().method() === "POST"
+    ) {
+      expect(route.request().headers()["x-newemby-csrf"]).toBe(
+        "e2e-csrf-token-with-at-least-32-characters",
+      );
+      await route.fulfill({
+        json: {
+          expiresAt: "2026-07-22T12:01:00.000Z",
+          expiresInSeconds: 60,
+          playSessionId: "22222222-2222-4222-8222-222222222222",
+          playTicket: `pt1.33333333-3333-4333-8333-333333333333.${"C".repeat(43)}`,
+          requestId: "request-play-ticket",
+        },
+        status: 201,
+      });
+      return;
+    }
     if (path === "/api/v1/media/items/movie-1") {
       await route.fulfill({
         json: {
@@ -513,6 +576,7 @@ test("Bridge setup separates local connection and capabilities", async ({
           minimumClientApiVersion: 1,
           requestedApiVersion: 1,
         },
+        deviceId: "11111111-1111-4111-8111-111111111111",
         isPaired: true,
         platform: "windows",
         players: [
@@ -670,6 +734,82 @@ test("movie details match the reference immersive layout", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("movie-detail.png", { fullPage: true });
+});
+
+test("local playback preparation is accessible and starts the Bridge", async ({
+  page,
+}) => {
+  let started = false;
+  await page.route("http://127.0.0.1:58080/v1/status**", async (route) => {
+    await route.fulfill({
+      headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
+      json: {
+        apiVersion: 1,
+        applicationId: "NewEmby.PlayerBridge",
+        architecture: "x64",
+        bridgeVersion: "0.1.0",
+        compatibility: {
+          isCompatible: true,
+          maximumClientApiVersion: 1,
+          minimumClientApiVersion: 1,
+          requestedApiVersion: 1,
+        },
+        deviceId: "11111111-1111-4111-8111-111111111111",
+        isPaired: true,
+        platform: "windows",
+        players: [
+          {
+            adapterId: "potplayer",
+            architecture: "x64",
+            displayName: "PotPlayer",
+            isAvailable: true,
+            isRunning: false,
+            version: "1.7.22398.0",
+          },
+        ],
+        smtc: {
+          capability: "ready",
+          isMonitoring: true,
+          potPlayerSessionCount: 0,
+          potPlayerSessionState: "notObserved",
+          sessionCount: 0,
+        },
+        status: "ready",
+      },
+    });
+  });
+  await page.route(
+    "http://127.0.0.1:58080/v1/playback/start",
+    async (route) => {
+      started = true;
+      expect(route.request().headers()["x-newemby-nonce"]).toHaveLength(32);
+      await route.fulfill({
+        headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
+        json: {
+          playSessionId: "22222222-2222-4222-8222-222222222222",
+          player: "potplayer",
+          status: "launching",
+        },
+      });
+    },
+  );
+  await mockPageApi(page, true);
+  await page.goto("/item/movie-1");
+  await page.getByRole("button", { exact: true, name: "播放" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "本地播放准备" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("播放版本")).toHaveValue("source-1");
+  await expect(page.getByLabel("音轨")).toHaveValue("1");
+  await expect(page.getByLabel("字幕")).toHaveValue("2");
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("playback-preparation.png");
+
+  await page.getByRole("button", { name: "使用 PotPlayer 播放" }).click();
+  await expect(page.getByText("PotPlayer 正在启动…")).toBeVisible();
+  expect(started).toBe(true);
 });
 
 test("series details show season and horizontal episodes", async ({ page }) => {

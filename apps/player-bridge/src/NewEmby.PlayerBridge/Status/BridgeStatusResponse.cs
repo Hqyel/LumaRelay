@@ -32,13 +32,14 @@ internal sealed record BridgeStatusResponse(
   string Status,
   string Platform,
   string Architecture,
+  string? DeviceId,
   bool IsPaired,
   IReadOnlyList<BridgePlayerStatus> Players,
   BridgeSmtcStatus Smtc)
 {
   public static BridgeStatusResponse Create(
     string? requestedVersion,
-    bool isPaired,
+    string? deviceId,
     IReadOnlyList<BridgePlayerStatus> players,
     SmtcMonitorSnapshot smtc)
   {
@@ -71,7 +72,8 @@ internal sealed record BridgeStatusResponse(
       "ready",
       "windows",
       "x64",
-      isPaired,
+      deviceId,
+      deviceId is not null,
       players,
       CreateSmtcStatus(smtc));
   }

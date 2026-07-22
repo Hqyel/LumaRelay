@@ -188,6 +188,7 @@ describe("shared API contracts", () => {
           minimumClientApiVersion: 1,
           requestedApiVersion: 1,
         },
+        deviceId: "11111111-1111-4111-8111-111111111111",
         isPaired: true,
         platform: "windows",
         players: [

@@ -41,6 +41,7 @@ import {
 import {
   CreatePlayTicketRequestSchema,
   CreatePlayTicketResponseSchema,
+  PlaybackOptionsResponseSchema,
   RedeemPlayTicketRequestSchema,
   RedeemPlayTicketResponseSchema,
 } from "./play-ticket.js";
@@ -169,6 +170,22 @@ export const ApiRoutes = {
         404: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,
         429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  playbackOptions: {
+    method: "GET",
+    url: `${API_PREFIX}/media/items/:itemId/playback-options`,
+    schema: {
+      params: MediaItemParamsSchema,
+      response: {
+        200: PlaybackOptionsResponseSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        408: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
       },
     },
   },

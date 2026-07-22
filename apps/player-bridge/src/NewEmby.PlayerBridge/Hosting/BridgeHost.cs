@@ -22,7 +22,9 @@ internal static class BridgeHost
     IBridgeCredentialStore? credentialStore = null,
     BridgeNonceStore? nonceStore = null,
     IPlayerDiscovery? playerDiscovery = null,
-    ISystemMediaSessionMonitor? smtcMonitor = null)
+    ISystemMediaSessionMonitor? smtcMonitor = null,
+    HttpClient? gatewayHttpClient = null,
+    IPlayerAdapter? playerAdapter = null)
   {
     var builder = WebApplication.CreateSlimBuilder(args);
     var serverOptions = BridgeServerOptions.FromConfiguration(
@@ -38,6 +40,14 @@ internal static class BridgeHost
     var discovery = playerDiscovery ?? new PotPlayerDiscovery();
     var sessionMatcher = new PotPlayerSessionMatcher(mediaSessionMonitor);
     var playbackMonitor = new PotPlayerPlaybackMonitor(sessionMatcher);
+    var gatewayClient = gatewayHttpClient
+      ?? new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+    var playbackSessions = new LocalPlaybackSessionStore();
+    var player = playerAdapter
+      ?? new PotPlayerLauncher(
+        serverOptions.Port,
+        discovery,
+        launchTracker: sessionMatcher);
     builder.Services.AddSingleton<ISystemMediaSessionMonitor>(
       mediaSessionMonitor);
     builder.Services.AddHostedService<SmtcMonitorHostedService>();
@@ -45,7 +55,7 @@ internal static class BridgeHost
     builder.Services.AddSingleton<IHostedService>(playbackMonitor);
     builder.Services.AddSingleton<IPlaybackEventClient>(
       new GatewayPlaybackEventClient(
-        new HttpClient { Timeout = TimeSpan.FromSeconds(8) },
+        gatewayClient,
         credentials));
     builder.Services.AddSingleton(services => new PlaybackEventReporter(
       playbackMonitor,
@@ -54,10 +64,7 @@ internal static class BridgeHost
       services.GetRequiredService<PlaybackEventReporter>());
     builder.Services.AddSingleton<IHostedService>(services =>
       services.GetRequiredService<PlaybackEventReporter>());
-    builder.Services.AddSingleton<IPlayerAdapter>(new PotPlayerLauncher(
-      serverOptions.Port,
-      discovery,
-      launchTracker: sessionMatcher));
+    builder.Services.AddSingleton<IPlayerAdapter>(player);
 
     var application = builder.Build();
 
@@ -71,6 +78,14 @@ internal static class BridgeHost
       discovery,
       mediaSessionMonitor);
     BridgeSecurityEndpoint.Map(application, security, credentials);
+    LocalPlaybackEndpoint.Map(
+      application,
+      security,
+      new GatewayPlayTicketClient(gatewayClient, credentials),
+      new GatewayPlaybackStreamClient(gatewayClient, credentials),
+      playbackSessions,
+      player,
+      serverOptions.Port);
     return application;
   }
 

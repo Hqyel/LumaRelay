@@ -1,6 +1,8 @@
 import type {
   BridgeDevicesResponse,
   BridgePairingCodeResponse,
+  CreatePlayTicketRequest,
+  CreatePlayTicketResponse,
   CurrentServerResponse,
   CsrfResponse,
   ErrorEnvelope,
@@ -15,6 +17,7 @@ import type {
   MediaSearchResponse,
   MediaUserStateResponse,
   PagedMediaResponse,
+  PlaybackOptionsResponse,
   ProbeServerResponse,
   PublicUsersResponse,
   SessionResponse,
@@ -163,6 +166,24 @@ export function getMediaItems(
 
 export function getMediaItem(itemId: string): Promise<MediaItemResponse> {
   return requestJson(`/api/v1/media/items/${encodeURIComponent(itemId)}`);
+}
+
+export function getPlaybackOptions(
+  itemId: string,
+): Promise<PlaybackOptionsResponse> {
+  return requestJson(
+    `/api/v1/media/items/${encodeURIComponent(itemId)}/playback-options`,
+  );
+}
+
+export function createPlayTicket(
+  input: CreatePlayTicketRequest,
+): Promise<CreatePlayTicketResponse> {
+  return requestJson("/api/v1/bridge/play-tickets", {
+    body: JSON.stringify(input),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
 }
 
 export function getSeriesSeasons(seriesId: string): Promise<SeasonsResponse> {

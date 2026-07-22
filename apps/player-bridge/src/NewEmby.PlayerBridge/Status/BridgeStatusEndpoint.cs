@@ -32,9 +32,10 @@ internal static class BridgeStatusEndpoint
           player.Architecture,
           player.IsRunning))
         .ToArray();
+      var credential = credentialStore.Read();
       var response = BridgeStatusResponse.Create(
         requestedVersion,
-        credentialStore.Read() is not null,
+        credential?.DeviceId,
         players,
         smtcMonitor.Snapshot);
 

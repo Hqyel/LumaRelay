@@ -51,6 +51,7 @@ public sealed class BridgeStatusEndpointTests
     Assert.Equal("ready", status.Status);
     Assert.Equal("windows", status.Platform);
     Assert.Equal("x64", status.Architecture);
+    Assert.Null(status.DeviceId);
     Assert.False(status.IsPaired);
     Assert.Empty(status.Players);
     Assert.Equal("unsupported", status.Smtc.Capability);
@@ -85,6 +86,9 @@ public sealed class BridgeStatusEndpointTests
 
     Assert.NotNull(status);
     Assert.True(status.IsPaired);
+    Assert.Equal(
+      "11111111-1111-4111-8111-111111111111",
+      status.DeviceId);
     await application.StopAsync();
   }
 

@@ -25,6 +25,36 @@ export const PlaybackTicksSchema = z
 
 const EmbyPlaybackIdSchema = z.string().trim().min(1).max(256);
 
+export const PlaybackTrackSchema = z.object({
+  codec: z.string().trim().min(1).max(64).optional(),
+  displayTitle: z.string().trim().min(1).max(256),
+  index: PlaybackStreamIndexSchema,
+  isDefault: z.boolean(),
+  isExternal: z.boolean(),
+  isText: z.boolean(),
+  kind: z.enum(["audio", "subtitle"]),
+  language: z.string().trim().min(1).max(64).optional(),
+});
+
+export const PlaybackMediaSourceSchema = z.object({
+  audioTracks: z.array(PlaybackTrackSchema),
+  bitrate: z.number().int().positive().optional(),
+  container: z.string().trim().min(1).max(32).optional(),
+  defaultAudioStreamIndex: PlaybackStreamIndexSchema.nullable(),
+  defaultSubtitleStreamIndex: PlaybackStreamIndexSchema.nullable(),
+  mediaSourceId: EmbyPlaybackIdSchema,
+  name: z.string().trim().min(1).max(256),
+  runtimeTicks: PlaybackTicksSchema,
+  subtitleTracks: z.array(PlaybackTrackSchema),
+  supportsDirectStream: z.boolean(),
+});
+
+export const PlaybackOptionsResponseSchema = z.object({
+  itemId: EmbyPlaybackIdSchema,
+  requestId: RequestIdSchema,
+  sources: z.array(PlaybackMediaSourceSchema),
+});
+
 export const PlayTicketSelectionSchema = z.object({
   audioStreamIndex: PlaybackStreamIndexSchema.nullable(),
   itemId: EmbyPlaybackIdSchema,
@@ -55,8 +85,29 @@ export const RedeemPlayTicketResponseSchema = z.object({
   selection: PlayTicketSelectionSchema,
 });
 
+export const LocalPlaybackStartRequestSchema = z.object({
+  playTicket: PlayTicketSchema,
+});
+
+export const LocalPlaybackStartResponseSchema = z.object({
+  playSessionId: z.uuid(),
+  player: z.literal("potplayer"),
+  status: z.literal("launching"),
+});
+
 export type PlayTicket = z.infer<typeof PlayTicketSchema>;
 export type PlayTicketSelection = z.infer<typeof PlayTicketSelectionSchema>;
+export type PlaybackMediaSource = z.infer<typeof PlaybackMediaSourceSchema>;
+export type PlaybackOptionsResponse = z.infer<
+  typeof PlaybackOptionsResponseSchema
+>;
+export type PlaybackTrack = z.infer<typeof PlaybackTrackSchema>;
+export type LocalPlaybackStartRequest = z.infer<
+  typeof LocalPlaybackStartRequestSchema
+>;
+export type LocalPlaybackStartResponse = z.infer<
+  typeof LocalPlaybackStartResponseSchema
+>;
 export type CreatePlayTicketRequest = z.infer<
   typeof CreatePlayTicketRequestSchema
 >;

@@ -14,6 +14,7 @@ import {
   HomeScroller,
   type HomeMediaCardProps,
 } from "./home-media.js";
+import { PlayPreparationDialog } from "./play-preparation-dialog.js";
 
 function formatRuntime(seconds: number | undefined): string | undefined {
   if (seconds === undefined) return undefined;
@@ -101,14 +102,7 @@ export function MediaDetailHero({
           <p className="detail-tagline">{item.tagline}</p>
         )}
         <div className="detail-action-row">
-          <Button
-            className="detail-play-button"
-            disabled
-            title="本地播放将在 M2 开放"
-          >
-            <Play aria-hidden="true" fill="currentColor" size={18} />
-            播放
-          </Button>
+          <PlayPreparationDialog item={item} />
           <Button
             aria-pressed={item.isFavorite}
             disabled={favoritePending}

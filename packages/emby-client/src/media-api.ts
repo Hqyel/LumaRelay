@@ -137,7 +137,7 @@ function authorizationHeader(deviceId: string): string {
   );
 }
 
-function authenticatedHeaders(input: AuthenticatedMediaRequest) {
+export function authenticatedHeaders(input: AuthenticatedMediaRequest) {
   return {
     accept: "application/json",
     "x-emby-authorization": authorizationHeader(input.deviceId),
@@ -145,17 +145,18 @@ function authenticatedHeaders(input: AuthenticatedMediaRequest) {
   };
 }
 
-async function fetchEmby(
+export async function fetchEmby(
   url: URL,
   input: AuthenticatedMediaRequest,
   options: MediaClientOptions,
   accept = "application/json",
+  headers: Record<string, string> = {},
 ): Promise<Response> {
   const fetcher = options.fetch ?? globalThis.fetch;
 
   try {
     const response = await fetcher(url, {
-      headers: { ...authenticatedHeaders(input), accept },
+      headers: { ...authenticatedHeaders(input), ...headers, accept },
       redirect: "error",
       signal: AbortSignal.timeout(options.timeoutMs ?? 8000),
     });

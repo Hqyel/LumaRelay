@@ -19,24 +19,26 @@ afterEach(async () => {
 });
 
 function createAuthSessionStore(): AuthSessionStore {
+  const session = {
+    accessToken: "upstream-token",
+    expiresAt: "2099-01-01T00:00:00.000Z",
+    sessionId: "session-1",
+    user: {
+      name: "Alex",
+      permissions: {
+        canDownload: true,
+        canManageServer: false,
+        isAdministrator: false,
+      },
+      serverId: "server-1",
+      userId: "user-1",
+    },
+  };
   return {
     create: vi.fn(),
-    find: vi.fn().mockResolvedValue({
-      accessToken: "upstream-token",
-      expiresAt: "2099-01-01T00:00:00.000Z",
-      sessionId: "session-1",
-      user: {
-        name: "Alex",
-        permissions: {
-          canDownload: true,
-          canManageServer: false,
-          isAdministrator: false,
-        },
-        serverId: "server-1",
-        userId: "user-1",
-      },
-    }),
-    getDeviceId: vi.fn(),
+    find: vi.fn().mockResolvedValue(session),
+    findById: vi.fn().mockResolvedValue(session),
+    getDeviceId: vi.fn().mockResolvedValue("gateway-device"),
     pruneInactive: vi.fn(),
     revoke: vi.fn(),
     revokeServerSessions: vi.fn(),
@@ -45,16 +47,18 @@ function createAuthSessionStore(): AuthSessionStore {
 }
 
 function createServerStore(): ServerStore {
+  const server = {
+    baseUrl: "https://emby.example.com/",
+    capabilityFlags: { ping: true, publicInfo: true },
+    latencyMs: 20,
+    name: "Home Emby",
+    serverId: "server-1",
+    supportsHttps: true,
+    version: "4.8.11.0",
+  };
   return {
-    getCurrent: vi.fn().mockResolvedValue({
-      baseUrl: "https://emby.example.com/",
-      capabilityFlags: { ping: true, publicInfo: true },
-      latencyMs: 20,
-      name: "Home Emby",
-      serverId: "server-1",
-      supportsHttps: true,
-      version: "4.8.11.0",
-    }),
+    getById: vi.fn().mockResolvedValue(server),
+    getCurrent: vi.fn().mockResolvedValue(server),
     select: vi.fn(),
   };
 }
@@ -80,10 +84,27 @@ function createBridgeDeviceStore(): BridgeDeviceStore {
 }
 
 function createPlayTicketStore(): PlayTicketStore & {
+  findPlaybackSession: ReturnType<typeof vi.fn>;
   issue: ReturnType<typeof vi.fn>;
   redeem: ReturnType<typeof vi.fn>;
 } {
   return {
+    findPlaybackSession: vi.fn().mockResolvedValue({
+      authSessionId: "session-1",
+      bridgeDeviceId: DEVICE_ID,
+      playSessionId: PLAY_SESSION_ID,
+      selection: {
+        audioStreamIndex: 1,
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: 600_000_000,
+        subtitleStreamIndex: null,
+      },
+      serverId: "server-1",
+      startedAt: null,
+      stoppedAt: null,
+      userId: "user-1",
+    }),
     issue: vi.fn().mockResolvedValue({
       expiresAt: "2026-07-22T12:01:00.000Z",
       playSessionId: PLAY_SESSION_ID,
@@ -110,6 +131,38 @@ async function createTestApp(playTicketStore = createPlayTicketStore()) {
     bridgeDeviceStore,
     config: loadConfig({ NODE_ENV: "test" }),
     logger: false,
+    playTicket: {
+      getPlaybackOptions: vi.fn().mockResolvedValue([
+        {
+          audioTracks: [
+            {
+              displayTitle: "AAC stereo",
+              index: 1,
+              isDefault: true,
+              isExternal: false,
+              isText: false,
+              kind: "audio",
+            },
+          ],
+          defaultAudioStreamIndex: 1,
+          defaultSubtitleStreamIndex: null,
+          mediaSourceId: "source-1",
+          name: "Default",
+          runtimeTicks: 600_000_000,
+          subtitleTracks: [],
+          supportsDirectStream: true,
+        },
+      ]),
+      loadPlaybackResource: vi.fn().mockResolvedValue(
+        new Response("media-chunk", {
+          headers: {
+            "accept-ranges": "bytes",
+            "content-type": "video/x-matroska",
+          },
+          status: 206,
+        }),
+      ),
+    },
     playTicketStore,
     serverStore: createServerStore(),
   });
@@ -173,6 +226,24 @@ describe("PlayTicket routes", () => {
       serverId: "server-1",
       userId: "user-1",
     });
+  });
+
+  it("proxies ranged media only for the authenticated bound device", async () => {
+    const { app, bridgeDeviceStore } = await createTestApp();
+    const response = await app.inject({
+      headers: {
+        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
+        range: "bytes=100-",
+        "x-newemby-nonce": NONCE,
+      },
+      method: "GET",
+      url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${PLAY_SESSION_ID}/media`,
+    });
+
+    expect(response.statusCode).toBe(206);
+    expect(response.body).toBe("media-chunk");
+    expect(response.headers["content-type"]).toContain("video/x-matroska");
+    expect(bridgeDeviceStore.authenticate).toHaveBeenCalled();
   });
 
   it("requires exact Origin and CSRF before issuing", async () => {

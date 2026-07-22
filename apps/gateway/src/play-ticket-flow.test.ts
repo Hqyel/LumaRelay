@@ -81,6 +81,29 @@ describe("PlayTicket integrated flow", () => {
         bridgeDeviceStore: createBridgeDeviceStore(database, config),
         config,
         logger: false,
+        playTicket: {
+          getPlaybackOptions: async () => [
+            {
+              audioTracks: [
+                {
+                  displayTitle: "AAC stereo",
+                  index: 1,
+                  isDefault: true,
+                  isExternal: false,
+                  isText: false,
+                  kind: "audio",
+                },
+              ],
+              defaultAudioStreamIndex: 1,
+              defaultSubtitleStreamIndex: null,
+              mediaSourceId: "source-1",
+              name: "Default",
+              runtimeTicks: 600_000_000,
+              subtitleTracks: [],
+              supportsDirectStream: true,
+            },
+          ],
+        },
         playTicketStore: createPlayTicketStore(database, config),
         serverStore,
       });

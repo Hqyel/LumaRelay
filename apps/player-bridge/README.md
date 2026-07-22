@@ -110,7 +110,14 @@ The Gateway issues a 60-second, device-bound PlayTicket through
 `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`, using its device
 credential and a fresh nonce. The redemption response contains only the
 PlaySession ID and playback selection; it never contains an Emby access token.
-The protected local play and streaming endpoints are added by later M2 tasks.
+The browser starts playback with an allowed Origin and fresh nonce through
+`POST /v1/playback/start`. The Bridge redeems the ticket once, keeps the
+selection only in memory, and launches PotPlayer with protected loopback URLs.
+PotPlayer reads `/v1/playback/<play-session-id>/media|subtitle` without a
+browser Origin; the Bridge signs a device-bound Gateway request for every stream
+and forwards byte ranges. The Gateway restores the encrypted Emby session and
+proxies the static stream, so neither the local URL nor the player arguments
+contain an Emby access token.
 
 The PotPlayer adapter builds process launches without a command shell and adds
 every value through `ProcessStartInfo.ArgumentList`. It always requests `/new`,
@@ -124,9 +131,9 @@ on the configured Bridge port with the exact path
 `/v1/playback/<play-session-id>/media|subtitle`. User information, query
 strings, fragments, other ports and non-loopback hosts are rejected.
 Consequently the launcher cannot add `/headers`, an Emby URL or an Emby
-AccessToken to the process command line. M2-014 establishes this adapter
-boundary; the protected local play and streaming endpoints connect it to a
-redeemed PlayTicket in subsequent M2 work.
+AccessToken to the process command line. The protected local endpoints reject
+unknown or stopped sessions, missing subtitle selections and browser-origin
+stream reads.
 
 After a successful process start, the Bridge tracks the process ID, its launch
 time and the PlaySession ID. The GSMTC matcher accepts a session only when the

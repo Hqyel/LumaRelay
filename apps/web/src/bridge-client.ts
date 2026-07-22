@@ -1,6 +1,8 @@
 import {
   LocalBridgeStatusSchema,
+  LocalPlaybackStartResponseSchema,
   type LocalBridgeStatus,
+  type LocalPlaybackStartResponse,
 } from "@newemby/contracts";
 
 export const LOCAL_BRIDGE_API_VERSION = 1;
@@ -70,4 +72,32 @@ export function bridgePairingUri(
     gateway: gatewayOrigin,
   });
   return `newemby://pair?${query.toString()}`;
+}
+
+function localNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+}
+
+export async function startLocalPlayback(
+  playTicket: string,
+): Promise<LocalPlaybackStartResponse> {
+  const response = await fetch(`${LOCAL_BRIDGE_BASE_URL}/v1/playback/start`, {
+    body: JSON.stringify({ playTicket }),
+    headers: {
+      "content-type": "application/json",
+      "x-newemby-nonce": localNonce(),
+    },
+    method: "POST",
+  });
+  if (!response.ok)
+    throw new Error(
+      `Local Bridge rejected playback with HTTP ${response.status}`,
+    );
+  return LocalPlaybackStartResponseSchema.parse(await response.json());
 }

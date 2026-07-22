@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 22/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 23/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -304,7 +304,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 ### 7.5 Web 交互与测试
 
 - [x] `M2-023` 实现 Bridge 检测、安装提示和配对界面。
-- [ ] `M2-024` 实现本地播放准备弹层。
+- [x] `M2-024` 实现本地播放准备弹层。
 - [ ] `M2-025` 实现当前播放浮层和真实状态更新。
 - [ ] `M2-026` 完成暂停、拖动、结束、崩溃和断网 E2E。
   - 覆盖 SMTC 关闭、时间线停止更新、多实例和会话匹配失败。
@@ -504,7 +504,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 无。`M2-023` 已完成，下一项尚未开始。
+- 当前没有未收口的开发项；下一项为 `M2-025`。
 
 ### 延期
 
@@ -520,7 +520,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-024`，实现本地播放准备弹层。
+1. 开始 `M2-025`，实现当前播放浮层和真实状态更新。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -548,6 +548,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-024 | 完成 | Web 播放准备弹层现在读取当前用户级 PlaybackInfo，使用 Emby 默认值选择可直接播放的媒体源、音轨和文本字幕，并展示 Bridge、PotPlayer、SMTC 与续播状态；Gateway 签发前重新校验选择。配对 Bridge 一次兑换 PlayTicket，在进程内保存选择，以受限回环媒体/字幕 URL 启动 PotPlayer；Gateway 根据设备绑定 PlaybackSession 恢复加密 Emby 会话并支持 Range 静态流代理，Token 不进入浏览器、回环 URL、Bridge 响应或播放器命令行。Contracts 14、Emby Client 62、Gateway 106、Web 30、Bridge 113 项测试及 Web lint/typecheck、Chromium axe/启动流程/截图回归通过，视觉基线已人工核对 | Contracts、Emby Client、Gateway、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-025 |
+| 2026-07-22 | M2-024 | 进行中 | 正在建立从媒体详情到用户级 PlaybackInfo、默认播放选择、设备绑定 PlayTicket、Bridge 一次兑换和 PotPlayer 安全启动的完整准备流程；高级多版本选择仍留在 M3 | Contracts、Emby Client、Gateway、Web、Player Bridge、进度表 | 完成流代理、安全启动与弹层状态回归 |
 | 2026-07-22 | M2-023 | 完成 | 顶栏静态提示已替换为每 5 秒读取固定回环 `/v1/status?apiVersion=1` 的真实状态控件；弹层将 Bridge 连接/API 兼容、PotPlayer 发现/版本/运行状态和 SMTC 监听能力分项呈现，不把首次未授权 CORS 失败伪装成确定离线。登录用户可签发 60 秒配对码并通过 `newemby://pair` 显式唤起，弹层在配对期间自动复检；便携版正常启动会刷新当前用户协议注册，移动目录后再次运行即可修复，无需安装器或管理员权限。Contracts 14 项、Web 30 项和 Bridge 112 项测试、Web lint/typecheck/build、Chromium 配对/axe/截图回归通过，离线视觉基线已人工核对 | Contracts、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-024 |
 | 2026-07-22 | M2-023 | 进行中 | 正在将顶栏静态“Bridge 未连接”替换为真实回环状态，并实现便携版启动步骤、Gateway 配对码签发、`newemby://pair` 协议唤起、轮询复检及 PotPlayer/SMTC 分项能力提示 | Web、Bridge 回环 API、Gateway 配对 API、进度表 | 完成探测、配对、离线和能力状态回归 |
 | 2026-07-22 | M2-022 | 完成 | 所有 Playing/Progress/Stopped 请求现携带正整数 `sequence`；Gateway 使用规范化 JSON SHA-256 指纹和 SQLite `playback_events` 表原子声明、完成或释放事件，相同已完成事件直接返回 200，负载冲突、跳号、并发待处理和终态后事件统一返回 409，只有 Emby 成功后才原子推进 PlaybackSession。Bridge 按 PlaySession 串行分配序号，在网络超时、408、429、5xx 或待处理冲突时使用同一序号与负载、新 nonce 重试；临时队列仅覆盖 Bridge 进程生命周期。新增迁移 009 的 `up/down/up` 通过；Contracts 13 项、Emby Client 60 项、Gateway 105 项、Bridge 111 项测试及冻结安装、生产依赖审计、完整 `verify:local`、本地 Smoke 全部通过。审计发现的 `fast-uri` 高危版本已通过精确 override 升级，当前无已知生产依赖漏洞 | Contracts、Gateway、SQLite、Player Bridge、依赖锁文件、项目计划、进度表 | M2-023 |

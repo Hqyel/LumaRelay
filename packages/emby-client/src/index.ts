@@ -9,6 +9,7 @@ export * from "./logout.js";
 export * from "./media-adapters.js";
 export * from "./media-api.js";
 export * from "./playback.js";
+export * from "./playback-options.js";
 export * from "./probe.js";
 export * from "./public-users.js";
 export * from "./url.js";

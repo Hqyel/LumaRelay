@@ -171,16 +171,22 @@ nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network 
 ### 4.2 点击播放
 
 1. Web 端打开“播放准备”弹层。
-2. 获取条目详情、续播位置和媒体源。
-3. 用户选择版本、播放器、字幕和音轨。
+2. Gateway 通过当前用户级 `/Items/{id}/PlaybackInfo` 获取可直接播放的
+   媒体源、音轨和文本字幕；默认值由 Emby 返回值决定。
+3. 用户确认版本、字幕和音轨；M2 只支持 PotPlayer，高级多版本体验留到 M3。
 4. Web 向 Gateway 请求一次性 `PlayTicket`。
-5. Web 调用 Bridge 的 `POST /v1/play`。
-6. Bridge 使用票据向 Gateway 换取临时媒体信息。
-7. Bridge 启动播放器并建立 IPC。
+5. Web 以配对 Origin 和新 nonce 调用 Bridge 的 `POST /v1/playback/start`。
+6. Bridge 使用设备凭证一次兑换票据并在内存保存播放选择。
+7. Bridge 启动 PotPlayer；播放器只读取 Bridge 回环媒体/字幕 URL，Bridge 再以
+   设备凭证访问 Gateway，Gateway 恢复加密 Emby 会话并代理静态直流。
 8. Bridge 确认播放器开始读取文件后报告 Playing。
 9. 每 10 秒报告一次 Progress；暂停、恢复、跳转立即报告。
 10. 正常结束、用户退出或进程异常退出时报告 Stopped。
-11. Web 通过 Bridge 事件流显示“正在本地播放”。
+11. Web 轮询 Bridge 的本地真实状态显示“正在本地播放”。
+
+播放准备与流代理的浏览器响应、本地回环 URL、PotPlayer 命令行均不包含 Emby
+AccessToken。Gateway 在签发票据前重新校验媒体源和音字幕选择，Bridge 的本地
+播放会话只存在于进程内；字幕仅允许 Emby 标记为文本的流。
 
 ### 4.3 PlayTicket 设计
 
