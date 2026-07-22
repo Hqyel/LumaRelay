@@ -268,6 +268,12 @@ IDLE
 关闭了“Use system media transport control”，Bridge 必须提示用户启用，
 不能降级为伪造的计时进度。
 
+Bridge 只从运行中进程、Windows App Paths、DAUM 安装信息和有界标准目录
+发现 PotPlayer，并校验为实际存在的受支持可执行文件。重复路径合并后优先
+运行中实例，其次优先 x64。状态接口只公开版本、架构和运行状态；安装路径
+仅保留在 Bridge 内部供安全启动使用。若启动器版本为占位的 `0.0.0.0`，
+版本读取回退到同一可信目录的 PotPlayer 核心 DLL。
+
 PotPlayer 启动参数只允许携带短时 PlayTicket 或本地 Bridge URL，不能把
 Emby AccessToken 放入 `/headers`、媒体 URL 或进程命令行。Bridge 使用
 `/seek` 设置续播位置，并用 `/title` 加入短播放会话标识，帮助匹配由

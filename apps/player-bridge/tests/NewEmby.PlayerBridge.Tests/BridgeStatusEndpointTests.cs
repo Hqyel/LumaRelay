@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using NewEmby.PlayerBridge.Hosting;
 using NewEmby.PlayerBridge.Pairing;
+using NewEmby.PlayerBridge.Players;
 using NewEmby.PlayerBridge.Status;
 
 namespace NewEmby.PlayerBridge.Tests;
@@ -23,7 +24,8 @@ public sealed class BridgeStatusEndpointTests
     var port = ReserveLoopbackPort();
     await using var application = BridgeHost.Build(
       ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
-      new EmptyCredentialStore());
+      new EmptyCredentialStore(),
+      playerDiscovery: new EmptyPlayerDiscovery());
     await application.StartAsync();
 
     using var handler = new SocketsHttpHandler { UseProxy = false };
@@ -66,7 +68,8 @@ public sealed class BridgeStatusEndpointTests
     var port = ReserveLoopbackPort();
     await using var application = BridgeHost.Build(
       ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
-      new StoredCredentialStore());
+      new StoredCredentialStore(),
+      playerDiscovery: new EmptyPlayerDiscovery());
     await application.StartAsync();
 
     using var handler = new SocketsHttpHandler { UseProxy = false };
@@ -77,6 +80,62 @@ public sealed class BridgeStatusEndpointTests
     Assert.NotNull(status);
     Assert.True(status.IsPaired);
     await application.StopAsync();
+  }
+
+  [Fact]
+  public async Task ReportsDiscoveredPlayerWithoutMachinePath()
+  {
+    var port = ReserveLoopbackPort();
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new EmptyCredentialStore(),
+      playerDiscovery: new InstalledPlayerDiscovery());
+    await application.StartAsync();
+
+    using var handler = new SocketsHttpHandler { UseProxy = false };
+    using var client = new HttpClient(handler);
+    using var response = await client.GetAsync(
+      $"http://127.0.0.1:{port}/v1/status");
+    var json = await response.Content.ReadAsStringAsync();
+    var status = await response.Content
+      .ReadFromJsonAsync<BridgeStatusResponse>();
+
+    Assert.NotNull(status);
+    var player = Assert.Single(status.Players);
+    Assert.Equal("potplayer", player.AdapterId);
+    Assert.Equal("PotPlayer", player.DisplayName);
+    Assert.True(player.IsAvailable);
+    Assert.Equal("1.7.22398.0", player.Version);
+    Assert.Equal("x64", player.Architecture);
+    Assert.True(player.IsRunning);
+    Assert.DoesNotContain("C:\\", json, StringComparison.OrdinalIgnoreCase);
+
+    await application.StopAsync();
+  }
+
+  private sealed class EmptyPlayerDiscovery : IPlayerDiscovery
+  {
+    public IReadOnlyList<DiscoveredPlayer> Discover()
+    {
+      return [];
+    }
+  }
+
+  private sealed class InstalledPlayerDiscovery : IPlayerDiscovery
+  {
+    public IReadOnlyList<DiscoveredPlayer> Discover()
+    {
+      return
+      [
+        new DiscoveredPlayer(
+          "potplayer",
+          "PotPlayer",
+          "1.7.22398.0",
+          "x64",
+          true,
+          @"C:\Program Files\DAUM\PotPlayer\PotPlayerMini64.exe"),
+      ];
+    }
   }
 
   private sealed class EmptyCredentialStore : IBridgeCredentialStore

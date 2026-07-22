@@ -51,10 +51,20 @@ with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.
 
 `GET /v1/status` returns the Bridge identity and version, API compatibility
 range, target platform, pairing state and discovered-player summary. Pass the
-optional integer query `apiVersion` to evaluate client compatibility. Until
-player discovery is implemented, `players` is empty. `isPaired` reflects whether
-a valid device credential is present in the current Windows user's Credential
-Manager.
+optional integer query `apiVersion` to evaluate client compatibility. PotPlayer
+discovery checks a currently running process, the current-user and machine App
+Paths/vendor registry entries, and bounded standard install locations. A
+candidate must resolve to an existing supported PotPlayer executable. Duplicate
+paths are collapsed, a running installation is preferred, and x64 is preferred
+when no installation is running.
+
+Each discovered-player summary contains the stable adapter ID, display name,
+version, architecture and running state. The executable path remains inside the
+Bridge and is never returned by the status API. PotPlayer launchers that expose
+the placeholder version `0.0.0.0` use the trusted core DLL in the same directory
+for the version instead. `players` is empty when PotPlayer is not installed.
+`isPaired` reflects whether a valid device credential is present in the current
+Windows user's Credential Manager.
 
 The Web pairing flow opens a short-lived `newemby://pair` URI. For local
 diagnostics, the equivalent command is:

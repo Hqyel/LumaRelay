@@ -11,7 +11,10 @@ internal sealed record BridgeApiCompatibility(
 internal sealed record BridgePlayerStatus(
   string AdapterId,
   string DisplayName,
-  bool IsAvailable);
+  bool IsAvailable,
+  string Version,
+  string Architecture,
+  bool IsRunning);
 
 internal sealed record BridgeStatusResponse(
   string ApplicationId,
@@ -26,7 +29,8 @@ internal sealed record BridgeStatusResponse(
 {
   public static BridgeStatusResponse Create(
     string? requestedVersion,
-    bool isPaired = false)
+    bool isPaired,
+    IReadOnlyList<BridgePlayerStatus> players)
   {
     var hasVersion = !string.IsNullOrEmpty(requestedVersion);
     var parsed = int.TryParse(
@@ -58,6 +62,6 @@ internal sealed record BridgeStatusResponse(
       "windows",
       "x64",
       isPaired,
-      []);
+      players);
   }
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using NewEmby.PlayerBridge.Status;
 using NewEmby.PlayerBridge.Pairing;
+using NewEmby.PlayerBridge.Players;
 using NewEmby.PlayerBridge.Security;
 
 namespace NewEmby.PlayerBridge.Hosting;
@@ -15,7 +16,8 @@ internal static class BridgeHost
   public static WebApplication Build(
     string[] args,
     IBridgeCredentialStore? credentialStore = null,
-    BridgeNonceStore? nonceStore = null)
+    BridgeNonceStore? nonceStore = null,
+    IPlayerDiscovery? playerDiscovery = null)
   {
     var builder = WebApplication.CreateSlimBuilder(args);
     var serverOptions = BridgeServerOptions.FromConfiguration(
@@ -31,7 +33,11 @@ internal static class BridgeHost
     var security = new BridgeRequestSecurity(
       credentials,
       nonceStore ?? new BridgeNonceStore());
-    BridgeStatusEndpoint.Map(application, credentials, security);
+    BridgeStatusEndpoint.Map(
+      application,
+      credentials,
+      security,
+      playerDiscovery ?? new PotPlayerDiscovery());
     BridgeSecurityEndpoint.Map(application, security, credentials);
     return application;
   }
