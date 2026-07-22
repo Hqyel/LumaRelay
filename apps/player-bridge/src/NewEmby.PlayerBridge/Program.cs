@@ -24,6 +24,16 @@ internal static class Program
     if (command.Action is not BridgeStartupAction.Run)
       return RunProtocolRegistration(command.Action);
 
+    if (OperatingSystem.IsWindows()
+        && !PortableProtocolRegistration.TryRegister(
+          Environment.ProcessPath,
+          new WindowsProtocolRegistry()))
+    {
+      Console.Error.WriteLine(
+        "The newemby:// protocol could not be refreshed. "
+        + "Pairing can still be run from the command line.");
+    }
+
     return BridgeRuntime.Run(command.HostArguments);
   }
 

@@ -199,6 +199,21 @@ async function mockPageApi(
       });
       return;
     }
+    if (path === "/api/v1/bridge/pairing-codes") {
+      expect(route.request().headers()["x-newemby-csrf"]).toBe(
+        "e2e-csrf-token-with-at-least-32-characters",
+      );
+      await route.fulfill({
+        json: {
+          expiresAt: "2026-07-22T12:01:00.000Z",
+          expiresInSeconds: 60,
+          pairingCode: "A".repeat(43),
+          requestId: "request-pairing-code",
+        },
+        status: 201,
+      });
+      return;
+    }
     if (path === "/api/v1/media/home") {
       await route.fulfill({
         json: {
@@ -475,6 +490,82 @@ async function settleVisualState(page: Page) {
   await page.mouse.move(1279, 719);
   await page.waitForTimeout(300);
 }
+
+test("Bridge setup separates local connection and capabilities", async ({
+  page,
+}) => {
+  let connected = false;
+  await page.route("http://127.0.0.1:58080/v1/status**", async (route) => {
+    if (!connected) {
+      await route.abort("connectionrefused");
+      return;
+    }
+    await route.fulfill({
+      headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
+      json: {
+        apiVersion: 1,
+        applicationId: "NewEmby.PlayerBridge",
+        architecture: "x64",
+        bridgeVersion: "0.1.0",
+        compatibility: {
+          isCompatible: true,
+          maximumClientApiVersion: 1,
+          minimumClientApiVersion: 1,
+          requestedApiVersion: 1,
+        },
+        isPaired: true,
+        platform: "windows",
+        players: [
+          {
+            adapterId: "potplayer",
+            architecture: "x64",
+            displayName: "PotPlayer",
+            isAvailable: true,
+            isRunning: false,
+            version: "1.7.22398.0",
+          },
+        ],
+        smtc: {
+          capability: "ready",
+          isMonitoring: true,
+          potPlayerSessionCount: 0,
+          potPlayerSessionState: "notObserved",
+          sessionCount: 0,
+        },
+        status: "ready",
+      },
+    });
+  });
+  await mockPageApi(page, true);
+  await page.goto("/home");
+
+  await page
+    .getByRole("button", { name: /Bridge 未连接，打开本地播放连接设置/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "本地播放连接" }),
+  ).toBeVisible();
+  await expect(page.getByText("连接便携版")).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("bridge-setup.png");
+
+  await page.getByRole("button", { name: "生成配对请求" }).click();
+  await expect(
+    page.getByRole("link", { name: "打开 Bridge 完成配对" }),
+  ).toHaveAttribute(
+    "href",
+    `newemby://pair?code=${"A".repeat(43)}&gateway=http%3A%2F%2F127.0.0.1%3A4173`,
+  );
+
+  connected = true;
+  await page.getByRole("button", { name: "重新检测" }).click();
+  await expect(
+    page.getByText("本机已可以接收 NewEmby 的播放请求。"),
+  ).toBeVisible();
+  await expect(page.getByText("已发现 1.7.22398.0")).toBeVisible();
+  await expect(page.getByText("系统媒体会话监听正常")).toBeVisible();
+});
 
 test("connect page is accessible by keyboard and matches its baseline", async ({
   page,

@@ -51,6 +51,21 @@ public sealed class ProtocolRegistrationTests
     Assert.Empty(registry.Values);
   }
 
+  [Fact]
+  public void PortableRunRefreshesProtocolRegistration()
+  {
+    var executablePath = Path.GetFullPath(
+      Path.Combine("portable", "NewEmby.PlayerBridge.exe"));
+    var registry = new RecordingProtocolRegistry();
+
+    Assert.True(PortableProtocolRegistration.TryRegister(
+      executablePath,
+      registry));
+    Assert.Contains(
+      executablePath,
+      registry.Values[(ProtocolRegistration.CommandKey, string.Empty)]);
+  }
+
   private sealed class RecordingProtocolRegistry : IProtocolRegistry
   {
     public string? DeletedTree { get; private set; }

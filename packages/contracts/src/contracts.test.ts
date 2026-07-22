@@ -10,6 +10,7 @@ import {
   CurrentServerResponseSchema,
   ErrorEnvelopeSchema,
   HealthResponseSchema,
+  LocalBridgeStatusSchema,
   MediaHomeResponseSchema,
   PLAY_TICKET_LIFETIME_SECONDS,
   PlayTicketSchema,
@@ -171,6 +172,43 @@ describe("shared API contracts", () => {
         resumeTicks: 600_000_000,
         subtitleStreamIndex: null,
       }).success,
+    ).toBe(true);
+  });
+
+  it("validates the local Bridge capability response", () => {
+    expect(
+      LocalBridgeStatusSchema.parse({
+        apiVersion: 1,
+        applicationId: "NewEmby.PlayerBridge",
+        architecture: "x64",
+        bridgeVersion: "0.1.0",
+        compatibility: {
+          isCompatible: true,
+          maximumClientApiVersion: 1,
+          minimumClientApiVersion: 1,
+          requestedApiVersion: 1,
+        },
+        isPaired: true,
+        platform: "windows",
+        players: [
+          {
+            adapterId: "potplayer",
+            architecture: "x64",
+            displayName: "PotPlayer",
+            isAvailable: true,
+            isRunning: false,
+            version: "1.7.22398.0",
+          },
+        ],
+        smtc: {
+          capability: "ready",
+          isMonitoring: true,
+          potPlayerSessionCount: 0,
+          potPlayerSessionState: "notObserved",
+          sessionCount: 0,
+        },
+        status: "ready",
+      }).isPaired,
     ).toBe(true);
   });
 

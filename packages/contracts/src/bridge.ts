@@ -21,6 +21,47 @@ export const BridgeVersionSchema = z
   .string()
   .regex(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/);
 
+export const BridgePlayerVersionSchema = z
+  .string()
+  .regex(/^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/);
+
+export const BridgeApiCompatibilitySchema = z.object({
+  isCompatible: z.boolean(),
+  maximumClientApiVersion: z.number().int().positive(),
+  minimumClientApiVersion: z.number().int().positive(),
+  requestedApiVersion: z.number().int().positive().nullable(),
+});
+
+export const BridgePlayerStatusSchema = z.object({
+  adapterId: z.string().trim().min(1).max(64),
+  architecture: z.string().trim().min(1).max(32),
+  displayName: z.string().trim().min(1).max(80),
+  isAvailable: z.boolean(),
+  isRunning: z.boolean(),
+  version: BridgePlayerVersionSchema,
+});
+
+export const BridgeSmtcStatusSchema = z.object({
+  capability: z.enum(["ready", "unavailable", "unsupported"]),
+  isMonitoring: z.boolean(),
+  potPlayerSessionCount: z.number().int().nonnegative(),
+  potPlayerSessionState: z.enum(["detected", "notObserved"]),
+  sessionCount: z.number().int().nonnegative(),
+});
+
+export const LocalBridgeStatusSchema = z.object({
+  apiVersion: z.number().int().positive(),
+  applicationId: z.literal("NewEmby.PlayerBridge"),
+  architecture: z.string().trim().min(1).max(32),
+  bridgeVersion: BridgeVersionSchema,
+  compatibility: BridgeApiCompatibilitySchema,
+  isPaired: z.boolean(),
+  platform: BridgePlatformSchema,
+  players: z.array(BridgePlayerStatusSchema),
+  smtc: BridgeSmtcStatusSchema,
+  status: z.literal("ready"),
+});
+
 export const BridgeDeviceSummarySchema = z.object({
   bridgeVersion: BridgeVersionSchema,
   deviceId: z.uuid(),
@@ -73,6 +114,7 @@ export const RevokeBridgeDeviceResponseSchema = z.object({
 export type BridgePairingCodeResponse = z.infer<
   typeof BridgePairingCodeResponseSchema
 >;
+export type LocalBridgeStatus = z.infer<typeof LocalBridgeStatusSchema>;
 export type BridgeDeviceSummary = z.infer<typeof BridgeDeviceSummarySchema>;
 export type RedeemBridgePairingCodeRequest = z.infer<
   typeof RedeemBridgePairingCodeRequestSchema

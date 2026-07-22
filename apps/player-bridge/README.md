@@ -177,11 +177,12 @@ user. It revokes the Gateway device before calling the protected loopback
 the local Generic Credential. Calling the loopback endpoint alone does not
 revoke the Gateway device.
 
-The portable executable registers the per-user `newemby://` protocol when run
-with `--register-protocol`. It writes only below
-`HKCU\Software\Classes\newemby`, quotes both the executable and `%1`, and needs
-no administrator access. Use `--unregister-protocol` before removing or moving
-the portable executable.
+The portable executable refreshes the per-user `newemby://` protocol whenever
+the normal tray process starts, so moving the portable folder is repaired by
+running the executable again. It can also be registered explicitly with
+`--register-protocol`. It writes only below `HKCU\Software\Classes\newemby`,
+quotes both the executable and `%1`, and needs no administrator access. Use
+`--unregister-protocol` before removing or moving the portable executable.
 
 The Windows build runs without a console window and remains available through a
 notification-area icon. Its compact menu shows the Bridge version and an exit

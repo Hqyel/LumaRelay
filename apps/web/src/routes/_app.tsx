@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
 import { HeaderSearch } from "../components/header-search.js";
+import { BridgeStatusControl } from "../components/bridge-status.js";
 import {
   latestMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -114,10 +115,7 @@ function HeaderActions({ user }: { user: UserProfile }) {
   return (
     <>
       <HeaderSearch />
-      <span className="hidden items-center gap-1.5 text-label text-text-muted lg:flex">
-        <span aria-hidden="true" className="size-2 rounded-full bg-warning" />
-        Bridge 未连接
-      </span>
+      <BridgeStatusControl />
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button

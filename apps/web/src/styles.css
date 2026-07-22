@@ -1484,6 +1484,168 @@
   font-weight: 550;
 }
 
+.bridge-status-trigger {
+  display: none;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(255 255 255 / 56%);
+  font-size: 0.6875rem;
+  transition:
+    border-color 180ms,
+    background 180ms,
+    color 180ms;
+}
+
+.bridge-status-trigger:hover,
+.bridge-status-trigger:focus-visible {
+  border-color: rgb(255 255 255 / 10%);
+  outline: none;
+  background: rgb(255 255 255 / 5%);
+  color: #fff;
+}
+
+.bridge-status-trigger.is-connected {
+  color: rgb(255 255 255 / 72%);
+}
+
+.bridge-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-warning);
+  box-shadow: 0 0 10px rgb(245 158 11 / 50%);
+}
+
+.bridge-status-trigger.is-connected .bridge-status-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 10px rgb(34 197 94 / 55%);
+}
+
+.bridge-setup {
+  display: grid;
+  gap: 1rem;
+}
+
+.bridge-capabilities {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.bridge-capability {
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 3%);
+}
+
+.bridge-capability > svg {
+  flex: 0 0 auto;
+}
+
+.bridge-capability-ready > svg {
+  color: var(--color-success);
+}
+
+.bridge-capability-warning > svg {
+  color: var(--color-warning);
+}
+
+.bridge-capability-unknown > svg {
+  color: rgb(255 255 255 / 38%);
+}
+
+.bridge-capability span,
+.bridge-capability small {
+  display: block;
+}
+
+.bridge-capability strong {
+  color: #fff;
+  font-size: 0.8125rem;
+}
+
+.bridge-capability small {
+  margin-top: 0.2rem;
+  color: rgb(255 255 255 / 50%);
+  font-size: 0.6875rem;
+}
+
+.bridge-portable-guide {
+  padding: 1rem;
+  border: 1px solid rgb(124 92 255 / 18%);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 100% 0, rgb(124 92 255 / 14%), transparent 45%),
+    rgb(18 18 34 / 75%);
+}
+
+.bridge-portable-guide h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.bridge-portable-guide ol {
+  padding-left: 1.2rem;
+  margin: 0.7rem 0 1rem;
+  color: rgb(255 255 255 / 58%);
+  font-size: 0.75rem;
+  line-height: 1.7;
+}
+
+.bridge-pairing-expiry,
+.bridge-pairing-error {
+  margin: 0.7rem 0 0;
+  font-size: 0.6875rem;
+}
+
+.bridge-pairing-expiry {
+  color: rgb(255 255 255 / 48%);
+}
+
+.bridge-pairing-error {
+  color: var(--color-danger);
+}
+
+.bridge-ready-message {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(34 197 94 / 20%);
+  border-radius: 0.8rem;
+  background: rgb(34 197 94 / 7%);
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.75rem;
+}
+
+.bridge-ready-message svg {
+  color: var(--color-success);
+}
+
+.bridge-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (min-width: 1024px) {
+  .bridge-status-trigger {
+    display: inline-flex;
+  }
+}
+
 .detail-person p {
   margin: 0.2rem 0 0;
   color: rgb(255 255 255 / 55%);

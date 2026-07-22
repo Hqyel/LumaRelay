@@ -1,4 +1,6 @@
 import type {
+  BridgeDevicesResponse,
+  BridgePairingCodeResponse,
   CurrentServerResponse,
   CsrfResponse,
   ErrorEnvelope,
@@ -125,6 +127,14 @@ export function getCurrentServer(): Promise<CurrentServerResponse> {
 
 export function getCurrentUser(): Promise<SessionResponse> {
   return requestJson("/api/v1/auth/me");
+}
+
+export function createBridgePairingCode(): Promise<BridgePairingCodeResponse> {
+  return requestJson("/api/v1/bridge/pairing-codes", { method: "POST" });
+}
+
+export function getBridgeDevices(): Promise<BridgeDevicesResponse> {
+  return requestJson("/api/v1/bridge/devices");
 }
 
 export function getPublicUsers(): Promise<PublicUsersResponse> {
