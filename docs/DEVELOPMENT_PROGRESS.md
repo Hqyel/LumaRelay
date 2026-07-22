@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 12/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 13/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -282,7 +282,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M2-011` 实现一次性 PlayTicket 数据模型。
 - [x] `M2-012` 实现票据签发、设备绑定、过期和一次兑换。
 - [x] `M2-013` Bridge 自动发现 PotPlayer 并读取版本。
-- [ ] `M2-014` 实现 PotPlayer 安全启动参数。
+- [x] `M2-014` 实现 PotPlayer 安全启动参数。
   - 支持 `/new`、`/seek`、`/title`、`/sub`；参数中禁止出现 Emby Token。
 - [ ] `M2-015` 实现 Windows SMTC 能力检查和会话事件订阅。
   - 检测 PotPlayer 是否启用“Use system media transport control”。
@@ -517,7 +517,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-014` 实现 PotPlayer 安全启动参数。
+1. 开始 `M2-015` 实现 Windows SMTC 能力检查和会话事件订阅。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -543,6 +543,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-014 | 完成 | 已将启动能力纳入 `IPlayerAdapter`，实现 PotPlayer 无 shell 进程启动和独立 `ArgumentList` 参数传递：固定 `/new`，非零续播点使用不跨天回绕的 `/seek=HH:MM:SS.mmm`，`/title` 只含 NewEmby 前缀与规范播放会话 UUID，可选 `/sub` 与最终媒体参数仅接受 Bridge 配置端口上的 `127.0.0.1`/`::1` 精确会话路径。已拒绝错误可执行文件、非回环 Host、其他端口、用户信息、查询、片段、会话错配、非法 Ticks 及空会话 ID，不生成 `/headers`，启动失败统一脱敏；本任务未提前开放浏览器播放入口，也未在尚无本地流端点时实际唤起桌面播放器。完整 `verify:local` 通过：215 项 JS/TS 单测、72 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；Windows self-contained 单文件发布、本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、`IPlayerAdapter`、PotPlayer 参数安全、项目计划、README、进度表 | M2-015 |
+| 2026-07-22 | M2-014 | 进行中 | 正在实现 PotPlayer `/new`、`/seek`、`/title`、`/sub` 参数构建和无 shell 进程启动；媒体及字幕只接受 Bridge 自身的回环 HTTP URL，播放会话 ID 使用规范 UUID，所有参数通过 `ArgumentList` 逐项传递，拒绝用户信息、查询、片段、换行和非回环地址 | Player Bridge、PotPlayer 适配器、启动安全、README、进度表 | 完成参数注入与 Token 泄露回归验证 |
 | 2026-07-22 | M2-013 | 完成 | 已实现 PotPlayer 运行进程、当前用户/本机 App Paths、DAUM 安装信息和有界标准目录的自动发现；候选必须是规范化且实际存在的受支持可执行文件，重复路径合并后优先运行中实例和 x64，状态接口只公开稳定适配器 ID、版本、架构及运行状态。启动器版本为占位 `0.0.0.0` 时安全回退到同目录核心 DLL，本机真实回环与 Windows 单文件便携发布均识别到唯一 x64 PotPlayer `1.7.22398.0`，且未暴露安装路径。完整 `verify:local` 通过：215 项 JS/TS 单测、51 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 发现、状态契约、项目计划、README、进度表 | M2-014 |
 | 2026-07-22 | M2-013 | 进行中 | 正在实现 PotPlayer 运行进程、App Paths、DAUM 安装信息和标准目录的有界自动发现；候选必须是规范化且实际存在的受支持可执行文件，版本读取在启动器报告占位版本时回退到同目录核心 DLL，状态响应不暴露安装路径 | Player Bridge、PotPlayer 适配边界、状态契约、README、进度表 | 完成去重排序、无安装和本机安装验证 |
 | 2026-07-22 | M2-012 | 完成 | 已新增 CSRF/精确 Origin 保护且限流的 `POST /api/v1/bridge/play-tickets`，当前登录会话只能为同一 Server、同一 Emby 用户拥有的未撤销 Bridge 设备签发 60 秒票据；新增设备凭证、新 nonce 和限流保护的 `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`，在事务内验证 secret HMAC、会话/设备绑定、过期和未兑换状态并原子写入 `redeemedAt`。错误 secret、未知、过期、已兑换、跨设备、失效会话和格式错误统一收口为 `PLAY_TICKET_INVALID`，并发兑换实测仅一次成功；已兑换状态保留到原过期时间，签发与启动时清理过期记录，响应和数据库均不泄露 Emby Token、设备凭证或票据明文。根级 format/lint/typecheck、215 项 JS/TS 单测、45 项 .NET 测试及全量构建通过且 .NET 0 警告/0 错误；真实 SQLite Store + Fastify 签发/兑换/重放集成测试、临时迁移 `up/down/up`、本地 Smoke 和差异检查通过，临时数据库及备份已清理 | Contracts、Gateway、SQLite、Bridge 认证边界、项目计划、Bridge README、进度表 | M2-013 |

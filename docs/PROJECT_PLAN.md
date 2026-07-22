@@ -279,6 +279,14 @@ Emby AccessToken 放入 `/headers`、媒体 URL 或进程命令行。Bridge 使�
 `/seek` 设置续播位置，并用 `/title` 加入短播放会话标识，帮助匹配由
 NewEmby 启动的 SMTC 会话。
 
+实际进程启动固定使用 `UseShellExecute=false` 和逐项 `ArgumentList`，禁止
+拼接命令行字符串。媒体与外置字幕参数只接受配置端口上的字面量 IPv4/IPv6
+回环 HTTP URL，路径必须分别匹配当前播放会话的
+`/v1/playback/<play_session_id>/media` 与 `.../subtitle`，且不得带用户信息、
+查询参数或片段。`/new` 固定启用；非零续播点转换为
+`/seek=HH:MM:SS.mmm`；`/title` 只包含 NewEmby 前缀和规范播放会话 UUID，
+不接受媒体标题等可注入文本。
+
 ## 5. 前台信息架构
 
 ### 5.1 全局导航

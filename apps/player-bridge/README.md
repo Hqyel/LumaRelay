@@ -96,7 +96,23 @@ The Gateway issues a 60-second, device-bound PlayTicket through
 `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`, using its device
 credential and a fresh nonce. The redemption response contains only the
 PlaySession ID and playback selection; it never contains an Emby access token.
-The local play endpoint and player launch are added by later M2 tasks.
+The protected local play and streaming endpoints are added by later M2 tasks.
+
+The PotPlayer adapter builds process launches without a command shell and adds
+every value through `ProcessStartInfo.ArgumentList`. It always requests `/new`,
+adds `/seek=HH:MM:SS.mmm` only for a non-zero resume point, identifies the
+session as `/title=NewEmby:<play-session-id>`, and adds `/sub=<loopback-uri>`
+only when an external subtitle is selected. The media URI is the final separate
+argument.
+
+Both media and subtitle inputs must be literal IPv4 or IPv6 loopback HTTP URLs
+on the configured Bridge port with the exact path
+`/v1/playback/<play-session-id>/media|subtitle`. User information, query
+strings, fragments, other ports and non-loopback hosts are rejected.
+Consequently the launcher cannot add `/headers`, an Emby URL or an Emby
+AccessToken to the process command line. M2-014 establishes this adapter
+boundary; the protected local play and streaming endpoints connect it to a
+redeemed PlayTicket in subsequent M2 work.
 
 To revoke the current portable Bridge from both sides, run:
 

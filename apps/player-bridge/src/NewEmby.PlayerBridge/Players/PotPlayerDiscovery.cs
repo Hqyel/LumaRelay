@@ -1,6 +1,6 @@
 namespace NewEmby.PlayerBridge.Players;
 
-internal sealed class PotPlayerDiscovery : IPlayerDiscovery, IPlayerAdapter
+internal sealed class PotPlayerDiscovery : IPlayerDiscovery
 {
   private static readonly HashSet<string> ExecutableNames = new(
     StringComparer.OrdinalIgnoreCase)
@@ -17,9 +17,6 @@ internal sealed class PotPlayerDiscovery : IPlayerDiscovery, IPlayerAdapter
   {
     this.environment = environment ?? new WindowsPotPlayerEnvironment();
   }
-
-  public string AdapterId => "potplayer";
-  public string DisplayName => "PotPlayer";
 
   public IReadOnlyList<DiscoveredPlayer> Discover()
   {
@@ -66,8 +63,8 @@ internal sealed class PotPlayerDiscovery : IPlayerDiscovery, IPlayerAdapter
     var version = ReadVersion(installation.Path, architecture) ?? "unknown";
 
     return new DiscoveredPlayer(
-      AdapterId,
-      DisplayName,
+      PotPlayerIdentity.AdapterId,
+      PotPlayerIdentity.DisplayName,
       version,
       architecture,
       installation.IsRunning,
