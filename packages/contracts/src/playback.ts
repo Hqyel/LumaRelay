@@ -2,7 +2,10 @@ import { z } from "zod";
 
 import { RequestIdSchema } from "./common.js";
 import { BridgeDeviceParamsSchema } from "./bridge.js";
-import { PlaybackTicksSchema } from "./play-ticket.js";
+import {
+  PlaybackStreamIndexSchema,
+  PlaybackTicksSchema,
+} from "./play-ticket.js";
 
 export const PlaybackEventParamsSchema = BridgeDeviceParamsSchema;
 
@@ -14,14 +17,49 @@ export const PlaybackPlayingRequestSchema = z.object({
   positionTicks: PlaybackTicksSchema,
 });
 
-export const PlaybackProgressRequestSchema = z.object({
-  eventName: z.literal("timeUpdate"),
-  eventType: z.literal("progress"),
-  isPaused: z.boolean(),
-  playSessionId: z.uuid(),
-  playbackRate: z.number().positive().max(16),
-  positionTicks: PlaybackTicksSchema,
-});
+export const PlaybackProgressEventNameSchema = z.enum([
+  "audioTrackChange",
+  "pause",
+  "playbackRateChange",
+  "seek",
+  "subtitleTrackChange",
+  "timeUpdate",
+  "unpause",
+]);
+
+export const PlaybackProgressRequestSchema = z
+  .object({
+    audioStreamIndex: PlaybackStreamIndexSchema.nullable().optional(),
+    eventName: PlaybackProgressEventNameSchema,
+    eventType: z.literal("progress"),
+    isPaused: z.boolean(),
+    playSessionId: z.uuid(),
+    playbackRate: z.number().positive().max(16),
+    positionTicks: PlaybackTicksSchema,
+    subtitleStreamIndex: PlaybackStreamIndexSchema.nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.eventName === "audioTrackChange" &&
+      value.audioStreamIndex === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "audioStreamIndex is required for an audio track change",
+        path: ["audioStreamIndex"],
+      });
+    }
+    if (
+      value.eventName === "subtitleTrackChange" &&
+      value.subtitleStreamIndex === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "subtitleStreamIndex is required for a subtitle track change",
+        path: ["subtitleStreamIndex"],
+      });
+    }
+  });
 
 export const PlaybackEventRequestSchema = z.discriminatedUnion("eventType", [
   PlaybackPlayingRequestSchema,
@@ -38,6 +76,9 @@ export type PlaybackPlayingRequest = z.infer<
 >;
 export type PlaybackProgressRequest = z.infer<
   typeof PlaybackProgressRequestSchema
+>;
+export type PlaybackProgressEventName = z.infer<
+  typeof PlaybackProgressEventNameSchema
 >;
 export type PlaybackEventRequest = z.infer<typeof PlaybackEventRequestSchema>;
 export type PlaybackEventResponse = z.infer<typeof PlaybackEventResponseSchema>;

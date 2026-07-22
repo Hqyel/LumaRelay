@@ -324,6 +324,14 @@ Playing 成功后，Bridge 使用独立 10 秒周期读取最新快照并发送 
 上下文。播放会话尚未开始时 Gateway 必须拒绝 Progress；匹配消失或时间线陈旧时
 Bridge 立即停止心跳，单次网络失败只影响当前心跳并在下一周期重试。
 
+Bridge 对同一 PlaySessionId 保存上一份已处理快照：Playing→Paused 立即发送
+`Pause`，Paused→Playing 立即发送 `Unpause`，跳转标志与位置变化立即发送本地
+`seek` 并由 Gateway 映射为 Emby `TimeUpdate`，速率变化发送
+`PlaybackRateChange`。这些交互回传不等待下一次 10 秒心跳。GSMTC 不提供当前
+音轨或字幕轨索引，因此 Bridge 不得猜测；轨道变化由受控本地播放交互接口显式
+提交 `AudioTrackChange` / `SubtitleTrackChange`，Gateway 仅在 Emby 接受后更新
+PlaybackSession 中的轨道选择，字幕索引 `null` 表示关闭字幕。
+
 ## 5. 前台信息架构
 
 ### 5.1 全局导航

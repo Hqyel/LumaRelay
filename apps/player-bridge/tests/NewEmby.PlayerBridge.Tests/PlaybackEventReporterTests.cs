@@ -90,22 +90,84 @@ public sealed class PlaybackEventReporterTests
     await reporter.StopAsync(CancellationToken.None);
   }
 
+  [Fact]
+  public async Task SendsPauseUnpauseAndSeekImmediately()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMinutes(1));
+    await reporter.StartAsync(CancellationToken.None);
+
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Paused));
+    await client.WaitForEventAsync("pause");
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForEventAsync("unpause");
+    monitor.Publish(CreateSnapshot(
+      PlayerPlaybackState.Playing,
+      hasSeeked: true,
+      positionTicks: 90_000_000));
+    await client.WaitForEventAsync("seek");
+
+    Assert.Contains(client.ProgressEvents, item => item.Name == "pause");
+    Assert.Contains(client.ProgressEvents, item => item.Name == "unpause");
+    Assert.Contains(client.ProgressEvents, item => item.Name == "seek");
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
+  [Fact]
+  public async Task ReportsExplicitAudioAndSubtitleTrackChanges()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMinutes(1));
+    await reporter.StartAsync(CancellationToken.None);
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+
+    await reporter.ReportAudioTrackChangeAsync(
+      CreateSnapshot(PlayerPlaybackState.Playing).PlaySessionId,
+      2,
+      CancellationToken.None);
+    await reporter.ReportSubtitleTrackChangeAsync(
+      CreateSnapshot(PlayerPlaybackState.Playing).PlaySessionId,
+      null,
+      CancellationToken.None);
+
+    Assert.Contains(client.ProgressEvents, item =>
+      item.Name == "audioTrackChange"
+      && item.TrackChange == new PlaybackTrackChange("audio", 2));
+    Assert.Contains(client.ProgressEvents, item =>
+      item.Name == "subtitleTrackChange"
+      && item.TrackChange == new PlaybackTrackChange("subtitle", null));
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
   private static PlayerPlaybackSnapshot CreateSnapshot(
     PlayerPlaybackState state,
-    bool isTimelineStale = false)
+    bool isTimelineStale = false,
+    bool hasSeeked = false,
+    long positionTicks = 10_000_000)
   {
     var now = DateTimeOffset.UtcNow;
     return new PlayerPlaybackSnapshot(
       Guid.Parse("11111111-1111-4111-8111-111111111111"),
       state,
-      10_000_000,
+      positionTicks,
       600_000_000,
       0,
       600_000_000,
       now,
       now,
       1,
-      false,
+      hasSeeked,
       isTimelineStale);
   }
 
@@ -138,6 +200,8 @@ public sealed class PlaybackEventReporterTests
 
     public List<PlayerPlaybackSnapshot> ProgressSnapshots { get; } = [];
 
+    public List<RecordedProgressEvent> ProgressEvents { get; } = [];
+
     public Task SendPlayingAsync(
       PlayerPlaybackSnapshot snapshot,
       CancellationToken cancellationToken)
@@ -148,9 +212,12 @@ public sealed class PlaybackEventReporterTests
 
     public Task SendProgressAsync(
       PlayerPlaybackSnapshot snapshot,
+      string eventName,
+      PlaybackTrackChange? trackChange,
       CancellationToken cancellationToken)
     {
       ProgressSnapshots.Add(snapshot);
+      ProgressEvents.Add(new RecordedProgressEvent(eventName, trackChange));
       return Task.CompletedTask;
     }
 
@@ -164,11 +231,21 @@ public sealed class PlaybackEventReporterTests
       await WaitUntilAsync(() => ProgressSnapshots.Count >= count);
     }
 
+    public async Task WaitForEventAsync(string eventName)
+    {
+      await WaitUntilAsync(() => ProgressEvents.Any(
+        item => item.Name == eventName));
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
       using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
       while (!condition())
         await Task.Delay(10, timeout.Token);
     }
+
+    public sealed record RecordedProgressEvent(
+      string Name,
+      PlaybackTrackChange? TrackChange);
   }
 }

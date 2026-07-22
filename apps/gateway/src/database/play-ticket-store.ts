@@ -57,6 +57,8 @@ export interface PlayTicketStore {
     playSessionId: string,
     positionTicks: number,
     eventAt: string,
+    audioStreamIndex?: number | null,
+    subtitleStreamIndex?: number | null,
   ): Promise<void>;
   pruneInactive(): Promise<number>;
   redeem(
@@ -216,10 +218,23 @@ export function createPlayTicketStore(
       playSessionId: string,
       positionTicks: number,
       eventAt: string,
+      audioStreamIndex?: number | null,
+      subtitleStreamIndex?: number | null,
     ): Promise<void> {
+      const update: {
+        audioStreamIndex?: number | null;
+        lastEventAt: string;
+        lastPositionTicks: number;
+        subtitleStreamIndex?: number | null;
+      } = { lastEventAt: eventAt, lastPositionTicks: positionTicks };
+      if (audioStreamIndex !== undefined)
+        update.audioStreamIndex = audioStreamIndex;
+      if (subtitleStreamIndex !== undefined)
+        update.subtitleStreamIndex = subtitleStreamIndex;
+
       await database
         .updateTable("playbackSessions")
-        .set({ lastEventAt: eventAt, lastPositionTicks: positionTicks })
+        .set(update)
         .where("id", "=", playSessionId)
         .where("startedAt", "is not", null)
         .where("stoppedAt", "is", null)

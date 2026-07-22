@@ -47,10 +47,13 @@ internal static class BridgeHost
       new GatewayPlaybackEventClient(
         new HttpClient { Timeout = TimeSpan.FromSeconds(8) },
         credentials));
+    builder.Services.AddSingleton(services => new PlaybackEventReporter(
+      playbackMonitor,
+      services.GetRequiredService<IPlaybackEventClient>()));
+    builder.Services.AddSingleton<IPlaybackInteractionReporter>(services =>
+      services.GetRequiredService<PlaybackEventReporter>());
     builder.Services.AddSingleton<IHostedService>(services =>
-      new PlaybackEventReporter(
-        playbackMonitor,
-        services.GetRequiredService<IPlaybackEventClient>()));
+      services.GetRequiredService<PlaybackEventReporter>());
     builder.Services.AddSingleton<IPlayerAdapter>(new PotPlayerLauncher(
       serverOptions.Port,
       discovery,

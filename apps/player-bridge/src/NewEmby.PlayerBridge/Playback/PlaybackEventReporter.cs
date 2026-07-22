@@ -15,6 +15,25 @@ internal interface IPlaybackEventClient
 
   Task SendProgressAsync(
     PlayerPlaybackSnapshot snapshot,
+    string eventName,
+    PlaybackTrackChange? trackChange,
+    CancellationToken cancellationToken);
+}
+
+internal sealed record PlaybackTrackChange(
+  string Kind,
+  int? StreamIndex);
+
+internal interface IPlaybackInteractionReporter
+{
+  Task ReportAudioTrackChangeAsync(
+    Guid playSessionId,
+    int streamIndex,
+    CancellationToken cancellationToken);
+
+  Task ReportSubtitleTrackChangeAsync(
+    Guid playSessionId,
+    int? streamIndex,
     CancellationToken cancellationToken);
 }
 
@@ -26,20 +45,28 @@ internal sealed class GatewayPlaybackEventClient(
     PlayerPlaybackSnapshot snapshot,
     CancellationToken cancellationToken)
   {
-    await SendAsync(snapshot, "playing", null, cancellationToken);
+    await SendAsync(snapshot, "playing", null, null, cancellationToken);
   }
 
   public async Task SendProgressAsync(
     PlayerPlaybackSnapshot snapshot,
+    string eventName,
+    PlaybackTrackChange? trackChange,
     CancellationToken cancellationToken)
   {
-    await SendAsync(snapshot, "progress", "timeUpdate", cancellationToken);
+    await SendAsync(
+      snapshot,
+      "progress",
+      eventName,
+      trackChange,
+      cancellationToken);
   }
 
   private async Task SendAsync(
     PlayerPlaybackSnapshot snapshot,
     string eventType,
     string? eventName,
+    PlaybackTrackChange? trackChange,
     CancellationToken cancellationToken)
   {
     var credential = credentialStore.Read();
@@ -51,13 +78,11 @@ internal sealed class GatewayPlaybackEventClient(
       $"/api/v1/bridge/devices/{credential.DeviceId}/playback-events");
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
-      Content = JsonContent.Create(new PlaybackRequest(
-        eventName,
+      Content = JsonContent.Create(RequestBody(
+        snapshot,
         eventType,
-        snapshot.IsPaused(),
-        snapshot.PlaySessionId,
-        snapshot.PlaybackRate,
-        snapshot.PositionTicks)),
+        eventName,
+        trackChange)),
     };
     BridgeDeviceAuthentication.Apply(
       request,
@@ -76,16 +101,32 @@ internal sealed class GatewayPlaybackEventClient(
     }
   }
 
-  private sealed record PlaybackRequest(
-    string? EventName,
-    string EventType,
-    bool IsPaused,
-    Guid PlaySessionId,
-    double PlaybackRate,
-    long PositionTicks);
+  private static Dictionary<string, object?> RequestBody(
+    PlayerPlaybackSnapshot snapshot,
+    string eventType,
+    string? eventName,
+    PlaybackTrackChange? trackChange)
+  {
+    var body = new Dictionary<string, object?>
+    {
+      ["eventType"] = eventType,
+      ["isPaused"] = snapshot.IsPaused(),
+      ["playSessionId"] = snapshot.PlaySessionId,
+      ["playbackRate"] = snapshot.PlaybackRate,
+      ["positionTicks"] = snapshot.PositionTicks,
+    };
+    if (eventName is not null)
+      body["eventName"] = eventName;
+    if (trackChange?.Kind == "audio")
+      body["audioStreamIndex"] = trackChange.StreamIndex;
+    if (trackChange?.Kind == "subtitle")
+      body["subtitleStreamIndex"] = trackChange.StreamIndex;
+    return body;
+  }
 }
 
-internal sealed class PlaybackEventReporter : IHostedService, IDisposable
+internal sealed class PlaybackEventReporter
+  : IPlaybackInteractionReporter, IHostedService, IDisposable
 {
   private static readonly TimeSpan DefaultProgressInterval =
     TimeSpan.FromSeconds(10);
@@ -102,6 +143,8 @@ internal sealed class PlaybackEventReporter : IHostedService, IDisposable
         SingleWriter = false,
       });
   private readonly HashSet<Guid> startedSessions = [];
+  private readonly Dictionary<Guid, PlayerPlaybackSnapshot> lastSnapshots =
+    [];
   private readonly object sync = new();
   private Task heartbeatWorker = Task.CompletedTask;
   private CancellationTokenSource? lifetimeSource;
@@ -162,8 +205,39 @@ internal sealed class PlaybackEventReporter : IHostedService, IDisposable
   public void Dispose()
   {
     playbackMonitor.Changed -= OnPlaybackChanged;
-    lifetimeSource?.Cancel();
-    lifetimeSource?.Dispose();
+    var source = Interlocked.Exchange(ref lifetimeSource, null);
+    if (source is null)
+      return;
+
+    source.Cancel();
+    source.Dispose();
+  }
+
+  public async Task ReportAudioTrackChangeAsync(
+    Guid playSessionId,
+    int streamIndex,
+    CancellationToken cancellationToken)
+  {
+    ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+    await ReportTrackChangeAsync(
+      playSessionId,
+      "audioTrackChange",
+      new PlaybackTrackChange("audio", streamIndex),
+      cancellationToken);
+  }
+
+  public async Task ReportSubtitleTrackChangeAsync(
+    Guid playSessionId,
+    int? streamIndex,
+    CancellationToken cancellationToken)
+  {
+    if (streamIndex.HasValue)
+      ArgumentOutOfRangeException.ThrowIfNegative(streamIndex.Value);
+    await ReportTrackChangeAsync(
+      playSessionId,
+      "subtitleTrackChange",
+      new PlaybackTrackChange("subtitle", streamIndex),
+      cancellationToken);
   }
 
   private void OnPlaybackChanged(object? sender, EventArgs eventArgs)
@@ -183,26 +257,53 @@ internal sealed class PlaybackEventReporter : IHostedService, IDisposable
     {
       foreach (var session in snapshot.Sessions)
       {
-        if (!CanReportStart(session)
-            || HasStarted(session.PlaySessionId))
+        if (!CanReportStart(session))
+          continue;
+
+        if (!HasStarted(session.PlaySessionId))
         {
+          try
+          {
+            await eventClient.SendPlayingAsync(session, cancellationToken);
+            MarkStarted(session.PlaySessionId);
+            Remember(session);
+          }
+          catch (OperationCanceledException) when (cancellationToken
+            .IsCancellationRequested)
+          {
+            throw;
+          }
+          catch
+          {
+            // A later monitor change retries the start check-in.
+          }
+
           continue;
         }
 
-        try
+        var previous = Previous(session.PlaySessionId);
+        foreach (var eventName in ImmediateEvents(previous, session))
         {
-          await eventClient.SendPlayingAsync(session, cancellationToken);
-          MarkStarted(session.PlaySessionId);
+          try
+          {
+            await eventClient.SendProgressAsync(
+              session,
+              eventName,
+              null,
+              cancellationToken);
+          }
+          catch (OperationCanceledException) when (cancellationToken
+            .IsCancellationRequested)
+          {
+            throw;
+          }
+          catch
+          {
+            // Periodic progress will reconcile a transient failure.
+          }
         }
-        catch (OperationCanceledException) when (cancellationToken
-          .IsCancellationRequested)
-        {
-          throw;
-        }
-        catch
-        {
-          // A later monitor change retries the start check-in.
-        }
+
+        Remember(session);
       }
     }
   }
@@ -222,7 +323,11 @@ internal sealed class PlaybackEventReporter : IHostedService, IDisposable
 
         try
         {
-          await eventClient.SendProgressAsync(session, cancellationToken);
+          await eventClient.SendProgressAsync(
+            session,
+            "timeUpdate",
+            null,
+            cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken
           .IsCancellationRequested)
@@ -247,6 +352,68 @@ internal sealed class PlaybackEventReporter : IHostedService, IDisposable
   {
     lock (sync)
       startedSessions.Add(playSessionId);
+  }
+
+  private PlayerPlaybackSnapshot? Previous(Guid playSessionId)
+  {
+    lock (sync)
+      return lastSnapshots.GetValueOrDefault(playSessionId);
+  }
+
+  private void Remember(PlayerPlaybackSnapshot snapshot)
+  {
+    lock (sync)
+      lastSnapshots[snapshot.PlaySessionId] = snapshot;
+  }
+
+  private async Task ReportTrackChangeAsync(
+    Guid playSessionId,
+    string eventName,
+    PlaybackTrackChange trackChange,
+    CancellationToken cancellationToken)
+  {
+    if (!HasStarted(playSessionId)
+        || !playbackMonitor.TryGetSnapshot(playSessionId, out var snapshot)
+        || snapshot is null
+        || !CanReportStart(snapshot))
+    {
+      throw new InvalidOperationException(
+        "The playback session is not ready for a track change.");
+    }
+
+    await eventClient.SendProgressAsync(
+      snapshot,
+      eventName,
+      trackChange,
+      cancellationToken);
+  }
+
+  private static List<string> ImmediateEvents(
+    PlayerPlaybackSnapshot? previous,
+    PlayerPlaybackSnapshot current)
+  {
+    if (previous is null)
+      return [];
+
+    var events = new List<string>();
+    if (previous.State == PlayerPlaybackState.Playing
+        && current.State == PlayerPlaybackState.Paused)
+    {
+      events.Add("pause");
+    }
+    if (previous.State == PlayerPlaybackState.Paused
+        && current.State == PlayerPlaybackState.Playing)
+    {
+      events.Add("unpause");
+    }
+    if (current.HasSeeked
+        && current.PositionTicks != previous.PositionTicks)
+    {
+      events.Add("seek");
+    }
+    if (Math.Abs(current.PlaybackRate - previous.PlaybackRate) > 0.001)
+      events.Add("playbackRateChange");
+    return events;
   }
 
   private static bool CanReportStart(PlayerPlaybackSnapshot snapshot)

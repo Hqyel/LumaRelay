@@ -23,7 +23,6 @@ export type PlaybackProgressEvent =
   | "AudioTrackChange"
   | "Pause"
   | "PlaybackRateChange"
-  | "Seek"
   | "SubtitleTrackChange"
   | "TimeUpdate"
   | "Unpause";

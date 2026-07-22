@@ -3,6 +3,7 @@ import {
   EmbyMediaError,
   reportPlaybackProgress,
   reportPlaybackStarted,
+  type PlaybackProgressEvent,
   type PlaybackSessionInput,
 } from "@newemby/emby-client";
 import type { FastifyInstance } from "fastify";
@@ -25,9 +26,36 @@ export interface PlaybackRouteDependencies {
   reportProgress?: (
     baseUrl: string,
     input: PlaybackSessionInput,
-    eventName: "TimeUpdate",
+    eventName: PlaybackProgressEvent,
   ) => Promise<void>;
   serverStore: ServerStore;
+}
+
+function toEmbyProgressEvent(
+  eventName:
+    | "audioTrackChange"
+    | "pause"
+    | "playbackRateChange"
+    | "seek"
+    | "subtitleTrackChange"
+    | "timeUpdate"
+    | "unpause",
+): PlaybackProgressEvent {
+  switch (eventName) {
+    case "audioTrackChange":
+      return "AudioTrackChange";
+    case "pause":
+      return "Pause";
+    case "playbackRateChange":
+      return "PlaybackRateChange";
+    case "subtitleTrackChange":
+      return "SubtitleTrackChange";
+    case "unpause":
+      return "Unpause";
+    case "seek":
+    case "timeUpdate":
+      return "TimeUpdate";
+  }
 }
 
 export function registerPlaybackRoutes(
@@ -110,7 +138,10 @@ export function registerPlaybackRoutes(
       const deviceId = await dependencies.authSessionStore.getDeviceId();
       const upstreamInput: PlaybackSessionInput = {
         accessToken: authSession.accessToken,
-        audioStreamIndex: playback.selection.audioStreamIndex,
+        audioStreamIndex:
+          body.eventType === "progress" && body.audioStreamIndex !== undefined
+            ? body.audioStreamIndex
+            : playback.selection.audioStreamIndex,
         deviceId,
         isPaused: body.isPaused,
         itemId: playback.selection.itemId,
@@ -118,7 +149,11 @@ export function registerPlaybackRoutes(
         playbackRate: body.playbackRate,
         playSessionId: playback.playSessionId,
         positionTicks: body.positionTicks,
-        subtitleStreamIndex: playback.selection.subtitleStreamIndex,
+        subtitleStreamIndex:
+          body.eventType === "progress" &&
+          body.subtitleStreamIndex !== undefined
+            ? body.subtitleStreamIndex
+            : playback.selection.subtitleStreamIndex,
       };
       try {
         if (body.eventType === "playing") {
@@ -130,7 +165,7 @@ export function registerPlaybackRoutes(
           await (dependencies.reportProgress ?? reportPlaybackProgress)(
             server.baseUrl,
             upstreamInput,
-            "TimeUpdate",
+            toEmbyProgressEvent(body.eventName),
           );
         }
       } catch (error) {
@@ -171,6 +206,8 @@ export function registerPlaybackRoutes(
           playback.playSessionId,
           body.positionTicks,
           eventAt,
+          body.audioStreamIndex,
+          body.subtitleStreamIndex,
         );
       }
       return { requestId: request.id, success: true as const };

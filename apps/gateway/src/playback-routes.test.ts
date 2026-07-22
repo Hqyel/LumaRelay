@@ -188,6 +188,8 @@ describe("Bridge playback routes", () => {
       PLAY_SESSION_ID,
       110_000_000,
       expect.any(String),
+      undefined,
+      undefined,
     );
   });
 
@@ -226,5 +228,36 @@ describe("Bridge playback routes", () => {
     expect(response.statusCode).toBe(409);
     expect(response.json().error.code).toBe("PLAYBACK_EVENT_OUT_OF_ORDER");
     expect(reportProgress).not.toHaveBeenCalled();
+  });
+
+  it("maps and persists an explicit audio track change", async () => {
+    const { app, dependencies, reportProgress } = await createTestApp();
+    const options = requestOptions();
+    const response = await app.inject({
+      ...options,
+      body: {
+        audioStreamIndex: 3,
+        eventName: "audioTrackChange",
+        eventType: "progress",
+        isPaused: false,
+        playbackRate: 1,
+        playSessionId: PLAY_SESSION_ID,
+        positionTicks: 120_000_000,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(reportProgress).toHaveBeenCalledWith(
+      "https://emby.example.com/",
+      expect.objectContaining({ audioStreamIndex: 3 }),
+      "AudioTrackChange",
+    );
+    expect(dependencies.playTicketStore.markProgress).toHaveBeenCalledWith(
+      PLAY_SESSION_ID,
+      120_000_000,
+      expect.any(String),
+      3,
+      undefined,
+    );
   });
 });
