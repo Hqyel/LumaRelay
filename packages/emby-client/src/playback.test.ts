@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { reportPlaybackProgress, reportPlaybackStarted } from "./playback.js";
+import {
+  reportPlaybackProgress,
+  reportPlaybackStarted,
+  reportPlaybackStopped,
+} from "./playback.js";
 
 describe("playback check-ins", () => {
   it("reports Playing with the authenticated DirectPlay context", async () => {
@@ -69,6 +73,37 @@ describe("playback check-ins", () => {
     expect(JSON.parse(request.body as string)).toMatchObject({
       EventName: "TimeUpdate",
       PositionTicks: 110_000_000,
+    });
+  });
+
+  it("reports the final position when playback stops", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    await reportPlaybackStopped(
+      "https://emby.example.com/",
+      {
+        accessToken: "secret-token",
+        audioStreamIndex: 1,
+        deviceId: "gateway-device",
+        isPaused: false,
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        playbackRate: 1,
+        playSessionId: "11111111-1111-4111-8111-111111111111",
+        positionTicks: 580_000_000,
+        subtitleStreamIndex: null,
+      },
+      { fetch: fetcher },
+    );
+
+    const [url, request] = fetcher.mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      "https://emby.example.com/Sessions/Playing/Stopped",
+    );
+    expect(JSON.parse(request.body as string)).toMatchObject({
+      PlaySessionId: "11111111-1111-4111-8111-111111111111",
+      PositionTicks: 580_000_000,
     });
   });
 });

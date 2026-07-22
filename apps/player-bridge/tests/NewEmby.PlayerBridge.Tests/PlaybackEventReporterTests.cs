@@ -150,6 +150,74 @@ public sealed class PlaybackEventReporterTests
     await reporter.StopAsync(CancellationToken.None);
   }
 
+  [Theory]
+  [InlineData((int)PlayerPlaybackState.Ended, "ended")]
+  [InlineData((int)PlayerPlaybackState.Stopped, "userExit")]
+  [InlineData((int)PlayerPlaybackState.Closed, "userExit")]
+  public async Task ReportsTerminalPlayerStatesOnce(
+    int stateValue,
+    string expectedReason)
+  {
+    var state = (PlayerPlaybackState)stateValue;
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMinutes(1));
+    await reporter.StartAsync(CancellationToken.None);
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+
+    monitor.Publish(CreateSnapshot(state, positionTicks: 580_000_000));
+    await client.WaitForStoppedCountAsync(1);
+    monitor.Publish(CreateSnapshot(state, positionTicks: 580_000_000));
+    await Task.Delay(30);
+
+    var stopped = Assert.Single(client.StoppedEvents);
+    Assert.Equal(expectedReason, stopped.Reason);
+    Assert.Equal(580_000_000, stopped.Snapshot.PositionTicks);
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
+  [Fact]
+  public async Task ReportsPlayerExitWhenMatchedSessionDisappears()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMinutes(1));
+    await reporter.StartAsync(CancellationToken.None);
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+
+    monitor.PublishEmpty();
+    await client.WaitForStoppedCountAsync(1);
+
+    Assert.Equal("playerExit", client.StoppedEvents[0].Reason);
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
+  [Fact]
+  public async Task ReportsBridgeExitDuringGracefulShutdown()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMinutes(1));
+    await reporter.StartAsync(CancellationToken.None);
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+
+    await reporter.StopAsync(CancellationToken.None);
+
+    Assert.Equal("bridgeExit", client.StoppedEvents[0].Reason);
+  }
+
   private static PlayerPlaybackSnapshot CreateSnapshot(
     PlayerPlaybackState state,
     bool isTimelineStale = false,
@@ -184,6 +252,12 @@ public sealed class PlaybackEventReporterTests
       Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public void PublishEmpty()
+    {
+      Snapshot = PlayerPlaybackMonitorSnapshot.Empty;
+      Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public bool TryGetSnapshot(
       Guid playSessionId,
       out PlayerPlaybackSnapshot? snapshot)
@@ -201,6 +275,8 @@ public sealed class PlaybackEventReporterTests
     public List<PlayerPlaybackSnapshot> ProgressSnapshots { get; } = [];
 
     public List<RecordedProgressEvent> ProgressEvents { get; } = [];
+
+    public List<RecordedStoppedEvent> StoppedEvents { get; } = [];
 
     public Task SendPlayingAsync(
       PlayerPlaybackSnapshot snapshot,
@@ -221,6 +297,15 @@ public sealed class PlaybackEventReporterTests
       return Task.CompletedTask;
     }
 
+    public Task SendStoppedAsync(
+      PlayerPlaybackSnapshot snapshot,
+      string reason,
+      CancellationToken cancellationToken)
+    {
+      StoppedEvents.Add(new RecordedStoppedEvent(snapshot, reason));
+      return Task.CompletedTask;
+    }
+
     public async Task WaitForCountAsync(int count)
     {
       await WaitUntilAsync(() => PlayingSnapshots.Count >= count);
@@ -237,6 +322,11 @@ public sealed class PlaybackEventReporterTests
         item => item.Name == eventName));
     }
 
+    public async Task WaitForStoppedCountAsync(int count)
+    {
+      await WaitUntilAsync(() => StoppedEvents.Count >= count);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
       using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -247,5 +337,9 @@ public sealed class PlaybackEventReporterTests
     public sealed record RecordedProgressEvent(
       string Name,
       PlaybackTrackChange? TrackChange);
+
+    public sealed record RecordedStoppedEvent(
+      PlayerPlaybackSnapshot Snapshot,
+      string Reason);
   }
 }

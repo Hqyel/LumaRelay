@@ -64,6 +64,19 @@ export const PlaybackProgressRequestSchema = z
 export const PlaybackEventRequestSchema = z.discriminatedUnion("eventType", [
   PlaybackPlayingRequestSchema,
   PlaybackProgressRequestSchema,
+  z.object({
+    eventType: z.literal("stopped"),
+    playSessionId: z.uuid(),
+    playbackRate: z.number().positive().max(16),
+    positionTicks: PlaybackTicksSchema,
+    reason: z.enum([
+      "bridgeExit",
+      "ended",
+      "playerExit",
+      "sessionLost",
+      "userExit",
+    ]),
+  }),
 ]);
 
 export const PlaybackEventResponseSchema = z.object({

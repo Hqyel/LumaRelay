@@ -77,6 +77,7 @@ function createDependencies() {
     issue: vi.fn(),
     markProgress: vi.fn(),
     markStarted: vi.fn(),
+    markStopped: vi.fn(),
     pruneInactive: vi.fn(),
     redeem: vi.fn(),
   };
@@ -105,14 +106,21 @@ async function createTestApp() {
   const dependencies = createDependencies();
   const reportStarted = vi.fn().mockResolvedValue(undefined);
   const reportProgress = vi.fn().mockResolvedValue(undefined);
+  const reportStopped = vi.fn().mockResolvedValue(undefined);
   const app = await buildApp({
     ...dependencies,
     config: loadConfig({ NODE_ENV: "test" }),
     logger: false,
-    playback: { reportProgress, reportStarted },
+    playback: { reportProgress, reportStarted, reportStopped },
   });
   apps.push(app);
-  return { app, dependencies, reportProgress, reportStarted };
+  return {
+    app,
+    dependencies,
+    reportProgress,
+    reportStarted,
+    reportStopped,
+  };
 }
 
 function requestOptions() {
@@ -258,6 +266,35 @@ describe("Bridge playback routes", () => {
       expect.any(String),
       3,
       undefined,
+    );
+  });
+
+  it("reports Stopped and closes the persisted playback session", async () => {
+    const { app, dependencies, reportStopped } = await createTestApp();
+    const options = requestOptions();
+    const response = await app.inject({
+      ...options,
+      body: {
+        eventType: "stopped",
+        playbackRate: 1,
+        playSessionId: PLAY_SESSION_ID,
+        positionTicks: 580_000_000,
+        reason: "ended",
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(reportStopped).toHaveBeenCalledWith(
+      "https://emby.example.com/",
+      expect.objectContaining({
+        playSessionId: PLAY_SESSION_ID,
+        positionTicks: 580_000_000,
+      }),
+    );
+    expect(dependencies.playTicketStore.markStopped).toHaveBeenCalledWith(
+      PLAY_SESSION_ID,
+      580_000_000,
+      expect.any(String),
     );
   });
 });

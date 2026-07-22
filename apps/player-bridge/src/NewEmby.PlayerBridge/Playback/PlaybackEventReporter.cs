@@ -18,6 +18,11 @@ internal interface IPlaybackEventClient
     string eventName,
     PlaybackTrackChange? trackChange,
     CancellationToken cancellationToken);
+
+  Task SendStoppedAsync(
+    PlayerPlaybackSnapshot snapshot,
+    string reason,
+    CancellationToken cancellationToken);
 }
 
 internal sealed record PlaybackTrackChange(
@@ -45,7 +50,13 @@ internal sealed class GatewayPlaybackEventClient(
     PlayerPlaybackSnapshot snapshot,
     CancellationToken cancellationToken)
   {
-    await SendAsync(snapshot, "playing", null, null, cancellationToken);
+    await SendAsync(
+      snapshot,
+      "playing",
+      null,
+      null,
+      null,
+      cancellationToken);
   }
 
   public async Task SendProgressAsync(
@@ -58,7 +69,22 @@ internal sealed class GatewayPlaybackEventClient(
       snapshot,
       "progress",
       eventName,
+      null,
       trackChange,
+      cancellationToken);
+  }
+
+  public async Task SendStoppedAsync(
+    PlayerPlaybackSnapshot snapshot,
+    string reason,
+    CancellationToken cancellationToken)
+  {
+    await SendAsync(
+      snapshot,
+      "stopped",
+      null,
+      reason,
+      null,
       cancellationToken);
   }
 
@@ -66,6 +92,7 @@ internal sealed class GatewayPlaybackEventClient(
     PlayerPlaybackSnapshot snapshot,
     string eventType,
     string? eventName,
+    string? reason,
     PlaybackTrackChange? trackChange,
     CancellationToken cancellationToken)
   {
@@ -82,6 +109,7 @@ internal sealed class GatewayPlaybackEventClient(
         snapshot,
         eventType,
         eventName,
+        reason,
         trackChange)),
     };
     BridgeDeviceAuthentication.Apply(
@@ -105,6 +133,7 @@ internal sealed class GatewayPlaybackEventClient(
     PlayerPlaybackSnapshot snapshot,
     string eventType,
     string? eventName,
+    string? reason,
     PlaybackTrackChange? trackChange)
   {
     var body = new Dictionary<string, object?>
@@ -117,6 +146,8 @@ internal sealed class GatewayPlaybackEventClient(
     };
     if (eventName is not null)
       body["eventName"] = eventName;
+    if (reason is not null)
+      body["reason"] = reason;
     if (trackChange?.Kind == "audio")
       body["audioStreamIndex"] = trackChange.StreamIndex;
     if (trackChange?.Kind == "subtitle")
@@ -143,6 +174,7 @@ internal sealed class PlaybackEventReporter
         SingleWriter = false,
       });
   private readonly HashSet<Guid> startedSessions = [];
+  private readonly HashSet<Guid> stoppedSessions = [];
   private readonly Dictionary<Guid, PlayerPlaybackSnapshot> lastSnapshots =
     [];
   private readonly object sync = new();
@@ -186,6 +218,7 @@ internal sealed class PlaybackEventReporter
       return;
 
     playbackMonitor.Changed -= OnPlaybackChanged;
+    await ReportRemainingStoppedAsync("bridgeExit", cancellationToken);
     source.Cancel();
     updates.Writer.TryComplete();
     try
@@ -257,6 +290,19 @@ internal sealed class PlaybackEventReporter
     {
       foreach (var session in snapshot.Sessions)
       {
+        if (HasStarted(session.PlaySessionId)
+            && IsTerminal(session.State))
+        {
+          await TryReportStoppedAsync(
+            session,
+            session.State == PlayerPlaybackState.Ended
+              ? "ended"
+              : "userExit",
+            cancellationToken);
+          Remember(session);
+          continue;
+        }
+
         if (!CanReportStart(session))
           continue;
 
@@ -305,6 +351,27 @@ internal sealed class PlaybackEventReporter
 
         Remember(session);
       }
+
+      var currentIds = snapshot.Sessions
+        .Select(session => session.PlaySessionId)
+        .ToHashSet();
+      foreach (var playSessionId in StartedSessionIds())
+      {
+        if (currentIds.Contains(playSessionId)
+            || HasStopped(playSessionId))
+        {
+          continue;
+        }
+
+        var previous = Previous(playSessionId);
+        if (previous is not null)
+        {
+          await TryReportStoppedAsync(
+            previous,
+            "playerExit",
+            cancellationToken);
+        }
+      }
     }
   }
 
@@ -316,7 +383,8 @@ internal sealed class PlaybackEventReporter
       foreach (var session in playbackMonitor.Snapshot.Sessions)
       {
         if (!CanReportStart(session)
-            || !HasStarted(session.PlaySessionId))
+            || !HasStarted(session.PlaySessionId)
+            || HasStopped(session.PlaySessionId))
         {
           continue;
         }
@@ -354,6 +422,24 @@ internal sealed class PlaybackEventReporter
       startedSessions.Add(playSessionId);
   }
 
+  private bool HasStopped(Guid playSessionId)
+  {
+    lock (sync)
+      return stoppedSessions.Contains(playSessionId);
+  }
+
+  private void MarkStopped(Guid playSessionId)
+  {
+    lock (sync)
+      stoppedSessions.Add(playSessionId);
+  }
+
+  private Guid[] StartedSessionIds()
+  {
+    lock (sync)
+      return startedSessions.ToArray();
+  }
+
   private PlayerPlaybackSnapshot? Previous(Guid playSessionId)
   {
     lock (sync)
@@ -388,6 +474,48 @@ internal sealed class PlaybackEventReporter
       cancellationToken);
   }
 
+  private async Task ReportRemainingStoppedAsync(
+    string reason,
+    CancellationToken cancellationToken)
+  {
+    foreach (var playSessionId in StartedSessionIds())
+    {
+      if (HasStopped(playSessionId))
+        continue;
+
+      var snapshot = Previous(playSessionId);
+      if (snapshot is not null)
+        await TryReportStoppedAsync(snapshot, reason, cancellationToken);
+    }
+  }
+
+  private async Task TryReportStoppedAsync(
+    PlayerPlaybackSnapshot snapshot,
+    string reason,
+    CancellationToken cancellationToken)
+  {
+    if (HasStopped(snapshot.PlaySessionId))
+      return;
+
+    try
+    {
+      await eventClient.SendStoppedAsync(
+        snapshot,
+        reason,
+        cancellationToken);
+      MarkStopped(snapshot.PlaySessionId);
+    }
+    catch (OperationCanceledException) when (cancellationToken
+      .IsCancellationRequested)
+    {
+      throw;
+    }
+    catch
+    {
+      // A later terminal observation or offline queue retries Stopped.
+    }
+  }
+
   private static List<string> ImmediateEvents(
     PlayerPlaybackSnapshot? previous,
     PlayerPlaybackSnapshot current)
@@ -414,6 +542,13 @@ internal sealed class PlaybackEventReporter
     if (Math.Abs(current.PlaybackRate - previous.PlaybackRate) > 0.001)
       events.Add("playbackRateChange");
     return events;
+  }
+
+  private static bool IsTerminal(PlayerPlaybackState state)
+  {
+    return state == PlayerPlaybackState.Ended
+      || state == PlayerPlaybackState.Stopped
+      || state == PlayerPlaybackState.Closed;
   }
 
   private static bool CanReportStart(PlayerPlaybackSnapshot snapshot)

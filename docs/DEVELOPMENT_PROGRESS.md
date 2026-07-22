@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 19/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 20/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -298,7 +298,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M2-018` 实现 Playing 回传。
 - [x] `M2-019` 实现 10 秒 Progress 心跳。
 - [x] `M2-020` 暂停、恢复、拖动和轨道变化即时回传。
-- [ ] `M2-021` 正常结束、主动退出和异常退出发送 Stopped。
+- [x] `M2-021` 正常结束、主动退出和异常退出发送 Stopped。
 - [ ] `M2-022` 实现事件序号、幂等和临时断网队列。
 
 ### 7.5 Web 交互与测试
@@ -520,7 +520,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-021`，覆盖正常结束、主动退出和异常退出的 Stopped 回传。
+1. 开始 `M2-022`，实现播放事件序号、Gateway 幂等和 Bridge 临时断网队列。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -548,6 +548,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-021 | 完成 | Bridge 对所有已成功 Playing 的会话建立终态收口：Ended 使用最后有效位置发送一次 `ended` Stopped；Stopped/Closed 发送 `userExit`；已开始会话从匹配快照消失发送 `playerExit`；Bridge 优雅关闭前为仍活跃会话尽力补发 `bridgeExit`。心跳会忽略已确认停止的会话，失败的 Stopped 不会误标完成，可由后续终态观察重试。Gateway 继续按设备绑定 PlaybackSession 恢复加密登录上下文，调用 Emby `/Sessions/Playing/Stopped` 成功后原子保存最终位置和 `stoppedAt`。Contracts 13 项、Emby Client 60 项、Gateway 101 项和 Bridge 110 项测试通过，覆盖自然结束、主动停止/关闭、快照消失和宿主关闭 | Contracts、Emby Client、Gateway、SQLite PlaybackSession、Player Bridge、项目计划、进度表 | M2-022 |
+| 2026-07-22 | M2-021 | 进行中 | 正在扩展 Stopped 契约与播放回传器终态处理：Ended 视为自然结束，Stopped/Closed 视为播放器主动退出，已开始会话从快照消失视为进程或会话异常退出，Bridge 宿主关闭前也会尽力补发；同一 PlaySessionId 只在上游成功后标记已停止 | Contracts、Emby Client、Gateway、Player Bridge、进度表 | 完成自然结束、主动/异常退出与宿主关闭测试 |
 | 2026-07-22 | M2-020 | 完成 | Bridge 为每个已开始 PlaySession 保存上一份处理快照，Playing→Paused 立即发送 Pause、Paused→Playing 立即发送 Unpause、真实位置跳转立即发送本地 `seek` 并由 Gateway 按 Emby 官方枚举映射为 TimeUpdate，速率变化发送 PlaybackRateChange，均不等待 10 秒心跳。GSMTC 不公开音字幕索引，因而未伪造检测结果；新增受控 `IPlaybackInteractionReporter` 显式提交 AudioTrackChange 与 SubtitleTrackChange，Gateway 校验索引、沿用设备/会话绑定，并仅在 Emby 成功接收后持久化新轨道（字幕 `null` 表示关闭）。Contracts 13 项、Emby Client 59 项、Gateway 100 项和 Bridge 105 项测试通过；相关类型检查与 .NET 测试通过 | Contracts、Emby Client、Gateway、SQLite PlaybackSession、Player Bridge、项目计划、进度表 | M2-021 |
 | 2026-07-22 | M2-020 | 进行中 | 正在扩展 Progress 事件契约与 Bridge 快照差分：Playing→Paused 映射 Pause、Paused→Playing 映射 Unpause、真实跳转立即映射 TimeUpdate；GSMTC 不公开音字幕索引，因此轨道变化由受控本地交互接口显式提交并在 Gateway 成功回传后更新 PlaybackSession | Contracts、Emby Client、Gateway、Player Bridge、进度表 | 完成即时性、去重和轨道选择持久化测试 |
 | 2026-07-22 | M2-019 | 完成 | 已成功 Playing 的会话由 Bridge 独立 10 秒周期读取最新 GSMTC 快照并发送 `progress/timeUpdate`，Gateway 映射为 Emby `/Sessions/Playing/Progress` 的 `TimeUpdate`，携带最新位置、暂停状态、速率和持久化音字幕选择，并记录最后位置与事件时间。未完成 Playing 的 Progress 在 Gateway 返回 `PLAYBACK_EVENT_OUT_OF_ORDER`，匹配消失或时间线陈旧后 Bridge 停止心跳；单次网络失败不终止后台服务，下一周期自动重试。Contracts 13 项、Emby Client 59 项、Gateway 99 项和 Bridge 103 项测试通过，相关 lint/typecheck、.NET format/build（0 警告/0 错误）及差异检查通过 | Contracts、Emby Client、Gateway、SQLite PlaybackSession、Player Bridge、项目计划、进度表 | M2-020 |

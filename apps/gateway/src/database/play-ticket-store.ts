@@ -53,6 +53,11 @@ export interface PlayTicketStore {
   ): Promise<StoredPlaybackSession | null>;
   issue(input: IssuePlayTicketInput): Promise<IssuedPlayTicket | null>;
   markStarted?(playSessionId: string, startedAt: string): Promise<void>;
+  markStopped?(
+    playSessionId: string,
+    positionTicks: number,
+    stoppedAt: string,
+  ): Promise<void>;
   markProgress?(
     playSessionId: string,
     positionTicks: number,
@@ -211,6 +216,24 @@ export function createPlayTicketStore(
         })
         .where("id", "=", playSessionId)
         .where("startedAt", "is", null)
+        .execute();
+    },
+
+    async markStopped(
+      playSessionId: string,
+      positionTicks: number,
+      stoppedAt: string,
+    ): Promise<void> {
+      await database
+        .updateTable("playbackSessions")
+        .set({
+          lastEventAt: stoppedAt,
+          lastPositionTicks: positionTicks,
+          stoppedAt,
+        })
+        .where("id", "=", playSessionId)
+        .where("startedAt", "is not", null)
+        .where("stoppedAt", "is", null)
         .execute();
     },
 

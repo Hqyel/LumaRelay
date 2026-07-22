@@ -3,6 +3,7 @@ import {
   EmbyMediaError,
   reportPlaybackProgress,
   reportPlaybackStarted,
+  reportPlaybackStopped,
   type PlaybackProgressEvent,
   type PlaybackSessionInput,
 } from "@newemby/emby-client";
@@ -27,6 +28,10 @@ export interface PlaybackRouteDependencies {
     baseUrl: string,
     input: PlaybackSessionInput,
     eventName: PlaybackProgressEvent,
+  ) => Promise<void>;
+  reportStopped?: (
+    baseUrl: string,
+    input: PlaybackSessionInput,
   ) => Promise<void>;
   serverStore: ServerStore;
 }
@@ -73,6 +78,7 @@ export function registerPlaybackRoutes(
         dependencies.playTicketStore.findPlaybackSession === undefined ||
         dependencies.playTicketStore.markProgress === undefined ||
         dependencies.playTicketStore.markStarted === undefined ||
+        dependencies.playTicketStore.markStopped === undefined ||
         dependencies.authSessionStore.findById === undefined ||
         dependencies.serverStore.getById === undefined
       ) {
@@ -102,13 +108,13 @@ export function registerPlaybackRoutes(
             ),
           );
       }
-      if (body.eventType === "progress" && playback.startedAt === null) {
+      if (body.eventType !== "playing" && playback.startedAt === null) {
         return reply
           .status(409)
           .send(
             errorEnvelope(
               "PLAYBACK_EVENT_OUT_OF_ORDER",
-              "Playback progress cannot be reported before playback starts",
+              "Playback events cannot be reported before playback starts",
               request.id,
             ),
           );
@@ -143,7 +149,7 @@ export function registerPlaybackRoutes(
             ? body.audioStreamIndex
             : playback.selection.audioStreamIndex,
         deviceId,
-        isPaused: body.isPaused,
+        isPaused: body.eventType === "stopped" ? false : body.isPaused,
         itemId: playback.selection.itemId,
         mediaSourceId: playback.selection.mediaSourceId,
         playbackRate: body.playbackRate,
@@ -161,11 +167,16 @@ export function registerPlaybackRoutes(
             server.baseUrl,
             upstreamInput,
           );
-        } else {
+        } else if (body.eventType === "progress") {
           await (dependencies.reportProgress ?? reportPlaybackProgress)(
             server.baseUrl,
             upstreamInput,
             toEmbyProgressEvent(body.eventName),
+          );
+        } else {
+          await (dependencies.reportStopped ?? reportPlaybackStopped)(
+            server.baseUrl,
+            upstreamInput,
           );
         }
       } catch (error) {
@@ -201,13 +212,19 @@ export function registerPlaybackRoutes(
           playback.playSessionId,
           eventAt,
         );
-      } else {
+      } else if (body.eventType === "progress") {
         await dependencies.playTicketStore.markProgress(
           playback.playSessionId,
           body.positionTicks,
           eventAt,
           body.audioStreamIndex,
           body.subtitleStreamIndex,
+        );
+      } else {
+        await dependencies.playTicketStore.markStopped(
+          playback.playSessionId,
+          body.positionTicks,
+          eventAt,
         );
       }
       return { requestId: request.id, success: true as const };

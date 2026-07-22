@@ -126,3 +126,17 @@ export async function reportPlaybackProgress(
     options,
   );
 }
+
+export async function reportPlaybackStopped(
+  baseUrl: string,
+  input: PlaybackSessionInput,
+  options: PlaybackClientOptions = {},
+): Promise<void> {
+  await postPlayback(
+    baseUrl,
+    "/Sessions/Playing/Stopped",
+    input,
+    playbackBody(input),
+    options,
+  );
+}

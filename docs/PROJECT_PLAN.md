@@ -332,6 +332,14 @@ Bridge 对同一 PlaySessionId 保存上一份已处理快照：Playing→Paused
 提交 `AudioTrackChange` / `SubtitleTrackChange`，Gateway 仅在 Emby 接受后更新
 PlaybackSession 中的轨道选择，字幕索引 `null` 表示关闭字幕。
 
+已成功 Playing 的会话进入 Ended 时以最后有效位置发送 `Stopped`（reason
+`ended`）；进入 Stopped/Closed 时按播放器主动退出发送（`userExit`）；匹配快照
+中消失时按播放器进程或会话异常退出发送（`playerExit`）。Bridge 优雅关闭前还会
+为仍活跃会话尽力补发 `bridgeExit`。Stopped 使用与 Playing 相同的授权媒体上下文
+调用 Emby `/Sessions/Playing/Stopped`，成功后原子写入 PlaybackSession 的最终位置
+和停止时间；同一 Bridge 进程对一个 PlaySessionId 只确认一次成功 Stopped，失败
+保留为未停止，供后续终态观察或离线队列重试。
+
 ## 5. 前台信息架构
 
 ### 5.1 全局导航
