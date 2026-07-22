@@ -11,6 +11,7 @@ import {
   ErrorEnvelopeSchema,
   HealthResponseSchema,
   LocalBridgeStatusSchema,
+  LocalPlaybackStatusResponseSchema,
   MediaHomeResponseSchema,
   PLAY_TICKET_LIFETIME_SECONDS,
   PlayTicketSchema,
@@ -211,6 +212,25 @@ describe("shared API contracts", () => {
         status: "ready",
       }).isPaired,
     ).toBe(true);
+  });
+
+  it("validates truthful local playback synchronization states", () => {
+    expect(
+      LocalPlaybackStatusResponseSchema.parse({
+        sessions: [
+          {
+            durationTicks: 7_200_000_000,
+            itemId: "item-1",
+            playSessionId: "22222222-2222-4222-8222-222222222222",
+            positionTicks: 600_000_000,
+            state: "paused",
+            syncState: "stale",
+            updatedAt: "2026-07-22T12:00:00.000Z",
+            warning: "SMTC_STALE",
+          },
+        ],
+      }).sessions[0]?.warning,
+    ).toBe("SMTC_STALE");
   });
 
   it("rejects malformed PlayTickets and unsafe playback values", () => {

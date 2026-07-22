@@ -1,8 +1,10 @@
 import {
   LocalBridgeStatusSchema,
+  LocalPlaybackStatusResponseSchema,
   LocalPlaybackStartResponseSchema,
   type LocalBridgeStatus,
   type LocalPlaybackStartResponse,
+  type LocalPlaybackStatusResponse,
 } from "@newemby/contracts";
 
 export const LOCAL_BRIDGE_API_VERSION = 1;
@@ -100,4 +102,17 @@ export async function startLocalPlayback(
       `Local Bridge rejected playback with HTTP ${response.status}`,
     );
   return LocalPlaybackStartResponseSchema.parse(await response.json());
+}
+
+export async function fetchLocalPlaybackStatus(
+  signal?: AbortSignal,
+): Promise<LocalPlaybackStatusResponse> {
+  const response = await fetch(`${LOCAL_BRIDGE_BASE_URL}/v1/playback/status`, {
+    cache: "no-store",
+    headers: { accept: "application/json" },
+    signal,
+  });
+  if (!response.ok)
+    throw new Error(`Local Bridge returned HTTP ${response.status}`);
+  return LocalPlaybackStatusResponseSchema.parse(await response.json());
 }

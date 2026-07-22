@@ -11,7 +11,8 @@ internal sealed record LocalPlaybackSelection(
 
 internal sealed record LocalPlaybackSession(
   Guid PlaySessionId,
-  LocalPlaybackSelection Selection);
+  LocalPlaybackSelection Selection,
+  DateTimeOffset CreatedAt);
 
 internal sealed class LocalPlaybackSessionStore
 {
@@ -26,6 +27,13 @@ internal sealed class LocalPlaybackSessionStore
   public bool Remove(Guid playSessionId)
   {
     return sessions.TryRemove(playSessionId, out _);
+  }
+
+  public IReadOnlyList<LocalPlaybackSession> List()
+  {
+    return sessions.Values
+      .OrderByDescending(session => session.CreatedAt)
+      .ToArray();
   }
 
   public bool TryGet(Guid playSessionId, out LocalPlaybackSession session)

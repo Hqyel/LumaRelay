@@ -1,7 +1,11 @@
 import type { LocalBridgeStatus } from "@newemby/contracts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { bridgeCapabilityModel, bridgePairingUri } from "./bridge-client.js";
+import {
+  bridgeCapabilityModel,
+  bridgePairingUri,
+  fetchLocalPlaybackStatus,
+} from "./bridge-client.js";
 
 const status: LocalBridgeStatus = {
   apiVersion: 1,
@@ -54,5 +58,35 @@ describe("local Bridge client", () => {
     expect(uri).toContain("newemby://pair?");
     expect(uri).toContain("gateway=http%3A%2F%2F127.0.0.1%3A5173");
     expect(uri).toContain(`code=${"A".repeat(43)}`);
+  });
+
+  it("parses truthful local playback status without credentials", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          sessions: [
+            {
+              durationTicks: 7_200_000_000,
+              itemId: "item-1",
+              playSessionId: "22222222-2222-4222-8222-222222222222",
+              positionTicks: 600_000_000,
+              state: "playing",
+              syncState: "synchronized",
+              updatedAt: "2026-07-22T12:00:00.000Z",
+              warning: null,
+            },
+          ],
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    await expect(fetchLocalPlaybackStatus()).resolves.toMatchObject({
+      sessions: [{ itemId: "item-1", state: "playing" }],
+    });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "http://127.0.0.1:58080/v1/playback/status",
+    );
+    fetchMock.mockRestore();
   });
 });

@@ -63,6 +63,45 @@ export const LocalBridgeStatusSchema = z.object({
   status: z.literal("ready"),
 });
 
+export const LocalPlaybackStateSchema = z.enum([
+  "launching",
+  "playing",
+  "paused",
+  "stopped",
+  "ended",
+  "unavailable",
+]);
+
+export const LocalPlaybackSyncStateSchema = z.enum([
+  "waiting",
+  "synchronized",
+  "stale",
+  "unavailable",
+]);
+
+export const LocalPlaybackWarningSchema = z.enum([
+  "SMTC_STALE",
+  "SMTC_AMBIGUOUS",
+  "SMTC_MATCH_TIMEOUT",
+  "PLAYER_EXITED",
+  "SMTC_NOT_MATCHED",
+]);
+
+export const LocalPlaybackStatusItemSchema = z.object({
+  durationTicks: z.number().int().nonnegative(),
+  itemId: z.string().trim().min(1).max(256),
+  playSessionId: z.uuid(),
+  positionTicks: z.number().int().nonnegative(),
+  state: LocalPlaybackStateSchema,
+  syncState: LocalPlaybackSyncStateSchema,
+  updatedAt: z.iso.datetime(),
+  warning: LocalPlaybackWarningSchema.nullable(),
+});
+
+export const LocalPlaybackStatusResponseSchema = z.object({
+  sessions: z.array(LocalPlaybackStatusItemSchema),
+});
+
 export const BridgeDeviceSummarySchema = z.object({
   bridgeVersion: BridgeVersionSchema,
   deviceId: z.uuid(),
@@ -116,6 +155,12 @@ export type BridgePairingCodeResponse = z.infer<
   typeof BridgePairingCodeResponseSchema
 >;
 export type LocalBridgeStatus = z.infer<typeof LocalBridgeStatusSchema>;
+export type LocalPlaybackStatusItem = z.infer<
+  typeof LocalPlaybackStatusItemSchema
+>;
+export type LocalPlaybackStatusResponse = z.infer<
+  typeof LocalPlaybackStatusResponseSchema
+>;
 export type BridgeDeviceSummary = z.infer<typeof BridgeDeviceSummarySchema>;
 export type RedeemBridgePairingCodeRequest = z.infer<
   typeof RedeemBridgePairingCodeRequestSchema

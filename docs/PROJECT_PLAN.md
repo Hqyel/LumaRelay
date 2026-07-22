@@ -182,11 +182,18 @@ nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network 
 8. Bridge 确认播放器开始读取文件后报告 Playing。
 9. 每 10 秒报告一次 Progress；暂停、恢复、跳转立即报告。
 10. 正常结束、用户退出或进程异常退出时报告 Stopped。
-11. Web 轮询 Bridge 的本地真实状态显示“正在本地播放”。
+11. Web 每秒轮询受 Origin 保护的 `GET /v1/playback/status`，把本地会话、
+    PotPlayer 匹配和 SMTC 时间线的交集显示为当前播放浮层。
 
 播放准备与流代理的浏览器响应、本地回环 URL、PotPlayer 命令行均不包含 Emby
 AccessToken。Gateway 在签发票据前重新校验媒体源和音字幕选择，Bridge 的本地
 播放会话只存在于进程内；字幕仅允许 Emby 标记为文本的流。
+
+当前播放状态将 `launching`、`playing`、`paused`、`stopped`、`ended` 和
+`unavailable` 分开，并独立声明 `waiting`、`synchronized`、`stale` 或
+`unavailable` 同步质量。只有新鲜的匹配 SMTC 时间线可显示为完整同步；时间线
+陈旧、多实例歧义、匹配超时和播放器退出都提供明确警告，不能沿用最后一次绿色
+状态。
 
 ### 4.3 PlayTicket 设计
 

@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using NewEmby.PlayerBridge.Hosting;
 using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Players;
@@ -37,7 +38,9 @@ public sealed class LocalPlaybackEndpointTests
     {
       BaseAddress = new Uri($"http://127.0.0.1:{port}"),
     };
-    using var start = new HttpRequestMessage(HttpMethod.Post, "/v1/playback/start")
+    using var start = new HttpRequestMessage(
+      HttpMethod.Post,
+      "/v1/playback/start")
     {
       Content = JsonContent.Create(new { playTicket = Ticket() }),
     };
@@ -45,6 +48,11 @@ public sealed class LocalPlaybackEndpointTests
     start.Headers.Add("X-NewEmby-Nonce", "N".PadRight(43, 'N'));
 
     using var startResponse = await localClient.SendAsync(start);
+    using var statusRequest = new HttpRequestMessage(
+      HttpMethod.Get,
+      "/v1/playback/status");
+    statusRequest.Headers.Add("Origin", AllowedOrigin);
+    using var statusResponse = await localClient.SendAsync(statusRequest);
     using var mediaRequest = new HttpRequestMessage(
       HttpMethod.Get,
       $"/v1/playback/{PlaySessionId}/media");
@@ -54,13 +62,24 @@ public sealed class LocalPlaybackEndpointTests
     using var mediaResponse = await localClient.SendAsync(mediaRequest);
 
     Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+    Assert.Equal(HttpStatusCode.OK, statusResponse.StatusCode);
+    using var status = JsonDocument.Parse(
+      await statusResponse.Content.ReadAsStringAsync());
+    Assert.Equal(
+      "launching",
+      status.RootElement
+        .GetProperty("sessions")[0]
+        .GetProperty("state")
+        .GetString());
     Assert.NotNull(player.Request);
     Assert.Equal(600_000_000, player.Request.ResumeTicks);
     Assert.Equal(
       $"http://127.0.0.1:{port}/v1/playback/{PlaySessionId}/media",
       player.Request.MediaUri.AbsoluteUri);
     Assert.Equal(HttpStatusCode.PartialContent, mediaResponse.StatusCode);
-    Assert.Equal("media-bytes", await mediaResponse.Content.ReadAsStringAsync());
+    Assert.Equal(
+      "media-bytes",
+      await mediaResponse.Content.ReadAsStringAsync());
     Assert.Equal("bytes=100-", gateway.Range);
     Assert.Equal(2, gateway.Nonces.Distinct(StringComparer.Ordinal).Count());
     await application.StopAsync();

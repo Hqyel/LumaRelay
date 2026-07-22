@@ -86,6 +86,12 @@ internal static class BridgeHost
       playbackSessions,
       player,
       serverOptions.Port);
+    LocalPlaybackStatusEndpoint.Map(
+      application,
+      security,
+      playbackSessions,
+      sessionMatcher,
+      playbackMonitor);
     return application;
   }
 

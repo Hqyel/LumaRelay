@@ -119,6 +119,12 @@ and forwards byte ranges. The Gateway restores the encrypted Emby session and
 proxies the static stream, so neither the local URL nor the player arguments
 contain an Emby access token.
 
+`GET /v1/playback/status` is available only to the paired browser Origin. It
+combines each in-memory local playback session with the exact PotPlayer match
+and latest SMTC timeline. A session is reported as synchronized only while a
+fresh matched timeline exists; stale timelines, ambiguous instances, matching
+timeouts and exited players are returned as explicit degraded states.
+
 The PotPlayer adapter builds process launches without a command shell and adds
 every value through `ProcessStartInfo.ArgumentList`. It always requests `/new`,
 adds `/seek=HH:MM:SS.mmm` only for a non-zero resume point, identifies the

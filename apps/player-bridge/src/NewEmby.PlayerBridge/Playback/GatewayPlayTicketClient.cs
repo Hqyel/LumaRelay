@@ -38,13 +38,15 @@ internal sealed class GatewayPlayTicketClient(
 
     var payload = await response.Content.ReadFromJsonAsync<RedeemResponse>(
       cancellationToken: cancellationToken)
-      ?? throw new JsonException("Gateway returned an empty PlayTicket response.");
+      ?? throw new JsonException(
+        "Gateway returned an empty PlayTicket response.");
     if (!Guid.TryParse(payload.PlaySessionId, out var playSessionId)
         || string.IsNullOrWhiteSpace(payload.Selection?.ItemId)
         || string.IsNullOrWhiteSpace(payload.Selection.MediaSourceId)
         || payload.Selection.ResumeTicks < 0)
     {
-      throw new JsonException("Gateway returned an invalid PlayTicket response.");
+      throw new JsonException(
+        "Gateway returned an invalid PlayTicket response.");
     }
 
     return new LocalPlaybackSession(
@@ -54,7 +56,8 @@ internal sealed class GatewayPlayTicketClient(
         payload.Selection.MediaSourceId,
         payload.Selection.ResumeTicks,
         payload.Selection.AudioStreamIndex,
-        payload.Selection.SubtitleStreamIndex));
+        payload.Selection.SubtitleStreamIndex),
+      DateTimeOffset.UtcNow);
   }
 
   private sealed record RedeemResponse(

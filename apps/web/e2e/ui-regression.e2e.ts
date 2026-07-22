@@ -812,6 +812,88 @@ test("local playback preparation is accessible and starts the Bridge", async ({
   expect(started).toBe(true);
 });
 
+test("current playback reflects live Bridge timeline states", async ({
+  page,
+}) => {
+  let paused = false;
+  await page.route("http://127.0.0.1:58080/v1/status**", async (route) => {
+    await route.fulfill({
+      headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
+      json: {
+        apiVersion: 1,
+        applicationId: "NewEmby.PlayerBridge",
+        architecture: "x64",
+        bridgeVersion: "0.1.0",
+        compatibility: {
+          isCompatible: true,
+          maximumClientApiVersion: 1,
+          minimumClientApiVersion: 1,
+          requestedApiVersion: 1,
+        },
+        deviceId: "11111111-1111-4111-8111-111111111111",
+        isPaired: true,
+        platform: "windows",
+        players: [
+          {
+            adapterId: "potplayer",
+            architecture: "x64",
+            displayName: "PotPlayer",
+            isAvailable: true,
+            isRunning: true,
+            version: "1.7.22398.0",
+          },
+        ],
+        smtc: {
+          capability: "ready",
+          isMonitoring: true,
+          potPlayerSessionCount: 1,
+          potPlayerSessionState: "detected",
+          sessionCount: 1,
+        },
+        status: "ready",
+      },
+    });
+  });
+  await page.route(
+    "http://127.0.0.1:58080/v1/playback/status",
+    async (route) => {
+      await route.fulfill({
+        headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
+        json: {
+          sessions: [
+            {
+              durationTicks: 72_000_000_000,
+              itemId: "movie-1",
+              playSessionId: "22222222-2222-4222-8222-222222222222",
+              positionTicks: paused ? 9_300_000_000 : 9_000_000_000,
+              state: paused ? "paused" : "playing",
+              syncState: "synchronized",
+              updatedAt: "2026-07-22T12:00:00.000Z",
+              warning: null,
+            },
+          ],
+        },
+      });
+    },
+  );
+  await mockPageApi(page, true);
+  await page.goto("/home");
+
+  const panel = page.getByRole("complementary", { name: "当前本地播放" });
+  await expect(panel.getByText("正在播放")).toBeVisible();
+  await expect(panel.getByRole("link", { name: "星海归途" })).toBeVisible();
+  await expect(panel.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuenow",
+    "13",
+  );
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("current-playback.png");
+
+  paused = true;
+  await expect(panel.getByText("已暂停")).toBeVisible({ timeout: 3_000 });
+});
+
 test("series details show season and horizontal episodes", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/item/series-1");

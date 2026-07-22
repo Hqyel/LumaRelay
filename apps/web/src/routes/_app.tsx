@@ -15,6 +15,7 @@ import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
 import { HeaderSearch } from "../components/header-search.js";
 import { BridgeStatusControl } from "../components/bridge-status.js";
+import { CurrentPlayback } from "../components/current-playback.js";
 import {
   latestMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -188,6 +189,7 @@ function FrontAppLayout() {
       title={title}
     >
       <Outlet />
+      <CurrentPlayback />
     </AppShell>
   );
 }
