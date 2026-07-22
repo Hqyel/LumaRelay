@@ -16,6 +16,7 @@ import { authRedirectForError, navigationForUser } from "../auth-routing.js";
 import { HeaderSearch } from "../components/header-search.js";
 import { BridgeStatusControl } from "../components/bridge-status.js";
 import { CurrentPlayback } from "../components/current-playback.js";
+import { ThemeToggle } from "../components/theme-toggle.js";
 import {
   latestMediaBrowserDefaults,
   parseMediaBrowserSearch,
@@ -117,11 +118,12 @@ function HeaderActions({ user }: { user: UserProfile }) {
     <>
       <HeaderSearch />
       <BridgeStatusControl />
+      <ThemeToggle />
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
             aria-label={`打开 ${user.name} 的用户菜单`}
-            className="grid size-7 place-items-center rounded-full border-2 border-white/10 bg-[#1a1a2e] text-label font-semibold transition-[border-color,background] duration-150 hover:border-accent hover:bg-accent/10"
+            className="grid size-7 place-items-center rounded-full border-2 border-border bg-bg-elevated text-label font-semibold transition-[border-color,background,transform] duration-150 hover:scale-105 hover:border-accent hover:bg-accent/10"
             title={user.name}
             type="button"
           >
@@ -131,7 +133,7 @@ function HeaderActions({ user }: { user: UserProfile }) {
         <DropdownMenu.Portal>
           <DropdownMenu.Content
             align="end"
-            className="z-50 min-w-52 overflow-hidden rounded-[16px] border border-white/10 bg-[#141423]/90 p-2 shadow-[0_20px_60px_rgb(0_0_0_/_50%)] backdrop-blur-xl"
+            className="z-50 min-w-52 overflow-hidden rounded-[16px] border border-border bg-glass p-2 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-select-in_150ms_cubic-bezier(0.16,1,0.3,1)]"
             sideOffset={8}
           >
             <DropdownMenu.Label className="px-3 py-2 text-small text-text-muted">

@@ -2,6 +2,110 @@
 @import "@newemby/ui/theme.css";
 @source "../../../packages/ui/src";
 
+.theme-toggle {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  place-items: center;
+  transition:
+    color 150ms var(--ease-standard),
+    background 150ms var(--ease-standard),
+    border-color 150ms var(--ease-standard),
+    box-shadow 150ms var(--ease-standard),
+    transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.theme-toggle:hover,
+.theme-toggle[data-state="open"] {
+  border-color: var(--color-border);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  box-shadow: 0 0 1.25rem rgb(124 92 255 / 20%);
+  transform: scale(1.08);
+}
+
+.theme-toggle-dark {
+  color: #a995ff;
+}
+
+.theme-toggle-light {
+  color: #f59e0b;
+}
+
+.theme-toggle-system {
+  color: var(--color-accent-hover);
+}
+
+.theme-menu {
+  z-index: 70;
+  min-width: 10.5rem;
+  padding: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  background: var(--color-glass);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(24px);
+  animation: newemby-select-in 150ms var(--ease-standard);
+}
+
+.theme-menu-label {
+  display: block;
+  padding: 0.375rem 0.625rem 0.5rem;
+  color: var(--color-text-subtle);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.theme-menu-item {
+  position: relative;
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 2rem 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  outline: none;
+  cursor: pointer;
+  transition:
+    color 150ms var(--ease-standard),
+    background 150ms var(--ease-standard);
+}
+
+.theme-menu-item[data-highlighted],
+.theme-menu-item[data-state="checked"] {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.theme-menu-item[data-state="checked"] {
+  color: var(--color-accent-hover);
+}
+
+.theme-menu-check {
+  position: absolute;
+  right: 0.625rem;
+  display: grid;
+  place-items: center;
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
 .auth-page {
   position: relative;
   display: flex;
@@ -17,7 +121,12 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #0f0f23 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-bg) 0%,
+    var(--color-bg-elevated) 50%,
+    var(--color-bg) 100%
+  );
 }
 
 .auth-orb {
@@ -77,10 +186,10 @@
   max-width: 26.25rem;
   padding: 3rem;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--color-border);
   border-radius: 1.25rem;
-  background: rgb(20 20 35 / 80%);
-  box-shadow: 0 20px 60px rgb(0 0 0 / 50%);
+  background: var(--color-glass);
+  box-shadow: var(--shadow-panel);
   backdrop-filter: blur(24px);
   animation: auth-card-in 400ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -137,7 +246,7 @@
 
 .auth-form-title {
   margin: 0;
-  color: #fff;
+  color: var(--color-text);
   font-size: 1.25rem;
   font-weight: 600;
   text-align: center;
@@ -145,20 +254,20 @@
 
 .auth-form-description {
   margin: 0 0 0.5rem;
-  color: rgb(255 255 255 / 60%);
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
   text-align: center;
 }
 
 .auth-form label > span:first-child {
-  color: rgb(255 255 255 / 60%);
+  color: var(--color-text-muted);
   font-size: 0.8125rem;
   font-weight: 500;
 }
 
 .auth-input {
-  border-color: rgb(255 255 255 / 8%) !important;
-  background: rgb(255 255 255 / 5%) !important;
+  border-color: var(--color-border) !important;
+  background: var(--color-field) !important;
   transition:
     background 150ms cubic-bezier(0.16, 1, 0.3, 1),
     border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -167,7 +276,7 @@
 
 .auth-input:focus {
   border-color: var(--color-accent) !important;
-  background: rgb(255 255 255 / 8%) !important;
+  background: var(--color-field-focus) !important;
   box-shadow:
     0 0 0 3px rgb(124 92 255 / 20%),
     0 0 20px rgb(124 92 255 / 30%);
@@ -201,7 +310,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid rgb(255 255 255 / 8%);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   background: rgb(124 92 255 / 10%);
 }
@@ -237,9 +346,9 @@
   min-width: 5.5rem;
   min-height: 5.75rem;
   padding: 0.5rem;
-  border: 1px solid rgb(255 255 255 / 8%);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
-  background: rgb(255 255 255 / 5%);
+  background: var(--color-field);
   text-align: center;
   place-items: center;
   transition:
@@ -272,14 +381,14 @@
 
 .auth-empty-users {
   justify-content: flex-start;
-  border-color: rgb(255 255 255 / 8%);
-  background: rgb(255 255 255 / 5%);
-  color: rgb(255 255 255 / 60%);
+  border-color: var(--color-border);
+  background: var(--color-field);
+  color: var(--color-text-muted);
 }
 
 .auth-footer {
   margin: 2rem 0 0;
-  color: rgb(255 255 255 / 40%);
+  color: var(--color-text-subtle);
   font-size: 0.6875rem;
   text-align: center;
 }
@@ -297,7 +406,7 @@
   padding: 2rem 2rem 3.125rem;
   background:
     radial-gradient(circle at 88% 0%, rgb(124 92 255 / 8%), transparent 28rem),
-    #0f0f23;
+    var(--color-bg);
   animation: home-fade-in 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -330,7 +439,7 @@
   align-items: center;
   gap: 0.75rem;
   margin: 0;
-  color: #fff;
+  color: var(--color-text);
   font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.4;

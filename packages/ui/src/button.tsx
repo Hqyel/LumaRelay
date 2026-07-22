@@ -23,8 +23,8 @@ const buttonStyles = cva(
           "shadow-[0_2px_8px_rgb(0_0_0_/_20%)] hover:-translate-y-0.5 " +
           "hover:shadow-[0_4px_20px_rgb(0_0_0_/_30%),0_0_20px_rgb(124_92_255_/_30%)]",
         secondary:
-          "border border-white/10 bg-[#1a1a2e]/80 text-text shadow-[inset_0_1px_rgb(255_255_255_/_4%)] " +
-          "backdrop-blur-xl hover:-translate-y-0.5 hover:border-white/15 hover:bg-accent/10",
+          "border border-border bg-surface text-text shadow-[inset_0_1px_rgb(var(--theme-foreground-rgb)_/_4%)] " +
+          "backdrop-blur-xl hover:-translate-y-0.5 hover:border-border-hover hover:bg-accent/10",
         ghost: "text-text-muted hover:bg-surface-hover hover:text-text",
         danger:
           "border border-danger/55 bg-danger/10 text-danger hover:bg-danger/20",

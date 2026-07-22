@@ -3,9 +3,15 @@
   --color-bg-elevated: #1a1a2e;
   --color-surface: rgb(26 26 46 / 80%);
   --color-surface-hover: rgb(124 92 255 / 10%);
+  --color-glass: rgb(20 20 35 / 80%);
+  --color-glass-solid: #141423;
   --color-border: rgb(255 255 255 / 10%);
+  --color-border-hover: rgb(255 255 255 / 15%);
   --color-text: #ffffff;
   --color-text-muted: rgb(255 255 255 / 60%);
+  --color-text-subtle: rgb(255 255 255 / 40%);
+  --color-field: rgb(255 255 255 / 5%);
+  --color-field-focus: rgb(255 255 255 / 8%);
   --color-accent: #7c5cff;
   --color-accent-hover: #9177ff;
   --color-on-accent: #ffffff;
@@ -47,6 +53,26 @@
 }
 
 :root {
+  --color-bg: #0f0f23;
+  --color-bg-elevated: #1a1a2e;
+  --color-surface: rgb(26 26 46 / 80%);
+  --color-surface-hover: rgb(124 92 255 / 10%);
+  --color-glass: rgb(20 20 35 / 80%);
+  --color-glass-solid: #141423;
+  --color-border: rgb(255 255 255 / 10%);
+  --color-border-hover: rgb(255 255 255 / 15%);
+  --color-text: #ffffff;
+  --color-text-muted: rgb(255 255 255 / 60%);
+  --color-text-subtle: rgb(255 255 255 / 40%);
+  --color-field: rgb(255 255 255 / 5%);
+  --color-field-focus: rgb(255 255 255 / 8%);
+  --color-overlay: rgb(0 0 0 / 70%);
+  --color-scrollbar: rgb(255 255 255 / 40%);
+  --color-scrollbar-hover: rgb(255 255 255 / 60%);
+  --theme-foreground-rgb: 255 255 255;
+  --theme-shadow-rgb: 0 0 0;
+  --shadow-panel: 0 1.25rem 3.75rem rgb(0 0 0 / 50%);
+  --shadow-card: 0 0.5rem 2.5rem rgb(0 0 0 / 40%);
   color: var(--color-text);
   background: var(--color-bg);
   color-scheme: dark;
@@ -56,6 +82,30 @@
   --duration-hover: 150ms;
   --duration-panel: 250ms;
   --duration-page: 250ms;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f8fafc;
+  --color-bg-elevated: #ffffff;
+  --color-surface: rgb(255 255 255 / 90%);
+  --color-surface-hover: rgb(124 92 255 / 9%);
+  --color-glass: rgb(255 255 255 / 78%);
+  --color-glass-solid: #ffffff;
+  --color-border: rgb(15 23 42 / 9%);
+  --color-border-hover: rgb(15 23 42 / 16%);
+  --color-text: #1a1a2e;
+  --color-text-muted: rgb(26 26 46 / 62%);
+  --color-text-subtle: rgb(26 26 46 / 43%);
+  --color-field: rgb(15 23 42 / 4%);
+  --color-field-focus: rgb(255 255 255 / 94%);
+  --color-overlay: rgb(15 23 42 / 48%);
+  --color-scrollbar: rgb(15 23 42 / 25%);
+  --color-scrollbar-hover: rgb(15 23 42 / 40%);
+  --theme-foreground-rgb: 26 26 46;
+  --theme-shadow-rgb: 15 23 42;
+  --shadow-panel: 0 1.25rem 3.75rem rgb(15 23 42 / 16%);
+  --shadow-card: 0 0.5rem 2.5rem rgb(15 23 42 / 12%);
+  color-scheme: light;
 }
 
 * {
@@ -68,7 +118,7 @@ html {
 }
 
 html {
-  scrollbar-color: rgb(255 255 255 / 40%) transparent;
+  scrollbar-color: var(--color-scrollbar) transparent;
   scrollbar-width: thin;
 }
 
@@ -83,11 +133,11 @@ html {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: rgb(255 255 255 / 40%);
+  background: var(--color-scrollbar);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(255 255 255 / 60%);
+  background: var(--color-scrollbar-hover);
 }
 
 body {
@@ -101,6 +151,9 @@ body {
       transparent 32rem
     ),
     var(--color-bg);
+  transition:
+    color 250ms var(--ease-standard),
+    background-color 250ms var(--ease-standard);
 }
 
 button,
@@ -150,6 +203,13 @@ a {
   from {
     transform: translateY(0.75rem);
     opacity: 0;
+  }
+}
+
+@keyframes newemby-select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem) scale(0.98);
   }
 }
 

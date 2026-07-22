@@ -5,7 +5,10 @@ import { createRoot } from "react-dom/client";
 
 import { router } from "./router.js";
 import { queryClient } from "./runtime.js";
+import { initializeTheme } from "./theme.js";
 import "./styles.css";
+
+initializeTheme();
 
 const root = document.getElementById("root");
 

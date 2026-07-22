@@ -44,17 +44,18 @@ export function PosterCard({
   unwatchedCount,
 }: PosterCardProps) {
   return (
-    <article className="group min-w-0 transition-transform duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1.5 motion-reduce:transform-none">
-      <div className="relative aspect-[2/3] overflow-hidden rounded-poster border border-white/10 bg-[#1a1a2e] shadow-card transition-[border-color,box-shadow] duration-[250ms] group-hover:border-white/15 group-hover:shadow-[0_12px_38px_rgb(0_0_0_/_46%),0_0_18px_rgb(124_92_255_/_14%)]">
+    <article className="group min-w-0 transition-transform duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1.5 hover:scale-[1.02] motion-reduce:transform-none">
+      <div className="relative aspect-[2/3] overflow-hidden rounded-poster border border-border bg-bg-elevated shadow-card transition-[border-color,box-shadow] duration-[250ms] group-hover:border-accent/60 group-hover:shadow-[0_12px_38px_rgb(var(--theme-shadow-rgb)_/_30%),0_0_20px_rgb(124_92_255_/_22%)]">
         <ImageFallback
           alt={title}
-          className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105 motion-reduce:transform-none"
+          className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.08] motion-reduce:transform-none"
           containerClassName="size-full"
           height={360}
           loading="lazy"
           src={imageUrl}
           width={240}
         />
+        <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-70 transition-opacity duration-[250ms] group-hover:opacity-100" />
         {favorite ? (
           <span
             aria-label="已收藏"
@@ -102,11 +103,11 @@ export function ContinueWatchingCard({
   title,
 }: ContinueWatchingCardProps) {
   return (
-    <article className="group overflow-hidden rounded-panel border border-white/10 bg-[#1a1a2e]/80 shadow-card backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:border-white/15 hover:shadow-[0_12px_38px_rgb(0_0_0_/_46%)] motion-reduce:transform-none">
+    <article className="group overflow-hidden rounded-panel border border-border bg-surface shadow-card backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1.5 hover:border-accent/60 hover:shadow-[0_12px_38px_rgb(var(--theme-shadow-rgb)_/_30%),0_0_20px_rgb(124_92_255_/_18%)] motion-reduce:transform-none">
       <div className="relative aspect-video overflow-hidden">
         <ImageFallback
           alt={title}
-          className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105 motion-reduce:transform-none"
+          className="transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.08] motion-reduce:transform-none"
           containerClassName="size-full"
           height={360}
           loading="lazy"

@@ -1,9 +1,14 @@
 import { BrandMark } from "@newemby/ui";
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "./theme-toggle.js";
+
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main className="auth-page">
+      <div className="auth-theme-toggle">
+        <ThemeToggle />
+      </div>
       <div aria-hidden="true" className="auth-background">
         <span className="auth-orb auth-orb-one" />
         <span className="auth-orb auth-orb-two" />
