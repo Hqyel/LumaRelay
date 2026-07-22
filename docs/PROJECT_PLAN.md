@@ -219,6 +219,24 @@ redeemed_at
 - 回环服务只监听 `127.0.0.1` 和 `::1`。
 - Gateway 对进度数值做范围及单调性检查。
 
+`M2-012` 提供两个 Gateway 接口：
+
+- `POST /api/v1/bridge/play-tickets`：当前 Web 登录会话提交 `deviceId`、
+  `itemId`、`mediaSourceId`、`resumeTicks`、`audioStreamIndex` 和
+  `subtitleStreamIndex`。接口要求精确 Origin、CSRF，并在同一事务内确认会话和
+  未撤销设备属于同一 Server、同一 Emby 用户；成功返回 `playTicket`、
+  `playSessionId`、`expiresAt` 和固定 `expiresInSeconds: 60`。
+- `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`：Bridge 提交
+  `playTicket`，同时使用 `NewEmbyDevice` 设备凭证与新 nonce。Gateway 原子写入
+  `redeemedAt` 后返回 `playSessionId` 和播放选择；响应不包含 Emby AccessToken、
+  设备凭证或票据摘要。
+
+未知、格式错误、过期、已兑换、错误 secret、跨设备票据及已失效登录会话在
+兑换边界统一返回 `PLAY_TICKET_INVALID`，不披露具体状态。并发兑换由事务和
+`redeemedAt is null` 条件共同保证只有一次成功。签发与兑换均限流；已兑换记录
+保留到原始 60 秒有效期结束，以便诊断并拒绝重放，签发时和 Gateway 启动时清理
+已过期票据。
+
 ### 4.4 播放状态机
 
 ```text

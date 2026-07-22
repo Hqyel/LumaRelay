@@ -44,6 +44,7 @@ import {
 import type { AuthSessionStore } from "./database/auth-session-store.js";
 import type { BridgeDeviceStore } from "./database/bridge-device-store.js";
 import type { PairingCodeStore } from "./database/pairing-code-store.js";
+import type { PlayTicketStore } from "./database/play-ticket-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope, registerNotFoundHandler } from "./errors.js";
 import { registerDeviceRoutes } from "./device-routes.js";
@@ -52,6 +53,7 @@ import {
   type MediaRouteDependencies,
 } from "./media-routes.js";
 import { registerPairingRoutes } from "./pairing-routes.js";
+import { registerPlayTicketRoutes } from "./play-ticket-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -85,6 +87,7 @@ export interface BuildAppOptions {
     "authSessionStore" | "config" | "serverStore"
   >;
   pairingCodeStore?: PairingCodeStore;
+  playTicketStore?: PlayTicketStore;
 }
 
 function loginErrorResponse(error: EmbyAuthError): {
@@ -658,6 +661,13 @@ export async function buildApp(
     authSessionStore: options.authSessionStore,
     bridgeDeviceStore: options.bridgeDeviceStore,
     config: options.config,
+    serverStore,
+  });
+  registerPlayTicketRoutes(app, {
+    authSessionStore: options.authSessionStore,
+    bridgeDeviceStore: options.bridgeDeviceStore,
+    config: options.config,
+    playTicketStore: options.playTicketStore,
     serverStore,
   });
 

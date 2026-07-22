@@ -6,6 +6,7 @@ import { createServerStore } from "./database/server-store.js";
 import { createAuthSessionStore } from "./database/auth-session-store.js";
 import { createBridgeDeviceStore } from "./database/bridge-device-store.js";
 import { createPairingCodeStore } from "./database/pairing-code-store.js";
+import { createPlayTicketStore } from "./database/play-ticket-store.js";
 
 const config = loadConfig();
 const database = createDatabase(config.databasePath);
@@ -15,12 +16,15 @@ await authSessionStore.pruneInactive();
 const pairingCodeStore = createPairingCodeStore(database, config);
 await pairingCodeStore.pruneExpired();
 const bridgeDeviceStore = createBridgeDeviceStore(database, config);
+const playTicketStore = createPlayTicketStore(database, config);
+await playTicketStore.pruneInactive();
 
 const app = await buildApp({
   authSessionStore,
   bridgeDeviceStore,
   config,
   pairingCodeStore,
+  playTicketStore,
   serverStore: createServerStore(database),
 });
 app.addHook("onClose", async () => database.destroy());

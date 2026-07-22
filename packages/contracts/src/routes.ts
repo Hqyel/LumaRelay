@@ -39,6 +39,12 @@ import {
   PagedMediaResponseSchema,
 } from "./media-api.js";
 import {
+  CreatePlayTicketRequestSchema,
+  CreatePlayTicketResponseSchema,
+  RedeemPlayTicketRequestSchema,
+  RedeemPlayTicketResponseSchema,
+} from "./play-ticket.js";
+import {
   CurrentServerResponseSchema,
   ProbeServerRequestSchema,
   ProbeServerResponseSchema,
@@ -138,6 +144,38 @@ export const ApiRoutes = {
       params: BridgeDeviceParamsSchema,
       response: {
         200: RevokeBridgeDeviceResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  createPlayTicket: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/play-tickets`,
+    schema: {
+      body: CreatePlayTicketRequestSchema,
+      response: {
+        201: CreatePlayTicketResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        403: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  redeemPlayTicket: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/devices/:deviceId/play-tickets/redeem`,
+    schema: {
+      body: RedeemPlayTicketRequestSchema,
+      headers: BridgeDeviceAuthHeadersSchema,
+      params: BridgeDeviceParamsSchema,
+      response: {
+        200: RedeemPlayTicketResponseSchema,
         400: ErrorEnvelopeSchema,
         401: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,

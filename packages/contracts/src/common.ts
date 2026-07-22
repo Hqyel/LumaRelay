@@ -25,6 +25,7 @@ export const ErrorCodeSchema = z.enum([
   "BRIDGE_DEVICE_NOT_FOUND",
   "NONCE_INVALID",
   "REPLAY_DETECTED",
+  "PLAY_TICKET_INVALID",
   "INTERNAL_ERROR",
 ]);
 

@@ -81,6 +81,13 @@ probe. Bridge-to-Gateway requests use the `NewEmbyDevice` authorization scheme
 and a new nonce; the first authenticated endpoint is
 `POST /api/v1/bridge/devices/:deviceId/heartbeat`.
 
+The Gateway issues a 60-second, device-bound PlayTicket through
+`POST /api/v1/bridge/play-tickets`. A paired Bridge redeems it once through
+`POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`, using its device
+credential and a fresh nonce. The redemption response contains only the
+PlaySession ID and playback selection; it never contains an Emby access token.
+The local play endpoint and player launch are added by later M2 tasks.
+
 To revoke the current portable Bridge from both sides, run:
 
 ```text

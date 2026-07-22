@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { RequestIdSchema } from "./common.js";
+import { BridgeDeviceParamsSchema } from "./bridge.js";
+
 export const PLAY_TICKET_LIFETIME_SECONDS = 60;
 
 export const PlayTicketIdSchema = z.uuid();
@@ -30,5 +33,39 @@ export const PlayTicketSelectionSchema = z.object({
   subtitleStreamIndex: PlaybackStreamIndexSchema.nullable(),
 });
 
+export const CreatePlayTicketRequestSchema = PlayTicketSelectionSchema.extend({
+  deviceId: BridgeDeviceParamsSchema.shape.deviceId,
+});
+
+export const CreatePlayTicketResponseSchema = z.object({
+  expiresAt: z.iso.datetime(),
+  expiresInSeconds: z.literal(PLAY_TICKET_LIFETIME_SECONDS),
+  playSessionId: z.uuid(),
+  playTicket: PlayTicketSchema,
+  requestId: RequestIdSchema,
+});
+
+export const RedeemPlayTicketRequestSchema = z.object({
+  playTicket: z.string().max(128),
+});
+
+export const RedeemPlayTicketResponseSchema = z.object({
+  playSessionId: z.uuid(),
+  requestId: RequestIdSchema,
+  selection: PlayTicketSelectionSchema,
+});
+
 export type PlayTicket = z.infer<typeof PlayTicketSchema>;
 export type PlayTicketSelection = z.infer<typeof PlayTicketSelectionSchema>;
+export type CreatePlayTicketRequest = z.infer<
+  typeof CreatePlayTicketRequestSchema
+>;
+export type CreatePlayTicketResponse = z.infer<
+  typeof CreatePlayTicketResponseSchema
+>;
+export type RedeemPlayTicketRequest = z.infer<
+  typeof RedeemPlayTicketRequestSchema
+>;
+export type RedeemPlayTicketResponse = z.infer<
+  typeof RedeemPlayTicketResponseSchema
+>;
