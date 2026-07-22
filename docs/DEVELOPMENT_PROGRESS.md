@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 16/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 17/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -295,7 +295,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 7.4 播放回传
 
-- [ ] `M2-018` 实现 Playing 回传。
+- [x] `M2-018` 实现 Playing 回传。
 - [ ] `M2-019` 实现 10 秒 Progress 心跳。
 - [ ] `M2-020` 暂停、恢复、拖动和轨道变化即时回传。
 - [ ] `M2-021` 正常结束、主动退出和异常退出发送 Stopped。
@@ -520,7 +520,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-018`，将已匹配播放快照转换为 Emby Playing 回传。
+1. 开始 `M2-019`，为已开始的播放会话实现 10 秒 Progress 心跳。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -548,6 +548,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-018 | 完成 | PlayTicket 成功兑换后会原子建立独立 PlaybackSession，保留认证会话、Bridge 设备、Server、用户、媒体源及音字幕选择，使 60 秒票据过期不影响长时间播放。Bridge 托管回传器只接受已精确匹配且时间线新鲜的 Playing/Paused 快照，每个 PlaySessionId 只发送一次带新 nonce 的设备认证事件；失败在后续状态变化时重试。Gateway 严格按 Bridge 设备解析播放会话，从 AES-256-GCM 登录会话恢复 Token，并以用户级 Gateway 设备身份调用 Emby `/Sessions/Playing`；上游 401 撤销本地登录会话，所有响应、URL 和 Bridge 负载均不含 Token。Contracts 13 项、Emby Client 58 项、Gateway 97 项和 Bridge 101 项测试全部通过；相关 lint/typecheck、.NET format/build（0 警告/0 错误）及 SQLite 008 迁移 `up/down/up` 通过 | Contracts、Emby Client、Gateway、SQLite PlaybackSession、Player Bridge、项目计划、进度表 | M2-019 |
+| 2026-07-22 | M2-018 | 进行中 | 正在建立已兑换 PlayTicket 对应的持久化播放会话；Bridge 仅发送设备绑定的 `playSessionId` 与新鲜播放器快照，Gateway 从加密认证会话恢复 Emby 上下文并调用 `/Sessions/Playing`，不向 Bridge、浏览器或错误响应暴露 AccessToken | Contracts、Emby Client、Gateway、SQLite、Player Bridge、进度表 | 完成 Playing 契约、隔离测试和迁移验证 |
 | 2026-07-22 | M2-017 | 完成 | 已为每个匹配会话读取 GSMTC PlaybackInfo 与 TimelineProperties，覆盖播放枚举、速率、开始/结束、位置、可跳转范围和最后更新时间；全部时间线归一化为相对媒体起点的非负 Ticks，并对无效范围、负值、越界和极端 `long` 输入安全钳制。状态保留 Playing、Paused、Stopped、Closed、Opened、Changing 和 Unknown，位置偏离按更新时间与速率计算的预期值超过两秒时标记跳转，Playing 时间线超过五秒未更新或速率无效时标记陈旧。针对 PotPlayer 自然结束时仍短暂报告 Playing 却将时间线归零的真实行为，监控器保留上一份有效快照，将接近末尾后归零或末尾附近的 Stopped/Closed 归一化为 Ended；播放/时间线事件立即刷新，一秒轮询兜底，匹配丢失后解除事件订阅并移除快照。本任务未提前发送 Emby 回传。Windows build 26100 与 PotPlayer `1.7.22398.0` 的系统短音频实测确认持续位置/更新时间、暂停为 Paused、跳转请求被接受、恢复以及自然结束归零行为；测试实例均已关闭。最新 self-contained 单文件以 PID 11488 保留后台运行，Bridge/SMTC 为 `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、99 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke、C# 行长和差异检查通过 | Player Bridge、GSMTC PlaybackInfo/Timeline、播放快照、README、项目计划、进度表 | M2-018 |
 | 2026-07-22 | M2-017 | 进行中 | 正在为已匹配的 PotPlayer GSMTC 会话建立播放快照，组合 PlaybackInfo 与 TimelineProperties，处理无效范围、位置钳制、暂停/恢复、跳转、时间线停止更新和媒体结束；本任务不提前发送 Emby Playing/Progress/Stopped | Player Bridge、GSMTC 播放状态、时间线、进度表 | 完成事件归一化、边界测试和 Windows 实机验证 |
 | 2026-07-22 | M2-016 | 完成 | 已在 PotPlayer 安全启动成功后记录进程 ID、启动时间和 PlaySessionId，并实现托管的 GSMTC 会话匹配器：只接受仍为同一存活进程、来源精确属于受支持 PotPlayer 且媒体标题等于 `NewEmby:<PlaySessionId>` 的唯一候选；单一但标题不符时不猜测，重复精确候选标记为歧义，15 秒内等待后超时，进程退出或 PID 复用立即失效。匹配随会话/媒体属性事件刷新并以一秒轮询兜底，多实例按 PlaySessionId 隔离，内部会话句柄可供 M2-017 读取并支持显式解除跟踪，不通过状态 API 泄露。Windows build 26100 使用 PotPlayer `1.7.22398.0` 和系统短音频实测确认 GSMTC 来源为受支持标识、临时媒体标题不会误匹配，最终精确 `/title` 标识仅匹配一次；测试进程已关闭。最新 self-contained 单文件发布成功并以 PID 436 保留后台运行，状态为 Bridge/SMTC `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、88 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、README、项目计划、进度表 | M2-017 |

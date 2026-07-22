@@ -5,6 +5,7 @@ export * from "./health.js";
 export * from "./media.js";
 export * from "./media-api.js";
 export * from "./play-ticket.js";
+export * from "./playback.js";
 export * from "./routes.js";
 export * from "./security.js";
 export * from "./server.js";

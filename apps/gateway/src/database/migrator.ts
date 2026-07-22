@@ -12,6 +12,7 @@ import { BridgePairingCodesMigration } from "./migrations/004-bridge-pairing-cod
 import { BridgeDevicesMigration } from "./migrations/005-bridge-devices.js";
 import { BridgeRequestNoncesMigration } from "./migrations/006-bridge-request-nonces.js";
 import { PlayTicketsMigration } from "./migrations/007-play-tickets.js";
+import { PlaybackSessionsMigration } from "./migrations/008-playback-sessions.js";
 import { backupDatabase } from "./database.js";
 import type { DatabaseSchema } from "./types.js";
 
@@ -23,6 +24,7 @@ const migrations: Record<string, Migration> = {
   "005-bridge-devices": BridgeDevicesMigration,
   "006-bridge-request-nonces": BridgeRequestNoncesMigration,
   "007-play-tickets": PlayTicketsMigration,
+  "008-playback-sessions": PlaybackSessionsMigration,
 };
 
 function createMigrator(database: Kysely<DatabaseSchema>): Migrator {

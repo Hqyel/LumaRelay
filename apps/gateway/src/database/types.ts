@@ -82,6 +82,25 @@ export interface PlayTicketsTable {
   subtitleStreamIndex: number | null;
 }
 
+export interface PlaybackSessionsTable {
+  audioStreamIndex: number | null;
+  authSessionId: string;
+  bridgeDeviceId: string;
+  createdAt: string;
+  embyItemId: string;
+  embyUserId: string;
+  id: string;
+  lastEventAt: string | null;
+  lastPositionTicks: number;
+  lastSequence: number;
+  mediaSourceId: string;
+  resumeTicks: number;
+  serverId: string;
+  startedAt: string | null;
+  stoppedAt: string | null;
+  subtitleStreamIndex: number | null;
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
@@ -89,5 +108,6 @@ export interface DatabaseSchema {
   bridgePairingCodes: BridgePairingCodesTable;
   bridgeRequestNonces: BridgeRequestNoncesTable;
   playTickets: PlayTicketsTable;
+  playbackSessions: PlaybackSessionsTable;
   servers: ServersTable;
 }

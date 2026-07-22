@@ -35,9 +35,11 @@ export interface StoredAuthSession {
 export interface AuthSessionStore {
   create(input: CreateAuthSessionInput): Promise<string>;
   find(cookieToken: string): Promise<StoredAuthSession | null>;
+  findById?(sessionId: string): Promise<StoredAuthSession | null>;
   getDeviceId(): Promise<string>;
   pruneInactive(): Promise<number>;
   revoke(cookieToken: string): Promise<void>;
+  revokeById?(sessionId: string): Promise<void>;
   revokeServerSessions(serverId: string): Promise<StoredAuthSession[]>;
   updateUser(sessionId: string, user: UserProfile): Promise<void>;
 }
@@ -192,6 +194,29 @@ export function createAuthSessionStore(
       return decoded;
     },
 
+    async findById(sessionId: string): Promise<StoredAuthSession | null> {
+      const now = new Date().toISOString();
+      const session = await database
+        .selectFrom("authSessions")
+        .selectAll()
+        .where("id", "=", sessionId)
+        .where("revokedAt", "is", null)
+        .where("expiresAt", ">", now)
+        .executeTakeFirst();
+      if (session === undefined) return null;
+
+      try {
+        return decodeSession(session, key);
+      } catch {
+        await database
+          .updateTable("authSessions")
+          .set({ revokedAt: now })
+          .where("id", "=", session.id)
+          .execute();
+        return null;
+      }
+    },
+
     async getDeviceId(): Promise<string> {
       const existing = await database
         .selectFrom("appSettings")
@@ -234,6 +259,14 @@ export function createAuthSessionStore(
         .updateTable("authSessions")
         .set({ revokedAt: new Date().toISOString() })
         .where("secretHash", "=", hashSecret(cookieToken, config.sessionSecret))
+        .execute();
+    },
+
+    async revokeById(sessionId: string): Promise<void> {
+      await database
+        .updateTable("authSessions")
+        .set({ revokedAt: new Date().toISOString() })
+        .where("id", "=", sessionId)
         .execute();
     },
 

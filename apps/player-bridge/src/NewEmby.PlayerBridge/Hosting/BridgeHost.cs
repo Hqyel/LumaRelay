@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Status;
 using NewEmby.PlayerBridge.Pairing;
+using NewEmby.PlayerBridge.Playback;
 using NewEmby.PlayerBridge.Players;
 using NewEmby.PlayerBridge.Security;
 
@@ -33,6 +34,7 @@ internal static class BridgeHost
 
     var mediaSessionMonitor = smtcMonitor
       ?? SystemMediaSessionMonitorFactory.Create();
+    var credentials = credentialStore ?? new WindowsCredentialStore();
     var discovery = playerDiscovery ?? new PotPlayerDiscovery();
     var sessionMatcher = new PotPlayerSessionMatcher(mediaSessionMonitor);
     var playbackMonitor = new PotPlayerPlaybackMonitor(sessionMatcher);
@@ -41,6 +43,14 @@ internal static class BridgeHost
     builder.Services.AddHostedService<SmtcMonitorHostedService>();
     builder.Services.AddSingleton<IHostedService>(sessionMatcher);
     builder.Services.AddSingleton<IHostedService>(playbackMonitor);
+    builder.Services.AddSingleton<IPlaybackEventClient>(
+      new GatewayPlaybackEventClient(
+        new HttpClient { Timeout = TimeSpan.FromSeconds(8) },
+        credentials));
+    builder.Services.AddSingleton<IHostedService>(services =>
+      new PlaybackEventReporter(
+        playbackMonitor,
+        services.GetRequiredService<IPlaybackEventClient>()));
     builder.Services.AddSingleton<IPlayerAdapter>(new PotPlayerLauncher(
       serverOptions.Port,
       discovery,
@@ -48,7 +58,6 @@ internal static class BridgeHost
 
     var application = builder.Build();
 
-    var credentials = credentialStore ?? new WindowsCredentialStore();
     var security = new BridgeRequestSecurity(
       credentials,
       nonceStore ?? new BridgeNonceStore());

@@ -45,6 +45,11 @@ import {
   RedeemPlayTicketResponseSchema,
 } from "./play-ticket.js";
 import {
+  PlaybackEventParamsSchema,
+  PlaybackEventResponseSchema,
+  PlaybackPlayingRequestSchema,
+} from "./playback.js";
+import {
   CurrentServerResponseSchema,
   ProbeServerRequestSchema,
   ProbeServerResponseSchema,
@@ -180,6 +185,24 @@ export const ApiRoutes = {
         401: ErrorEnvelopeSchema,
         409: ErrorEnvelopeSchema,
         429: ErrorEnvelopeSchema,
+      },
+    },
+  },
+  reportPlaybackPlaying: {
+    method: "POST",
+    url: `${API_PREFIX}/bridge/devices/:deviceId/playback-events`,
+    schema: {
+      body: PlaybackPlayingRequestSchema,
+      headers: BridgeDeviceAuthHeadersSchema,
+      params: PlaybackEventParamsSchema,
+      response: {
+        200: PlaybackEventResponseSchema,
+        400: ErrorEnvelopeSchema,
+        401: ErrorEnvelopeSchema,
+        404: ErrorEnvelopeSchema,
+        409: ErrorEnvelopeSchema,
+        429: ErrorEnvelopeSchema,
+        502: ErrorEnvelopeSchema,
       },
     },
   },

@@ -308,6 +308,16 @@ PotPlayer 在自然结束时可能短暂保留 `Playing` 却将时间线归零�
 `Stopped`/`Closed`，统一归一化为 `Ended`。播放与时间线事件立即刷新，一秒
 轮询仅作为漏事件兜底；M2-017 不提前发送 Emby 回传。
 
+PlayTicket 兑换成功时，Gateway 将授权会话、Bridge 设备、Server、用户、媒体项、
+媒体源、续播点和音字幕选择固化为独立 PlaybackSession；原始短时票据过期后不会
+影响长时间播放。Bridge 观察到新鲜的 Playing 或 Paused 时间线后，只向
+`POST /api/v1/bridge/devices/:deviceId/playback-events` 提交设备凭证、一次性 nonce、
+PlaySessionId、位置、暂停状态和速率。Gateway 必须校验设备与播放会话绑定，从
+AES-256-GCM 加密的登录会话恢复 AccessToken，再调用 Emby `/Sessions/Playing`；
+AccessToken 不进入 Bridge、浏览器、URL、日志或错误响应。同一 Bridge 进程对每个
+PlaySessionId 只发送一次 Playing，陈旧时间线不得触发开始回传，失败可在下一次
+播放器状态变化时重试。
+
 ## 5. 前台信息架构
 
 ### 5.1 全局导航

@@ -26,6 +26,8 @@ export const ErrorCodeSchema = z.enum([
   "NONCE_INVALID",
   "REPLAY_DETECTED",
   "PLAY_TICKET_INVALID",
+  "PLAYBACK_SESSION_NOT_FOUND",
+  "EMBY_PLAYBACK_FAILED",
   "INTERNAL_ERROR",
 ]);
 

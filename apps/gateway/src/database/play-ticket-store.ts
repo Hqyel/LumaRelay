@@ -36,8 +36,22 @@ export interface RedeemedPlayTicket {
   selection: PlayTicketSelection;
 }
 
+export interface StoredPlaybackSession {
+  authSessionId: string;
+  bridgeDeviceId: string;
+  playSessionId: string;
+  selection: PlayTicketSelection;
+  serverId: string;
+  userId: string;
+}
+
 export interface PlayTicketStore {
+  findPlaybackSession?(
+    playSessionId: string,
+    bridgeDeviceId: string,
+  ): Promise<StoredPlaybackSession | null>;
   issue(input: IssuePlayTicketInput): Promise<IssuedPlayTicket | null>;
+  markStarted?(playSessionId: string, startedAt: string): Promise<void>;
   pruneInactive(): Promise<number>;
   redeem(
     playTicket: string,
@@ -85,6 +99,34 @@ export function createPlayTicketStore(
   random: PlayTicketRandomSource = defaultRandomSource,
 ): PlayTicketStore {
   return {
+    async findPlaybackSession(
+      playSessionId: string,
+      bridgeDeviceId: string,
+    ): Promise<StoredPlaybackSession | null> {
+      const session = await database
+        .selectFrom("playbackSessions")
+        .selectAll()
+        .where("id", "=", playSessionId)
+        .where("bridgeDeviceId", "=", bridgeDeviceId)
+        .where("stoppedAt", "is", null)
+        .executeTakeFirst();
+      if (session === undefined) return null;
+
+      return {
+        authSessionId: session.authSessionId,
+        bridgeDeviceId: session.bridgeDeviceId,
+        playSessionId: session.id,
+        selection: {
+          audioStreamIndex: session.audioStreamIndex,
+          itemId: session.embyItemId,
+          mediaSourceId: session.mediaSourceId,
+          resumeTicks: session.resumeTicks,
+          subtitleStreamIndex: session.subtitleStreamIndex,
+        },
+        serverId: session.serverId,
+        userId: session.embyUserId,
+      };
+    },
     async issue(input: IssuePlayTicketInput): Promise<IssuedPlayTicket | null> {
       return database.transaction().execute(async (transaction) => {
         const createdAt = now();
@@ -151,6 +193,18 @@ export function createPlayTicketStore(
       });
     },
 
+    async markStarted(playSessionId: string, startedAt: string): Promise<void> {
+      await database
+        .updateTable("playbackSessions")
+        .set({
+          lastEventAt: startedAt,
+          startedAt,
+        })
+        .where("id", "=", playSessionId)
+        .where("startedAt", "is", null)
+        .execute();
+    },
+
     async pruneInactive(): Promise<number> {
       const result = await database
         .deleteFrom("playTickets")
@@ -215,6 +269,28 @@ export function createPlayTicketStore(
           .where("expiresAt", ">", redeemedAt)
           .executeTakeFirst();
         if (Number(consumed.numUpdatedRows) !== 1) return null;
+
+        await transaction
+          .insertInto("playbackSessions")
+          .values({
+            audioStreamIndex: ticket.audioStreamIndex,
+            authSessionId: ticket.authSessionId,
+            bridgeDeviceId: ticket.bridgeDeviceId,
+            createdAt: redeemedAt,
+            embyItemId: ticket.embyItemId,
+            embyUserId: ticket.embyUserId,
+            id: ticket.playSessionId,
+            lastEventAt: null,
+            lastPositionTicks: ticket.resumeTicks,
+            lastSequence: 0,
+            mediaSourceId: ticket.mediaSourceId,
+            resumeTicks: ticket.resumeTicks,
+            serverId: ticket.serverId,
+            startedAt: null,
+            stoppedAt: null,
+            subtitleStreamIndex: ticket.subtitleStreamIndex,
+          })
+          .execute();
 
         return {
           playSessionId: ticket.playSessionId,

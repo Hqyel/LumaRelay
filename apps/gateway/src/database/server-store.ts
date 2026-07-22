@@ -8,6 +8,7 @@ import type { DatabaseSchema, ServersTable } from "./types.js";
 
 export interface ServerStore {
   getCurrent(): Promise<ServerSummary | null>;
+  getById?(serverId: string): Promise<ServerSummary | null>;
   select(server: ServerSummary): Promise<void>;
 }
 
@@ -29,6 +30,14 @@ export function createServerStore(
   database: Kysely<DatabaseSchema>,
 ): ServerStore {
   return {
+    async getById(serverId: string): Promise<ServerSummary | null> {
+      const server = await database
+        .selectFrom("servers")
+        .selectAll()
+        .where("id", "=", serverId)
+        .executeTakeFirst();
+      return server === undefined ? null : toServerSummary(server);
+    },
     async getCurrent(): Promise<ServerSummary | null> {
       const server = await database
         .selectFrom("servers")

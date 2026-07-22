@@ -54,6 +54,10 @@ import {
 } from "./media-routes.js";
 import { registerPairingRoutes } from "./pairing-routes.js";
 import { registerPlayTicketRoutes } from "./play-ticket-routes.js";
+import {
+  registerPlaybackRoutes,
+  type PlaybackRouteDependencies,
+} from "./playback-routes.js";
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 
@@ -88,6 +92,10 @@ export interface BuildAppOptions {
   >;
   pairingCodeStore?: PairingCodeStore;
   playTicketStore?: PlayTicketStore;
+  playback?: Omit<
+    PlaybackRouteDependencies,
+    "authSessionStore" | "bridgeDeviceStore" | "playTicketStore" | "serverStore"
+  >;
 }
 
 function loginErrorResponse(error: EmbyAuthError): {
@@ -667,6 +675,13 @@ export async function buildApp(
     authSessionStore: options.authSessionStore,
     bridgeDeviceStore: options.bridgeDeviceStore,
     config: options.config,
+    playTicketStore: options.playTicketStore,
+    serverStore,
+  });
+  registerPlaybackRoutes(app, {
+    ...options.playback,
+    authSessionStore: options.authSessionStore,
+    bridgeDeviceStore: options.bridgeDeviceStore,
     playTicketStore: options.playTicketStore,
     serverStore,
   });
