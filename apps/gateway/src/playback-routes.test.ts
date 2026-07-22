@@ -59,6 +59,8 @@ function createDependencies() {
     revokeServerDevices: vi.fn(),
   };
   const playTicketStore: PlayTicketStore = {
+    claimPlaybackEvent: vi.fn().mockResolvedValue("claimed"),
+    completePlaybackEvent: vi.fn(),
     findPlaybackSession: vi.fn().mockResolvedValue({
       authSessionId: "auth-session-1",
       bridgeDeviceId: DEVICE_ID,
@@ -72,6 +74,7 @@ function createDependencies() {
       },
       serverId: "server-1",
       startedAt: "2026-07-22T12:00:00.000Z",
+      stoppedAt: null,
       userId: "user-1",
     }),
     issue: vi.fn(),
@@ -80,6 +83,7 @@ function createDependencies() {
     markStopped: vi.fn(),
     pruneInactive: vi.fn(),
     redeem: vi.fn(),
+    releasePlaybackEvent: vi.fn(),
   };
   const serverStore: ServerStore = {
     getById: vi.fn().mockResolvedValue({
@@ -131,6 +135,7 @@ function requestOptions() {
       playbackRate: 1,
       playSessionId: PLAY_SESSION_ID,
       positionTicks: 10_000_000,
+      sequence: 1,
     },
     headers: {
       authorization: `NewEmbyDevice ${"A".repeat(43)}`,
@@ -157,7 +162,15 @@ describe("Bridge playback routes", () => {
         positionTicks: 10_000_000,
       }),
     );
-    expect(dependencies.playTicketStore.markStarted).toHaveBeenCalledTimes(1);
+    expect(
+      dependencies.playTicketStore.completePlaybackEvent,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "playing",
+        playSessionId: PLAY_SESSION_ID,
+        sequence: 1,
+      }),
+    );
     expect(response.body).not.toContain("secret-upstream-token");
   });
 
@@ -183,6 +196,7 @@ describe("Bridge playback routes", () => {
       playbackRate: 1,
       playSessionId: PLAY_SESSION_ID,
       positionTicks: 110_000_000,
+      sequence: 2,
     } as typeof options.body;
     const response = await app.inject(options);
 
@@ -192,12 +206,14 @@ describe("Bridge playback routes", () => {
       expect.objectContaining({ positionTicks: 110_000_000 }),
       "TimeUpdate",
     );
-    expect(dependencies.playTicketStore.markProgress).toHaveBeenCalledWith(
-      PLAY_SESSION_ID,
-      110_000_000,
-      expect.any(String),
-      undefined,
-      undefined,
+    expect(
+      dependencies.playTicketStore.completePlaybackEvent,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "progress",
+        positionTicks: 110_000_000,
+        sequence: 2,
+      }),
     );
   });
 
@@ -218,6 +234,7 @@ describe("Bridge playback routes", () => {
       },
       serverId: "server-1",
       startedAt: null,
+      stoppedAt: null,
       userId: "user-1",
     });
     const options = requestOptions();
@@ -230,6 +247,7 @@ describe("Bridge playback routes", () => {
         playbackRate: 1,
         playSessionId: PLAY_SESSION_ID,
         positionTicks: 20_000_000,
+        sequence: 1,
       },
     });
 
@@ -251,6 +269,7 @@ describe("Bridge playback routes", () => {
         playbackRate: 1,
         playSessionId: PLAY_SESSION_ID,
         positionTicks: 120_000_000,
+        sequence: 2,
       },
     });
 
@@ -260,12 +279,14 @@ describe("Bridge playback routes", () => {
       expect.objectContaining({ audioStreamIndex: 3 }),
       "AudioTrackChange",
     );
-    expect(dependencies.playTicketStore.markProgress).toHaveBeenCalledWith(
-      PLAY_SESSION_ID,
-      120_000_000,
-      expect.any(String),
-      3,
-      undefined,
+    expect(
+      dependencies.playTicketStore.completePlaybackEvent,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audioStreamIndex: 3,
+        eventType: "progress",
+        sequence: 2,
+      }),
     );
   });
 
@@ -280,6 +301,7 @@ describe("Bridge playback routes", () => {
         playSessionId: PLAY_SESSION_ID,
         positionTicks: 580_000_000,
         reason: "ended",
+        sequence: 2,
       },
     });
 
@@ -291,10 +313,38 @@ describe("Bridge playback routes", () => {
         positionTicks: 580_000_000,
       }),
     );
-    expect(dependencies.playTicketStore.markStopped).toHaveBeenCalledWith(
-      PLAY_SESSION_ID,
-      580_000_000,
-      expect.any(String),
+    expect(
+      dependencies.playTicketStore.completePlaybackEvent,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "stopped",
+        positionTicks: 580_000_000,
+        sequence: 2,
+      }),
     );
+  });
+
+  it("returns success without replaying a completed duplicate", async () => {
+    const { app, dependencies, reportStarted } = await createTestApp();
+    vi.mocked(
+      dependencies.playTicketStore.claimPlaybackEvent!,
+    ).mockResolvedValue("duplicate");
+    const response = await app.inject(requestOptions());
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ duplicate: true, success: true });
+    expect(reportStarted).not.toHaveBeenCalled();
+  });
+
+  it("rejects a gap or conflicting sequence before calling Emby", async () => {
+    const { app, dependencies, reportStarted } = await createTestApp();
+    vi.mocked(
+      dependencies.playTicketStore.claimPlaybackEvent!,
+    ).mockResolvedValue("out-of-order");
+    const response = await app.inject(requestOptions());
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe("PLAYBACK_EVENT_OUT_OF_ORDER");
+    expect(reportStarted).not.toHaveBeenCalled();
   });
 });

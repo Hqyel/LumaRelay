@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using NewEmby.PlayerBridge.MediaSessions;
@@ -42,10 +43,29 @@ internal interface IPlaybackInteractionReporter
     CancellationToken cancellationToken);
 }
 
-internal sealed class GatewayPlaybackEventClient(
-  HttpClient httpClient,
-  IBridgeCredentialStore credentialStore) : IPlaybackEventClient
+internal sealed class GatewayPlaybackEventClient : IPlaybackEventClient
 {
+  private static readonly TimeSpan DefaultRetryDelay =
+    TimeSpan.FromSeconds(2);
+
+  private readonly IBridgeCredentialStore credentialStore;
+  private readonly HttpClient httpClient;
+  private readonly TimeSpan retryDelay;
+  private readonly Dictionary<Guid, SequenceState> sequences = [];
+  private readonly object sync = new();
+
+  public GatewayPlaybackEventClient(
+    HttpClient httpClient,
+    IBridgeCredentialStore credentialStore,
+    TimeSpan? retryDelay = null)
+  {
+    this.httpClient = httpClient;
+    this.credentialStore = credentialStore;
+    this.retryDelay = retryDelay ?? DefaultRetryDelay;
+    if (this.retryDelay <= TimeSpan.Zero)
+      throw new ArgumentOutOfRangeException(nameof(retryDelay));
+  }
+
   public async Task SendPlayingAsync(
     PlayerPlaybackSnapshot snapshot,
     CancellationToken cancellationToken)
@@ -96,36 +116,112 @@ internal sealed class GatewayPlaybackEventClient(
     PlaybackTrackChange? trackChange,
     CancellationToken cancellationToken)
   {
-    var credential = credentialStore.Read();
-    if (credential is null)
-      throw new InvalidOperationException("The Bridge is not paired.");
+    var state = SequenceFor(snapshot.PlaySessionId);
+    await state.Gate.WaitAsync(cancellationToken);
+    try
+    {
+      var sequence = state.LastSequence + 1;
+      while (true)
+      {
+        cancellationToken.ThrowIfCancellationRequested();
+        var credential = credentialStore.Read();
+        if (credential is null)
+          throw new InvalidOperationException("The Bridge is not paired.");
 
-    var endpoint = new Uri(
-      new Uri(credential.GatewayBaseUrl),
-      $"/api/v1/bridge/devices/{credential.DeviceId}/playback-events");
-    using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        var endpoint = new Uri(
+          new Uri(credential.GatewayBaseUrl),
+          $"/api/v1/bridge/devices/{credential.DeviceId}/playback-events");
+        try
+        {
+          using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+          {
+            Content = JsonContent.Create(RequestBody(
+              snapshot,
+              eventType,
+              eventName,
+              reason,
+              sequence,
+              trackChange)),
+          };
+          BridgeDeviceAuthentication.Apply(
+            request,
+            credential,
+            BridgeDeviceAuthentication.CreateNonce());
+          using var response = await httpClient.SendAsync(
+            request,
+            cancellationToken);
+          if (response.IsSuccessStatusCode)
+          {
+            state.LastSequence = sequence;
+            return;
+          }
+
+          if (!await IsRetryableAsync(response, cancellationToken))
+          {
+            throw new InvalidOperationException(
+              $"Gateway rejected playback event with HTTP "
+              + $"{(int)response.StatusCode}.");
+          }
+        }
+        catch (HttpRequestException)
+        {
+          // Keep this event and sequence until connectivity recovers.
+        }
+        catch (TaskCanceledException) when (!cancellationToken
+          .IsCancellationRequested)
+        {
+          // HttpClient timeout is treated as a temporary disconnection.
+        }
+
+        await Task.Delay(retryDelay, cancellationToken);
+      }
+    }
+    finally
     {
-      Content = JsonContent.Create(RequestBody(
-        snapshot,
-        eventType,
-        eventName,
-        reason,
-        trackChange)),
-    };
-    BridgeDeviceAuthentication.Apply(
-      request,
-      credential,
-      BridgeDeviceAuthentication.CreateNonce());
-    using var response = await httpClient.SendAsync(
-      request,
-      cancellationToken);
-    if (!response.IsSuccessStatusCode)
+      state.Gate.Release();
+    }
+  }
+
+  private SequenceState SequenceFor(Guid playSessionId)
+  {
+    lock (sync)
     {
-      throw new HttpRequestException(
-        $"Gateway rejected playback event with HTTP "
-        + $"{(int)response.StatusCode}.",
-        null,
-        response.StatusCode);
+      if (!sequences.TryGetValue(playSessionId, out var state))
+      {
+        state = new SequenceState();
+        sequences.Add(playSessionId, state);
+      }
+
+      return state;
+    }
+  }
+
+  private static async Task<bool> IsRetryableAsync(
+    HttpResponseMessage response,
+    CancellationToken cancellationToken)
+  {
+    var statusCode = (int)response.StatusCode;
+    if (statusCode == 408 || statusCode == 429 || statusCode >= 500)
+      return true;
+    if (statusCode != 409)
+      return false;
+
+    try
+    {
+      using var payload = await JsonDocument.ParseAsync(
+        await response.Content.ReadAsStreamAsync(cancellationToken),
+        cancellationToken: cancellationToken);
+      if (!payload.RootElement.TryGetProperty("error", out var error)
+        || !error.TryGetProperty("code", out var code))
+      {
+        return false;
+      }
+
+      return code.GetString() == "PLAYBACK_EVENT_PENDING";
+    }
+    catch (JsonException)
+    {
+      return false;
     }
   }
 
@@ -134,6 +230,7 @@ internal sealed class GatewayPlaybackEventClient(
     string eventType,
     string? eventName,
     string? reason,
+    long sequence,
     PlaybackTrackChange? trackChange)
   {
     var body = new Dictionary<string, object?>
@@ -143,6 +240,7 @@ internal sealed class GatewayPlaybackEventClient(
       ["playSessionId"] = snapshot.PlaySessionId,
       ["playbackRate"] = snapshot.PlaybackRate,
       ["positionTicks"] = snapshot.PositionTicks,
+      ["sequence"] = sequence,
     };
     if (eventName is not null)
       body["eventName"] = eventName;
@@ -153,6 +251,13 @@ internal sealed class GatewayPlaybackEventClient(
     if (trackChange?.Kind == "subtitle")
       body["subtitleStreamIndex"] = trackChange.StreamIndex;
     return body;
+  }
+
+  private sealed class SequenceState
+  {
+    public SemaphoreSlim Gate { get; } = new(1, 1);
+
+    public long LastSequence { get; set; }
   }
 }
 

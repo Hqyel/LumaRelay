@@ -43,10 +43,37 @@ export interface StoredPlaybackSession {
   selection: PlayTicketSelection;
   serverId: string;
   startedAt: string | null;
+  stoppedAt: string | null;
   userId: string;
 }
 
+export interface ClaimPlaybackEventInput {
+  bridgeDeviceId: string;
+  eventType: "playing" | "progress" | "stopped";
+  fingerprint: string;
+  playSessionId: string;
+  sequence: number;
+}
+
+export type ClaimPlaybackEventResult =
+  "claimed" | "conflict" | "duplicate" | "out-of-order" | "pending";
+
+export interface CompletePlaybackEventInput {
+  audioStreamIndex?: number | null;
+  completedAt: string;
+  eventType: "playing" | "progress" | "stopped";
+  fingerprint: string;
+  playSessionId: string;
+  positionTicks: number;
+  sequence: number;
+  subtitleStreamIndex?: number | null;
+}
+
 export interface PlayTicketStore {
+  claimPlaybackEvent?(
+    input: ClaimPlaybackEventInput,
+  ): Promise<ClaimPlaybackEventResult>;
+  completePlaybackEvent?(input: CompletePlaybackEventInput): Promise<void>;
   findPlaybackSession?(
     playSessionId: string,
     bridgeDeviceId: string,
@@ -66,6 +93,11 @@ export interface PlayTicketStore {
     subtitleStreamIndex?: number | null,
   ): Promise<void>;
   pruneInactive(): Promise<number>;
+  releasePlaybackEvent?(
+    playSessionId: string,
+    sequence: number,
+    fingerprint: string,
+  ): Promise<void>;
   redeem(
     playTicket: string,
     bridgeDeviceId: string,
@@ -112,6 +144,106 @@ export function createPlayTicketStore(
   random: PlayTicketRandomSource = defaultRandomSource,
 ): PlayTicketStore {
   return {
+    async claimPlaybackEvent(
+      input: ClaimPlaybackEventInput,
+    ): Promise<ClaimPlaybackEventResult> {
+      return database.transaction().execute(async (transaction) => {
+        const session = await transaction
+          .selectFrom("playbackSessions")
+          .select(["lastSequence", "startedAt", "stoppedAt"])
+          .where("id", "=", input.playSessionId)
+          .where("bridgeDeviceId", "=", input.bridgeDeviceId)
+          .executeTakeFirst();
+        if (session === undefined) return "out-of-order";
+
+        const existing = await transaction
+          .selectFrom("playbackEvents")
+          .select(["fingerprint", "status"])
+          .where("playSessionId", "=", input.playSessionId)
+          .where("sequence", "=", input.sequence)
+          .executeTakeFirst();
+        if (existing !== undefined) {
+          if (existing.fingerprint !== input.fingerprint) return "conflict";
+          return existing.status === "complete" ? "duplicate" : "pending";
+        }
+
+        if (
+          session.stoppedAt !== null ||
+          (input.eventType === "playing" && session.startedAt !== null) ||
+          (input.eventType !== "playing" && session.startedAt === null) ||
+          input.sequence !== session.lastSequence + 1
+        ) {
+          return "out-of-order";
+        }
+
+        await transaction
+          .insertInto("playbackEvents")
+          .values({
+            completedAt: null,
+            createdAt: now().toISOString(),
+            fingerprint: input.fingerprint,
+            playSessionId: input.playSessionId,
+            sequence: input.sequence,
+            status: "pending",
+          })
+          .execute();
+        return "claimed";
+      });
+    },
+
+    async completePlaybackEvent(
+      input: CompletePlaybackEventInput,
+    ): Promise<void> {
+      await database.transaction().execute(async (transaction) => {
+        const event = await transaction
+          .selectFrom("playbackEvents")
+          .select("status")
+          .where("playSessionId", "=", input.playSessionId)
+          .where("sequence", "=", input.sequence)
+          .where("fingerprint", "=", input.fingerprint)
+          .executeTakeFirst();
+        if (event?.status !== "pending")
+          throw new Error("The playback event is not pending");
+
+        const update: {
+          audioStreamIndex?: number | null;
+          lastEventAt: string;
+          lastPositionTicks: number;
+          lastSequence: number;
+          startedAt?: string;
+          stoppedAt?: string;
+          subtitleStreamIndex?: number | null;
+        } = {
+          lastEventAt: input.completedAt,
+          lastPositionTicks: input.positionTicks,
+          lastSequence: input.sequence,
+        };
+        if (input.eventType === "playing") update.startedAt = input.completedAt;
+        if (input.eventType === "stopped") update.stoppedAt = input.completedAt;
+        if (input.audioStreamIndex !== undefined)
+          update.audioStreamIndex = input.audioStreamIndex;
+        if (input.subtitleStreamIndex !== undefined)
+          update.subtitleStreamIndex = input.subtitleStreamIndex;
+
+        const session = await transaction
+          .updateTable("playbackSessions")
+          .set(update)
+          .where("id", "=", input.playSessionId)
+          .where("lastSequence", "=", input.sequence - 1)
+          .where("stoppedAt", "is", null)
+          .executeTakeFirst();
+        if (Number(session.numUpdatedRows) !== 1)
+          throw new Error("The playback event sequence changed");
+
+        await transaction
+          .updateTable("playbackEvents")
+          .set({ completedAt: input.completedAt, status: "complete" })
+          .where("playSessionId", "=", input.playSessionId)
+          .where("sequence", "=", input.sequence)
+          .where("status", "=", "pending")
+          .execute();
+      });
+    },
     async findPlaybackSession(
       playSessionId: string,
       bridgeDeviceId: string,
@@ -121,7 +253,6 @@ export function createPlayTicketStore(
         .selectAll()
         .where("id", "=", playSessionId)
         .where("bridgeDeviceId", "=", bridgeDeviceId)
-        .where("stoppedAt", "is", null)
         .executeTakeFirst();
       if (session === undefined) return null;
 
@@ -138,6 +269,7 @@ export function createPlayTicketStore(
         },
         serverId: session.serverId,
         startedAt: session.startedAt,
+        stoppedAt: session.stoppedAt,
         userId: session.embyUserId,
       };
     },
@@ -270,6 +402,20 @@ export function createPlayTicketStore(
         .where("expiresAt", "<=", now().toISOString())
         .executeTakeFirst();
       return Number(result.numDeletedRows);
+    },
+
+    async releasePlaybackEvent(
+      playSessionId: string,
+      sequence: number,
+      fingerprint: string,
+    ): Promise<void> {
+      await database
+        .deleteFrom("playbackEvents")
+        .where("playSessionId", "=", playSessionId)
+        .where("sequence", "=", sequence)
+        .where("fingerprint", "=", fingerprint)
+        .where("status", "=", "pending")
+        .execute();
     },
 
     async redeem(

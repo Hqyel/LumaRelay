@@ -249,4 +249,94 @@ describe("PlayTicket store", () => {
       await fixture.database.destroy();
     }
   });
+
+  it("claims, completes, deduplicates, and orders playback events", async () => {
+    const fixture = await createFixture();
+    try {
+      const issued = await fixture.issue();
+      if (issued === null) throw new Error("Ticket was not issued");
+      await fixture.store.redeem(issued.playTicket, DEVICE_ID);
+      const fingerprint = "a".repeat(64);
+      const claim = {
+        bridgeDeviceId: DEVICE_ID,
+        eventType: "playing" as const,
+        fingerprint,
+        playSessionId: PLAY_SESSION_ID,
+        sequence: 1,
+      };
+
+      await expect(fixture.store.claimPlaybackEvent!(claim)).resolves.toBe(
+        "claimed",
+      );
+      await expect(fixture.store.claimPlaybackEvent!(claim)).resolves.toBe(
+        "pending",
+      );
+      await fixture.store.completePlaybackEvent!({
+        completedAt: "2026-07-22T12:00:31.000Z",
+        eventType: "playing",
+        fingerprint,
+        playSessionId: PLAY_SESSION_ID,
+        positionTicks: 600_000_000,
+        sequence: 1,
+      });
+
+      await expect(fixture.store.claimPlaybackEvent!(claim)).resolves.toBe(
+        "duplicate",
+      );
+      await expect(
+        fixture.store.claimPlaybackEvent!({
+          ...claim,
+          fingerprint: "b".repeat(64),
+        }),
+      ).resolves.toBe("conflict");
+      await expect(
+        fixture.store.claimPlaybackEvent!({ ...claim, sequence: 3 }),
+      ).resolves.toBe("out-of-order");
+
+      const playback = await fixture.database
+        .selectFrom("playbackSessions")
+        .select(["lastPositionTicks", "lastSequence", "startedAt"])
+        .where("id", "=", PLAY_SESSION_ID)
+        .executeTakeFirstOrThrow();
+      expect(playback).toEqual({
+        lastPositionTicks: 600_000_000,
+        lastSequence: 1,
+        startedAt: "2026-07-22T12:00:31.000Z",
+      });
+    } finally {
+      await fixture.database.destroy();
+    }
+  });
+
+  it("releases a failed pending event for an identical retry", async () => {
+    const fixture = await createFixture();
+    try {
+      const issued = await fixture.issue();
+      if (issued === null) throw new Error("Ticket was not issued");
+      await fixture.store.redeem(issued.playTicket, DEVICE_ID);
+      const fingerprint = "c".repeat(64);
+      const claim = {
+        bridgeDeviceId: DEVICE_ID,
+        eventType: "playing" as const,
+        fingerprint,
+        playSessionId: PLAY_SESSION_ID,
+        sequence: 1,
+      };
+      await expect(fixture.store.claimPlaybackEvent!(claim)).resolves.toBe(
+        "claimed",
+      );
+
+      await fixture.store.releasePlaybackEvent!(
+        PLAY_SESSION_ID,
+        1,
+        fingerprint,
+      );
+
+      await expect(fixture.store.claimPlaybackEvent!(claim)).resolves.toBe(
+        "claimed",
+      );
+    } finally {
+      await fixture.database.destroy();
+    }
+  });
 });

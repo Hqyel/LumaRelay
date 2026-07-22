@@ -101,6 +101,15 @@ export interface PlaybackSessionsTable {
   subtitleStreamIndex: number | null;
 }
 
+export interface PlaybackEventsTable {
+  completedAt: string | null;
+  createdAt: string;
+  fingerprint: string;
+  playSessionId: string;
+  sequence: number;
+  status: "complete" | "pending";
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
@@ -109,5 +118,6 @@ export interface DatabaseSchema {
   bridgeRequestNonces: BridgeRequestNoncesTable;
   playTickets: PlayTicketsTable;
   playbackSessions: PlaybackSessionsTable;
+  playbackEvents: PlaybackEventsTable;
   servers: ServersTable;
 }

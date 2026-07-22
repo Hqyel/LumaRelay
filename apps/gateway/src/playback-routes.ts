@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { ApiRoutes, type PlaybackEventRequest } from "@newemby/contracts";
 import {
   EmbyMediaError,
@@ -63,6 +65,22 @@ function toEmbyProgressEvent(
   }
 }
 
+function canonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, canonicalValue(child)]),
+  );
+}
+
+function eventFingerprint(value: PlaybackEventRequest): string {
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalValue(value)))
+    .digest("hex");
+}
+
 export function registerPlaybackRoutes(
   app: FastifyInstance,
   dependencies: PlaybackRouteDependencies,
@@ -75,10 +93,10 @@ export function registerPlaybackRoutes(
         dependencies.authSessionStore === undefined ||
         dependencies.bridgeDeviceStore === undefined ||
         dependencies.playTicketStore === undefined ||
+        dependencies.playTicketStore.claimPlaybackEvent === undefined ||
+        dependencies.playTicketStore.completePlaybackEvent === undefined ||
         dependencies.playTicketStore.findPlaybackSession === undefined ||
-        dependencies.playTicketStore.markProgress === undefined ||
-        dependencies.playTicketStore.markStarted === undefined ||
-        dependencies.playTicketStore.markStopped === undefined ||
+        dependencies.playTicketStore.releasePlaybackEvent === undefined ||
         dependencies.authSessionStore.findById === undefined ||
         dependencies.serverStore.getById === undefined
       ) {
@@ -120,6 +138,49 @@ export function registerPlaybackRoutes(
           );
       }
 
+      const fingerprint = eventFingerprint(body);
+      const claim = await dependencies.playTicketStore.claimPlaybackEvent({
+        bridgeDeviceId: device.deviceId,
+        eventType: body.eventType,
+        fingerprint,
+        playSessionId: playback.playSessionId,
+        sequence: body.sequence,
+      });
+      if (claim === "duplicate") {
+        return {
+          duplicate: true,
+          requestId: request.id,
+          success: true as const,
+        };
+      }
+      if (claim !== "claimed") {
+        const response = {
+          conflict: {
+            code: "PLAYBACK_EVENT_CONFLICT" as const,
+            message: "The sequence is already bound to a different event",
+          },
+          "out-of-order": {
+            code: "PLAYBACK_EVENT_OUT_OF_ORDER" as const,
+            message: "The playback event sequence is out of order",
+          },
+          pending: {
+            code: "PLAYBACK_EVENT_PENDING" as const,
+            message: "The playback event is already being processed",
+          },
+        }[claim];
+        return reply
+          .status(409)
+          .send(errorEnvelope(response.code, response.message, request.id));
+      }
+
+      const releaseClaim = async (): Promise<void> => {
+        await dependencies.playTicketStore!.releasePlaybackEvent!(
+          playback.playSessionId,
+          body.sequence,
+          fingerprint,
+        );
+      };
+
       const [authSession, server] = await Promise.all([
         dependencies.authSessionStore.findById(playback.authSessionId),
         dependencies.serverStore.getById(playback.serverId),
@@ -130,6 +191,7 @@ export function registerPlaybackRoutes(
         authSession.user.serverId !== playback.serverId ||
         authSession.user.userId !== playback.userId
       ) {
+        await releaseClaim();
         return reply
           .status(401)
           .send(
@@ -180,6 +242,7 @@ export function registerPlaybackRoutes(
           );
         }
       } catch (error) {
+        await releaseClaim();
         if (error instanceof EmbyMediaError && error.kind === "unauthorized") {
           await dependencies.authSessionStore.revokeById?.(
             playback.authSessionId,
@@ -207,26 +270,18 @@ export function registerPlaybackRoutes(
       }
 
       const eventAt = new Date().toISOString();
-      if (body.eventType === "playing") {
-        await dependencies.playTicketStore.markStarted(
-          playback.playSessionId,
-          eventAt,
-        );
-      } else if (body.eventType === "progress") {
-        await dependencies.playTicketStore.markProgress(
-          playback.playSessionId,
-          body.positionTicks,
-          eventAt,
-          body.audioStreamIndex,
-          body.subtitleStreamIndex,
-        );
-      } else {
-        await dependencies.playTicketStore.markStopped(
-          playback.playSessionId,
-          body.positionTicks,
-          eventAt,
-        );
-      }
+      await dependencies.playTicketStore.completePlaybackEvent({
+        audioStreamIndex:
+          body.eventType === "progress" ? body.audioStreamIndex : undefined,
+        completedAt: eventAt,
+        eventType: body.eventType,
+        fingerprint,
+        playSessionId: playback.playSessionId,
+        positionTicks: body.positionTicks,
+        sequence: body.sequence,
+        subtitleStreamIndex:
+          body.eventType === "progress" ? body.subtitleStreamIndex : undefined,
+      });
       return { requestId: request.id, success: true as const };
     },
   });

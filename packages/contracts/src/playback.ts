@@ -15,6 +15,7 @@ export const PlaybackPlayingRequestSchema = z.object({
   playSessionId: z.uuid(),
   playbackRate: z.number().positive().max(16),
   positionTicks: PlaybackTicksSchema,
+  sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
 });
 
 export const PlaybackProgressEventNameSchema = z.enum([
@@ -36,6 +37,7 @@ export const PlaybackProgressRequestSchema = z
     playSessionId: z.uuid(),
     playbackRate: z.number().positive().max(16),
     positionTicks: PlaybackTicksSchema,
+    sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     subtitleStreamIndex: PlaybackStreamIndexSchema.nullable().optional(),
   })
   .superRefine((value, context) => {
@@ -76,10 +78,12 @@ export const PlaybackEventRequestSchema = z.discriminatedUnion("eventType", [
       "sessionLost",
       "userExit",
     ]),
+    sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   }),
 ]);
 
 export const PlaybackEventResponseSchema = z.object({
+  duplicate: z.boolean().optional(),
   requestId: RequestIdSchema,
   success: z.literal(true),
 });
