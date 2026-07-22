@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Players;
 using NewEmby.PlayerBridge.Security;
@@ -12,7 +13,8 @@ internal static class BridgeStatusEndpoint
     WebApplication application,
     IBridgeCredentialStore credentialStore,
     BridgeRequestSecurity security,
-    IPlayerDiscovery playerDiscovery)
+    IPlayerDiscovery playerDiscovery,
+    ISystemMediaSessionMonitor smtcMonitor)
   {
     application.MapGet("/v1/status", async (HttpContext context) =>
     {
@@ -33,7 +35,8 @@ internal static class BridgeStatusEndpoint
       var response = BridgeStatusResponse.Create(
         requestedVersion,
         credentialStore.Read() is not null,
-        players);
+        players,
+        smtcMonitor.Snapshot);
 
       await context.Response.WriteAsJsonAsync(response);
     });

@@ -66,6 +66,20 @@ for the version instead. `players` is empty when PotPlayer is not installed.
 `isPaired` reflects whether a valid device credential is present in the current
 Windows user's Credential Manager.
 
+The `smtc` status object reports `capability`, `isMonitoring`, aggregate session
+counts and `potPlayerSessionState`. `ready` means the Windows global media
+session manager was created and its event subscriptions are active;
+`unavailable` means the API could not be opened, while `unsupported` means the
+operating system is below the supported API baseline. `notObserved` only means
+that no PotPlayer SMTC session currently exists. It does not claim that the
+PotPlayer setting is disabled while the player is idle.
+
+The monitor follows session additions and removals and subscribes to media
+properties, playback information and timeline changes for every current session.
+Individual source application IDs stay inside the Bridge; the status API exposes
+counts only. NewEmby targets Windows 10 version 2004 (build 19041) or newer,
+above the Windows 10 version 1809 introduction of the global media control API.
+
 The Web pairing flow opens a short-lived `newemby://pair` URI. For local
 diagnostics, the equivalent command is:
 

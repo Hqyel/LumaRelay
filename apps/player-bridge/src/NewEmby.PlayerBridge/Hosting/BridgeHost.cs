@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Status;
 using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Players;
@@ -17,7 +19,8 @@ internal static class BridgeHost
     string[] args,
     IBridgeCredentialStore? credentialStore = null,
     BridgeNonceStore? nonceStore = null,
-    IPlayerDiscovery? playerDiscovery = null)
+    IPlayerDiscovery? playerDiscovery = null,
+    ISystemMediaSessionMonitor? smtcMonitor = null)
   {
     var builder = WebApplication.CreateSlimBuilder(args);
     var serverOptions = BridgeServerOptions.FromConfiguration(
@@ -26,6 +29,12 @@ internal static class BridgeHost
     builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, string.Empty);
     builder.WebHost.ConfigureKestrel(options =>
       ConfigureListeners(options, serverOptions.Port));
+
+    var mediaSessionMonitor = smtcMonitor
+      ?? SystemMediaSessionMonitorFactory.Create();
+    builder.Services.AddSingleton<ISystemMediaSessionMonitor>(
+      mediaSessionMonitor);
+    builder.Services.AddHostedService<SmtcMonitorHostedService>();
 
     var application = builder.Build();
 
@@ -37,7 +46,8 @@ internal static class BridgeHost
       application,
       credentials,
       security,
-      playerDiscovery ?? new PotPlayerDiscovery());
+      playerDiscovery ?? new PotPlayerDiscovery(),
+      mediaSessionMonitor);
     BridgeSecurityEndpoint.Map(application, security, credentials);
     return application;
   }

@@ -572,6 +572,9 @@ docs/
 
 Windows 首版建议使用 C# / .NET 8：
 
+- 运行基线固定为 Windows 10 version 2004（build 19041）或更新版本；
+  GSMTC API 自 Windows 10 version 1809 可用，项目 TFM 与发布基线统一使用
+  `windows10.0.19041.0`。
 - 可直接使用 `Windows.Media.Control` 访问系统媒体会话和时间线。
 - 适合实现进程控制、自定义协议、系统托盘和 Windows 便携发布；安装流程延期
   评估。
@@ -832,3 +835,5 @@ Player Bridge ── HTTPS ─────────── NewEmby Gateway
   <https://learn.microsoft.com/en-us/uwp/api/windows.media.control/globalsystemmediatransportcontrolssession.gettimelineproperties>
 - Windows 系统媒体会话位置：
   <https://learn.microsoft.com/en-us/uwp/api/windows.media.control/globalsystemmediatransportcontrolssessiontimelineproperties.position>
+- Windows 全局媒体会话管理器：
+  <https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssessionmanager>

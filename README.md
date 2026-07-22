@@ -9,6 +9,7 @@ local-player Bridge. It does not implement an HTML5 video player.
 - pnpm 11.13.1
 - Docker with Compose for the production topology
 - .NET SDK 8.0.422 for Player Bridge development
+- Windows 10 version 2004（build 19041）或更新版本用于运行 Player Bridge
 
 The checked-in package manager and lock file are authoritative. On Windows, use
 `pnpm.cmd` if PowerShell execution policy blocks `pnpm.ps1`. If the bundled

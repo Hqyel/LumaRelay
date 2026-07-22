@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using NewEmby.PlayerBridge.Hosting;
+using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Pairing;
 using NewEmby.PlayerBridge.Players;
 using NewEmby.PlayerBridge.Status;
@@ -52,6 +53,11 @@ public sealed class BridgeStatusEndpointTests
     Assert.Equal("x64", status.Architecture);
     Assert.False(status.IsPaired);
     Assert.Empty(status.Players);
+    Assert.Equal("unsupported", status.Smtc.Capability);
+    Assert.False(status.Smtc.IsMonitoring);
+    Assert.Equal(0, status.Smtc.SessionCount);
+    Assert.Equal(0, status.Smtc.PotPlayerSessionCount);
+    Assert.Equal("notObserved", status.Smtc.PotPlayerSessionState);
     Assert.Equal(expectedCompatibility, status.Compatibility.IsCompatible);
     Assert.Equal(
       expectedRequestedVersion,
@@ -113,6 +119,42 @@ public sealed class BridgeStatusEndpointTests
     await application.StopAsync();
   }
 
+  [Fact]
+  public async Task ReportsHostedSmtcCapabilityWithoutSessionIdentity()
+  {
+    var port = ReserveLoopbackPort();
+    var monitor = new ReadySmtcMonitor();
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new EmptyCredentialStore(),
+      playerDiscovery: new EmptyPlayerDiscovery(),
+      smtcMonitor: monitor);
+    await application.StartAsync();
+
+    using var handler = new SocketsHttpHandler { UseProxy = false };
+    using var client = new HttpClient(handler);
+    using var response = await client.GetAsync(
+      $"http://127.0.0.1:{port}/v1/status");
+    var json = await response.Content.ReadAsStringAsync();
+    var status = await response.Content
+      .ReadFromJsonAsync<BridgeStatusResponse>();
+
+    Assert.True(monitor.IsStarted);
+    Assert.NotNull(status);
+    Assert.Equal("ready", status.Smtc.Capability);
+    Assert.True(status.Smtc.IsMonitoring);
+    Assert.Equal(3, status.Smtc.SessionCount);
+    Assert.Equal(1, status.Smtc.PotPlayerSessionCount);
+    Assert.Equal("detected", status.Smtc.PotPlayerSessionState);
+    Assert.DoesNotContain(
+      "sensitive.application.id",
+      json,
+      StringComparison.Ordinal);
+
+    await application.StopAsync();
+    Assert.True(monitor.IsStopped);
+  }
+
   private sealed class EmptyPlayerDiscovery : IPlayerDiscovery
   {
     public IReadOnlyList<DiscoveredPlayer> Discover()
@@ -135,6 +177,40 @@ public sealed class BridgeStatusEndpointTests
           true,
           @"C:\Program Files\DAUM\PotPlayer\PotPlayerMini64.exe"),
       ];
+    }
+  }
+
+  private sealed class ReadySmtcMonitor : ISystemMediaSessionMonitor
+  {
+    public event EventHandler<SmtcSessionEventArgs>? Changed;
+
+    public bool IsStarted { get; private set; }
+    public bool IsStopped { get; private set; }
+
+    public SmtcMonitorSnapshot Snapshot { get; private set; } =
+      SmtcMonitorSnapshot.Unsupported;
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+      IsStarted = true;
+      Snapshot = new SmtcMonitorSnapshot(
+        SmtcCapability.Ready,
+        true,
+        3,
+        1);
+      Changed?.Invoke(
+        this,
+        new SmtcSessionEventArgs(
+          SmtcSessionEventKind.SessionsChanged,
+          "sensitive.application.id",
+          Snapshot));
+      return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+      IsStopped = true;
+      return Task.CompletedTask;
     }
   }
 
