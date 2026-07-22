@@ -46,8 +46,8 @@ import {
 } from "./play-ticket.js";
 import {
   PlaybackEventParamsSchema,
+  PlaybackEventRequestSchema,
   PlaybackEventResponseSchema,
-  PlaybackPlayingRequestSchema,
 } from "./playback.js";
 import {
   CurrentServerResponseSchema,
@@ -192,7 +192,7 @@ export const ApiRoutes = {
     method: "POST",
     url: `${API_PREFIX}/bridge/devices/:deviceId/playback-events`,
     schema: {
-      body: PlaybackPlayingRequestSchema,
+      body: PlaybackEventRequestSchema,
       headers: BridgeDeviceAuthHeadersSchema,
       params: PlaybackEventParamsSchema,
       response: {

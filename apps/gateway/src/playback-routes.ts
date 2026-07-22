@@ -1,6 +1,7 @@
-import { ApiRoutes, type PlaybackPlayingRequest } from "@newemby/contracts";
+import { ApiRoutes, type PlaybackEventRequest } from "@newemby/contracts";
 import {
   EmbyMediaError,
+  reportPlaybackProgress,
   reportPlaybackStarted,
   type PlaybackSessionInput,
 } from "@newemby/emby-client";
@@ -21,6 +22,11 @@ export interface PlaybackRouteDependencies {
     baseUrl: string,
     input: PlaybackSessionInput,
   ) => Promise<void>;
+  reportProgress?: (
+    baseUrl: string,
+    input: PlaybackSessionInput,
+    eventName: "TimeUpdate",
+  ) => Promise<void>;
   serverStore: ServerStore;
 }
 
@@ -37,6 +43,7 @@ export function registerPlaybackRoutes(
         dependencies.bridgeDeviceStore === undefined ||
         dependencies.playTicketStore === undefined ||
         dependencies.playTicketStore.findPlaybackSession === undefined ||
+        dependencies.playTicketStore.markProgress === undefined ||
         dependencies.playTicketStore.markStarted === undefined ||
         dependencies.authSessionStore.findById === undefined ||
         dependencies.serverStore.getById === undefined
@@ -51,7 +58,7 @@ export function registerPlaybackRoutes(
       );
       if (device === null) return;
 
-      const body = request.body as PlaybackPlayingRequest;
+      const body = request.body as PlaybackEventRequest;
       const playback = await dependencies.playTicketStore.findPlaybackSession(
         body.playSessionId,
         device.deviceId,
@@ -63,6 +70,17 @@ export function registerPlaybackRoutes(
             errorEnvelope(
               "PLAYBACK_SESSION_NOT_FOUND",
               "The playback session was not found",
+              request.id,
+            ),
+          );
+      }
+      if (body.eventType === "progress" && playback.startedAt === null) {
+        return reply
+          .status(409)
+          .send(
+            errorEnvelope(
+              "PLAYBACK_EVENT_OUT_OF_ORDER",
+              "Playback progress cannot be reported before playback starts",
               request.id,
             ),
           );
@@ -90,22 +108,31 @@ export function registerPlaybackRoutes(
       }
 
       const deviceId = await dependencies.authSessionStore.getDeviceId();
+      const upstreamInput: PlaybackSessionInput = {
+        accessToken: authSession.accessToken,
+        audioStreamIndex: playback.selection.audioStreamIndex,
+        deviceId,
+        isPaused: body.isPaused,
+        itemId: playback.selection.itemId,
+        mediaSourceId: playback.selection.mediaSourceId,
+        playbackRate: body.playbackRate,
+        playSessionId: playback.playSessionId,
+        positionTicks: body.positionTicks,
+        subtitleStreamIndex: playback.selection.subtitleStreamIndex,
+      };
       try {
-        await (dependencies.reportStarted ?? reportPlaybackStarted)(
-          server.baseUrl,
-          {
-            accessToken: authSession.accessToken,
-            audioStreamIndex: playback.selection.audioStreamIndex,
-            deviceId,
-            isPaused: body.isPaused,
-            itemId: playback.selection.itemId,
-            mediaSourceId: playback.selection.mediaSourceId,
-            playbackRate: body.playbackRate,
-            playSessionId: playback.playSessionId,
-            positionTicks: body.positionTicks,
-            subtitleStreamIndex: playback.selection.subtitleStreamIndex,
-          },
-        );
+        if (body.eventType === "playing") {
+          await (dependencies.reportStarted ?? reportPlaybackStarted)(
+            server.baseUrl,
+            upstreamInput,
+          );
+        } else {
+          await (dependencies.reportProgress ?? reportPlaybackProgress)(
+            server.baseUrl,
+            upstreamInput,
+            "TimeUpdate",
+          );
+        }
       } catch (error) {
         if (error instanceof EmbyMediaError && error.kind === "unauthorized") {
           await dependencies.authSessionStore.revokeById?.(
@@ -133,10 +160,19 @@ export function registerPlaybackRoutes(
           );
       }
 
-      await dependencies.playTicketStore.markStarted(
-        playback.playSessionId,
-        new Date().toISOString(),
-      );
+      const eventAt = new Date().toISOString();
+      if (body.eventType === "playing") {
+        await dependencies.playTicketStore.markStarted(
+          playback.playSessionId,
+          eventAt,
+        );
+      } else {
+        await dependencies.playTicketStore.markProgress(
+          playback.playSessionId,
+          body.positionTicks,
+          eventAt,
+        );
+      }
       return { requestId: request.id, success: true as const };
     },
   });

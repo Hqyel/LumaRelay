@@ -19,6 +19,15 @@ export interface PlaybackClientOptions {
   timeoutMs?: number;
 }
 
+export type PlaybackProgressEvent =
+  | "AudioTrackChange"
+  | "Pause"
+  | "PlaybackRateChange"
+  | "Seek"
+  | "SubtitleTrackChange"
+  | "TimeUpdate"
+  | "Unpause";
+
 function authorizationHeader(deviceId: string): string {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
   return (
@@ -100,6 +109,21 @@ export async function reportPlaybackStarted(
     "/Sessions/Playing",
     input,
     playbackBody(input),
+    options,
+  );
+}
+
+export async function reportPlaybackProgress(
+  baseUrl: string,
+  input: PlaybackSessionInput,
+  eventName: PlaybackProgressEvent,
+  options: PlaybackClientOptions = {},
+): Promise<void> {
+  await postPlayback(
+    baseUrl,
+    "/Sessions/Playing/Progress",
+    input,
+    { ...playbackBody(input), EventName: eventName },
     options,
   );
 }

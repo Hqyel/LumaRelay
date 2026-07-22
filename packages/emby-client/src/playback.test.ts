@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { reportPlaybackStarted } from "./playback.js";
+import { reportPlaybackProgress, reportPlaybackStarted } from "./playback.js";
 
 describe("playback check-ins", () => {
   it("reports Playing with the authenticated DirectPlay context", async () => {
@@ -38,5 +38,37 @@ describe("playback check-ins", () => {
       PositionTicks: 12_000_000,
     });
     expect(url.toString()).not.toContain("secret-token");
+  });
+
+  it("reports TimeUpdate progress with the latest timeline", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    await reportPlaybackProgress(
+      "https://emby.example.com/",
+      {
+        accessToken: "secret-token",
+        audioStreamIndex: 1,
+        deviceId: "gateway-device",
+        isPaused: false,
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        playbackRate: 1,
+        playSessionId: "11111111-1111-4111-8111-111111111111",
+        positionTicks: 110_000_000,
+        subtitleStreamIndex: null,
+      },
+      "TimeUpdate",
+      { fetch: fetcher },
+    );
+
+    const [url, request] = fetcher.mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe(
+      "https://emby.example.com/Sessions/Playing/Progress",
+    );
+    expect(JSON.parse(request.body as string)).toMatchObject({
+      EventName: "TimeUpdate",
+      PositionTicks: 110_000_000,
+    });
   });
 });

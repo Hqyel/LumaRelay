@@ -12,6 +12,10 @@ internal interface IPlaybackEventClient
   Task SendPlayingAsync(
     PlayerPlaybackSnapshot snapshot,
     CancellationToken cancellationToken);
+
+  Task SendProgressAsync(
+    PlayerPlaybackSnapshot snapshot,
+    CancellationToken cancellationToken);
 }
 
 internal sealed class GatewayPlaybackEventClient(
@@ -20,6 +24,22 @@ internal sealed class GatewayPlaybackEventClient(
 {
   public async Task SendPlayingAsync(
     PlayerPlaybackSnapshot snapshot,
+    CancellationToken cancellationToken)
+  {
+    await SendAsync(snapshot, "playing", null, cancellationToken);
+  }
+
+  public async Task SendProgressAsync(
+    PlayerPlaybackSnapshot snapshot,
+    CancellationToken cancellationToken)
+  {
+    await SendAsync(snapshot, "progress", "timeUpdate", cancellationToken);
+  }
+
+  private async Task SendAsync(
+    PlayerPlaybackSnapshot snapshot,
+    string eventType,
+    string? eventName,
     CancellationToken cancellationToken)
   {
     var credential = credentialStore.Read();
@@ -31,8 +51,9 @@ internal sealed class GatewayPlaybackEventClient(
       $"/api/v1/bridge/devices/{credential.DeviceId}/playback-events");
     using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
     {
-      Content = JsonContent.Create(new PlayingRequest(
-        "playing",
+      Content = JsonContent.Create(new PlaybackRequest(
+        eventName,
+        eventType,
         snapshot.IsPaused(),
         snapshot.PlaySessionId,
         snapshot.PlaybackRate,
@@ -48,14 +69,15 @@ internal sealed class GatewayPlaybackEventClient(
     if (!response.IsSuccessStatusCode)
     {
       throw new HttpRequestException(
-        $"Gateway rejected playback start with HTTP "
+        $"Gateway rejected playback event with HTTP "
         + $"{(int)response.StatusCode}.",
         null,
         response.StatusCode);
     }
   }
 
-  private sealed record PlayingRequest(
+  private sealed record PlaybackRequest(
+    string? EventName,
     string EventType,
     bool IsPaused,
     Guid PlaySessionId,
@@ -63,10 +85,14 @@ internal sealed class GatewayPlaybackEventClient(
     long PositionTicks);
 }
 
-internal sealed class PlaybackEventReporter(
-  IPotPlayerPlaybackMonitor playbackMonitor,
-  IPlaybackEventClient eventClient) : IHostedService, IDisposable
+internal sealed class PlaybackEventReporter : IHostedService, IDisposable
 {
+  private static readonly TimeSpan DefaultProgressInterval =
+    TimeSpan.FromSeconds(10);
+
+  private readonly IPlaybackEventClient eventClient;
+  private readonly IPotPlayerPlaybackMonitor playbackMonitor;
+  private readonly TimeSpan progressInterval;
   private readonly Channel<PlayerPlaybackMonitorSnapshot> updates =
     Channel.CreateBounded<PlayerPlaybackMonitorSnapshot>(
       new BoundedChannelOptions(1)
@@ -76,8 +102,24 @@ internal sealed class PlaybackEventReporter(
         SingleWriter = false,
       });
   private readonly HashSet<Guid> startedSessions = [];
+  private readonly object sync = new();
+  private Task heartbeatWorker = Task.CompletedTask;
   private CancellationTokenSource? lifetimeSource;
   private Task worker = Task.CompletedTask;
+
+  public PlaybackEventReporter(
+    IPotPlayerPlaybackMonitor playbackMonitor,
+    IPlaybackEventClient eventClient,
+    TimeSpan? progressInterval = null)
+  {
+    this.playbackMonitor = playbackMonitor;
+    this.eventClient = eventClient;
+    this.progressInterval = progressInterval ?? DefaultProgressInterval;
+    if (this.progressInterval <= TimeSpan.Zero)
+    {
+      throw new ArgumentOutOfRangeException(nameof(progressInterval));
+    }
+  }
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -88,6 +130,7 @@ internal sealed class PlaybackEventReporter(
     lifetimeSource = new CancellationTokenSource();
     playbackMonitor.Changed += OnPlaybackChanged;
     worker = RunAsync(lifetimeSource.Token);
+    heartbeatWorker = RunHeartbeatAsync(lifetimeSource.Token);
     QueueCurrentSnapshot();
     return Task.CompletedTask;
   }
@@ -104,7 +147,8 @@ internal sealed class PlaybackEventReporter(
     updates.Writer.TryComplete();
     try
     {
-      await worker.WaitAsync(cancellationToken);
+      await Task.WhenAll(worker, heartbeatWorker)
+        .WaitAsync(cancellationToken);
     }
     catch (OperationCanceledException) when (source.IsCancellationRequested)
     {
@@ -140,7 +184,7 @@ internal sealed class PlaybackEventReporter(
       foreach (var session in snapshot.Sessions)
       {
         if (!CanReportStart(session)
-            || startedSessions.Contains(session.PlaySessionId))
+            || HasStarted(session.PlaySessionId))
         {
           continue;
         }
@@ -148,7 +192,7 @@ internal sealed class PlaybackEventReporter(
         try
         {
           await eventClient.SendPlayingAsync(session, cancellationToken);
-          startedSessions.Add(session.PlaySessionId);
+          MarkStarted(session.PlaySessionId);
         }
         catch (OperationCanceledException) when (cancellationToken
           .IsCancellationRequested)
@@ -161,6 +205,48 @@ internal sealed class PlaybackEventReporter(
         }
       }
     }
+  }
+
+  private async Task RunHeartbeatAsync(CancellationToken cancellationToken)
+  {
+    using var timer = new PeriodicTimer(progressInterval);
+    while (await timer.WaitForNextTickAsync(cancellationToken))
+    {
+      foreach (var session in playbackMonitor.Snapshot.Sessions)
+      {
+        if (!CanReportStart(session)
+            || !HasStarted(session.PlaySessionId))
+        {
+          continue;
+        }
+
+        try
+        {
+          await eventClient.SendProgressAsync(session, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken
+          .IsCancellationRequested)
+        {
+          throw;
+        }
+        catch
+        {
+          // The next ten-second heartbeat retries a transient failure.
+        }
+      }
+    }
+  }
+
+  private bool HasStarted(Guid playSessionId)
+  {
+    lock (sync)
+      return startedSessions.Contains(playSessionId);
+  }
+
+  private void MarkStarted(Guid playSessionId)
+  {
+    lock (sync)
+      startedSessions.Add(playSessionId);
   }
 
   private static bool CanReportStart(PlayerPlaybackSnapshot snapshot)

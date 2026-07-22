@@ -14,6 +14,20 @@ export const PlaybackPlayingRequestSchema = z.object({
   positionTicks: PlaybackTicksSchema,
 });
 
+export const PlaybackProgressRequestSchema = z.object({
+  eventName: z.literal("timeUpdate"),
+  eventType: z.literal("progress"),
+  isPaused: z.boolean(),
+  playSessionId: z.uuid(),
+  playbackRate: z.number().positive().max(16),
+  positionTicks: PlaybackTicksSchema,
+});
+
+export const PlaybackEventRequestSchema = z.discriminatedUnion("eventType", [
+  PlaybackPlayingRequestSchema,
+  PlaybackProgressRequestSchema,
+]);
+
 export const PlaybackEventResponseSchema = z.object({
   requestId: RequestIdSchema,
   success: z.literal(true),
@@ -22,4 +36,8 @@ export const PlaybackEventResponseSchema = z.object({
 export type PlaybackPlayingRequest = z.infer<
   typeof PlaybackPlayingRequestSchema
 >;
+export type PlaybackProgressRequest = z.infer<
+  typeof PlaybackProgressRequestSchema
+>;
+export type PlaybackEventRequest = z.infer<typeof PlaybackEventRequestSchema>;
 export type PlaybackEventResponse = z.infer<typeof PlaybackEventResponseSchema>;

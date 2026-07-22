@@ -42,6 +42,7 @@ export interface StoredPlaybackSession {
   playSessionId: string;
   selection: PlayTicketSelection;
   serverId: string;
+  startedAt: string | null;
   userId: string;
 }
 
@@ -52,6 +53,11 @@ export interface PlayTicketStore {
   ): Promise<StoredPlaybackSession | null>;
   issue(input: IssuePlayTicketInput): Promise<IssuedPlayTicket | null>;
   markStarted?(playSessionId: string, startedAt: string): Promise<void>;
+  markProgress?(
+    playSessionId: string,
+    positionTicks: number,
+    eventAt: string,
+  ): Promise<void>;
   pruneInactive(): Promise<number>;
   redeem(
     playTicket: string,
@@ -124,6 +130,7 @@ export function createPlayTicketStore(
           subtitleStreamIndex: session.subtitleStreamIndex,
         },
         serverId: session.serverId,
+        startedAt: session.startedAt,
         userId: session.embyUserId,
       };
     },
@@ -202,6 +209,20 @@ export function createPlayTicketStore(
         })
         .where("id", "=", playSessionId)
         .where("startedAt", "is", null)
+        .execute();
+    },
+
+    async markProgress(
+      playSessionId: string,
+      positionTicks: number,
+      eventAt: string,
+    ): Promise<void> {
+      await database
+        .updateTable("playbackSessions")
+        .set({ lastEventAt: eventAt, lastPositionTicks: positionTicks })
+        .where("id", "=", playSessionId)
+        .where("startedAt", "is not", null)
+        .where("stoppedAt", "is", null)
         .execute();
     },
 

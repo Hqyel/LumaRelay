@@ -18,7 +18,7 @@ public sealed class PlaybackEventReporterTests
     monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
     await Task.Delay(50);
 
-    Assert.Single(client.Snapshots);
+    Assert.Single(client.PlayingSnapshots);
     await reporter.StopAsync(CancellationToken.None);
   }
 
@@ -34,11 +34,59 @@ public sealed class PlaybackEventReporterTests
       PlayerPlaybackState.Playing,
       isTimelineStale: true));
     await Task.Delay(50);
-    Assert.Empty(client.Snapshots);
+    Assert.Empty(client.PlayingSnapshots);
 
     monitor.Publish(CreateSnapshot(PlayerPlaybackState.Paused));
     await client.WaitForCountAsync(1);
-    Assert.Equal(PlayerPlaybackState.Paused, client.Snapshots[0].State);
+    Assert.Equal(
+      PlayerPlaybackState.Paused,
+      client.PlayingSnapshots[0].State);
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
+  [Fact]
+  public async Task SendsProgressHeartbeatsOnlyAfterPlayingSucceeded()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMilliseconds(20));
+    await reporter.StartAsync(CancellationToken.None);
+
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForCountAsync(1);
+    await client.WaitForProgressCountAsync(2);
+
+    Assert.True(client.ProgressSnapshots.Count >= 2);
+    Assert.All(
+      client.ProgressSnapshots,
+      snapshot => Assert.False(snapshot.IsTimelineStale));
+    await reporter.StopAsync(CancellationToken.None);
+  }
+
+  [Fact]
+  public async Task StopsHeartbeatsWhenTimelineBecomesStale()
+  {
+    var monitor = new FakePlaybackMonitor();
+    var client = new RecordingPlaybackClient();
+    using var reporter = new PlaybackEventReporter(
+      monitor,
+      client,
+      TimeSpan.FromMilliseconds(20));
+    await reporter.StartAsync(CancellationToken.None);
+
+    monitor.Publish(CreateSnapshot(PlayerPlaybackState.Playing));
+    await client.WaitForProgressCountAsync(1);
+    monitor.Publish(CreateSnapshot(
+      PlayerPlaybackState.Playing,
+      isTimelineStale: true));
+    await Task.Delay(30);
+    var countAfterStale = client.ProgressSnapshots.Count;
+    await Task.Delay(60);
+
+    Assert.Equal(countAfterStale, client.ProgressSnapshots.Count);
     await reporter.StopAsync(CancellationToken.None);
   }
 
@@ -86,26 +134,41 @@ public sealed class PlaybackEventReporterTests
 
   private sealed class RecordingPlaybackClient : IPlaybackEventClient
   {
-    private readonly TaskCompletionSource changed = new(
-      TaskCreationOptions.RunContinuationsAsynchronously);
+    public List<PlayerPlaybackSnapshot> PlayingSnapshots { get; } = [];
 
-    public List<PlayerPlaybackSnapshot> Snapshots { get; } = [];
+    public List<PlayerPlaybackSnapshot> ProgressSnapshots { get; } = [];
 
     public Task SendPlayingAsync(
       PlayerPlaybackSnapshot snapshot,
       CancellationToken cancellationToken)
     {
-      Snapshots.Add(snapshot);
-      changed.TrySetResult();
+      PlayingSnapshots.Add(snapshot);
+      return Task.CompletedTask;
+    }
+
+    public Task SendProgressAsync(
+      PlayerPlaybackSnapshot snapshot,
+      CancellationToken cancellationToken)
+    {
+      ProgressSnapshots.Add(snapshot);
       return Task.CompletedTask;
     }
 
     public async Task WaitForCountAsync(int count)
     {
-      if (Snapshots.Count >= count)
-        return;
+      await WaitUntilAsync(() => PlayingSnapshots.Count >= count);
+    }
 
-      await changed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+    public async Task WaitForProgressCountAsync(int count)
+    {
+      await WaitUntilAsync(() => ProgressSnapshots.Count >= count);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+      using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+      while (!condition())
+        await Task.Delay(10, timeout.Token);
     }
   }
 }

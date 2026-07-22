@@ -318,6 +318,12 @@ AccessToken 不进入 Bridge、浏览器、URL、日志或错误响应。同一 
 PlaySessionId 只发送一次 Playing，陈旧时间线不得触发开始回传，失败可在下一次
 播放器状态变化时重试。
 
+Playing 成功后，Bridge 使用独立 10 秒周期读取最新快照并发送 `progress` /
+`timeUpdate`；Gateway 映射为 Emby `/Sessions/Playing/Progress` 的 `TimeUpdate`，
+同时保存最后位置和事件时间。心跳沿用 Playing 的完整媒体、音字幕、暂停与速率
+上下文。播放会话尚未开始时 Gateway 必须拒绝 Progress；匹配消失或时间线陈旧时
+Bridge 立即停止心跳，单次网络失败只影响当前心跳并在下一周期重试。
+
 ## 5. 前台信息架构
 
 ### 5.1 全局导航
