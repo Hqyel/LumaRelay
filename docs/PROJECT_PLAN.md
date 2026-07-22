@@ -172,7 +172,9 @@ nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network 
 
 1. Web 端打开“播放准备”弹层。
 2. Gateway 通过当前用户级 `/Items/{id}/PlaybackInfo` 获取可直接播放的
-   媒体源、音轨和文本字幕；默认值由 Emby 返回值决定。
+   媒体源、音轨和文本字幕；默认值由 Emby 返回值决定，但非文本字幕不能成为
+   PotPlayer 默认选择。剧集播放必须先解析为具体 Episode，不能用 Series ID
+   请求 PlaybackInfo。
 3. 用户确认版本、字幕和音轨；M2 只支持 PotPlayer，高级多版本体验留到 M3。
 4. Web 向 Gateway 请求一次性 `PlayTicket`。
 5. Web 以配对 Origin 和新 nonce 调用 Bridge 的 `POST /v1/playback/start`。
@@ -189,11 +191,22 @@ nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network 
 AccessToken。Gateway 在签发票据前重新校验媒体源和音字幕选择，Bridge 的本地
 播放会话只存在于进程内；字幕仅允许 Emby 标记为文本的流。
 
+普通文件使用 Emby 静态流别名；STRM 使用新鲜 PlaybackInfo 返回的 HTTP `Path`
+或 `DirectStreamUrl`，并允许 Gateway 手动跟随 Emby/CloudMediaSync 重定向。Emby
+认证头只发送给配置的 Emby Origin，跨 Origin 前必须移除；外部提供方自身的签名
+查询参数保持不变，避免把 AccessToken 暴露给直链提供方。
+
 当前播放状态将 `launching`、`playing`、`paused`、`stopped`、`ended` 和
 `unavailable` 分开，并独立声明 `waiting`、`synchronized`、`stale` 或
 `unavailable` 同步质量。只有新鲜的匹配 SMTC 时间线可显示为完整同步；时间线
 陈旧、多实例歧义、匹配超时和播放器退出都提供明确警告，不能沿用最后一次绿色
 状态。
+
+M2 的自动恢复验收使用真实 Bridge 事件报告器和 Gateway HTTP 客户端完成 Playing、
+Pause、Unpause、Seek、Ended 与播放器异常退出序列，并在第一次 Pause 遭遇 503 时
+验证同一序号、同一负载和新 nonce 重试。浏览器 E2E 继续验证暂停、跳转、结束、
+Bridge 断开、SMTC 不可用、时间线陈旧、多实例歧义和匹配超时；查询失败后不得
+继续沿用最后一次绿色同步状态。
 
 ### 4.3 PlayTicket 设计
 

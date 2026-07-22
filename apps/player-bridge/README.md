@@ -119,6 +119,14 @@ and forwards byte ranges. The Gateway restores the encrypted Emby session and
 proxies the static stream, so neither the local URL nor the player arguments
 contain an Emby access token.
 
+For ordinary files, the Gateway uses Emby's static stream alias. For STRM
+sources, it honors the HTTP `Path` or `DirectStreamUrl` returned by the fresh
+PlaybackInfo response and safely follows redirects. Emby authentication headers
+are attached only to the configured Emby origin and are removed before any
+cross-origin CloudMediaSync/provider request; provider query signatures remain
+intact. A Gateway stream failure is returned by the loopback endpoint as a
+stable `UPSTREAM_STREAM_FAILED` response instead of abruptly closing the socket.
+
 `GET /v1/playback/status` is available only to the paired browser Origin. It
 combines each in-memory local playback session with the exact PotPlayer match
 and latest SMTC timeline. A session is reported as synchronized only while a
@@ -202,3 +210,9 @@ notification-area icon. Its compact menu shows the Bridge version and an exit
 action. Only one Bridge instance can run per user. For automated maintenance,
 `NewEmby.PlayerBridge.exe --shutdown` signals the running instance to stop its
 HTTP host and exit cleanly.
+
+The automated recovery suite drives the real event reporter and Gateway HTTP
+client through pause, resume, seek, ended, player-exit and temporary 503
+sequences. It also checks stale timelines, unavailable SMTC, ambiguous matches,
+matching timeouts and unpaired browser rejection. A real paired PotPlayer/Emby
+smoke remains the release check for the final 15-second progress tolerance.

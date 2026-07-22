@@ -1,11 +1,15 @@
-import type { MediaDetail, PlaybackMediaSource } from "@newemby/contracts";
+import type { PlaybackMediaSource } from "@newemby/contracts";
 import { Button, Dialog } from "@newemby/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Play, Radio } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { createPlayTicket, getPlaybackOptions } from "../api.js";
-import { bridgeCapabilityModel, startLocalPlayback } from "../bridge-client.js";
+import { ApiError, createPlayTicket, getPlaybackOptions } from "../api.js";
+import {
+  bridgeCapabilityModel,
+  LocalBridgeError,
+  startLocalPlayback,
+} from "../bridge-client.js";
 import { bridgeStatusQuery } from "../bridge-query.js";
 
 function formatResume(seconds: number): string {
@@ -20,7 +24,37 @@ function firstSource(
   return sources.find((source) => source.supportsDirectStream) ?? sources[0];
 }
 
-export function PlayPreparationDialog({ item }: { item: MediaDetail }) {
+export interface PlaybackTarget {
+  itemId: string;
+  playbackPositionSeconds: number;
+  title: string;
+}
+
+function startErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === "PLAYBACK_SELECTION_INVALID")
+      return "媒体源或默认音字幕已变化，请关闭弹层后重新选择。";
+    if (error.code === "BRIDGE_DEVICE_NOT_FOUND")
+      return "当前 Bridge 配对已失效，请在顶栏重新配对。";
+    return `Gateway 无法准备播放（${error.code}）。`;
+  }
+  if (error instanceof LocalBridgeError) {
+    if (error.code === "PLAYER_NOT_FOUND")
+      return "未找到受支持的 PotPlayer，请检查便携版位置。";
+    if (error.code === "PLAY_TICKET_REDEEM_FAILED")
+      return "Bridge 无法兑换播放票据，请检查 Gateway 连接后重试。";
+    return `Bridge 无法启动播放（${error.code}）。`;
+  }
+  return "本地播放启动失败，请检查 Bridge 与 Gateway 后重试。";
+}
+
+export function PlayPreparationDialog({
+  item,
+  trigger,
+}: {
+  item: PlaybackTarget;
+  trigger?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [sourceId, setSourceId] = useState("");
   const [audioIndex, setAudioIndex] = useState<number | null>(null);
@@ -86,10 +120,12 @@ export function PlayPreparationDialog({ item }: { item: MediaDetail }) {
       open={open}
       title="本地播放准备"
       trigger={
-        <Button className="detail-play-button">
-          <Play aria-hidden="true" fill="currentColor" size={18} />
-          播放
-        </Button>
+        trigger ?? (
+          <Button className="detail-play-button">
+            <Play aria-hidden="true" fill="currentColor" size={18} />
+            播放
+          </Button>
+        )
       }
     >
       <div className="play-preparation">
@@ -240,7 +276,7 @@ export function PlayPreparationDialog({ item }: { item: MediaDetail }) {
             className="play-preparation-error"
             role="alert"
           >
-            本地播放启动失败。PlayTicket 已安全失效，请重试。
+            {startErrorMessage(startMutation.error)}
           </p>
         ) : null}
         {startMutation.isSuccess ? (

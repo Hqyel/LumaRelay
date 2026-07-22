@@ -41,6 +41,37 @@ test("desktop browser supports navigation, keyboard search, and layout", async (
   });
   page.on("pageerror", (error) => runtimeErrors.push(error.message));
 
+  await page.route("http://127.0.0.1:58080/v1/status**", async (route) => {
+    await route.fulfill({
+      headers: {
+        "access-control-allow-origin": "http://127.0.0.1:4173",
+      },
+      json: {
+        apiVersion: 1,
+        applicationId: "NewEmby.PlayerBridge",
+        architecture: "x64",
+        bridgeVersion: "0.1.0",
+        compatibility: {
+          isCompatible: true,
+          maximumClientApiVersion: 1,
+          minimumClientApiVersion: 1,
+          requestedApiVersion: 1,
+        },
+        isPaired: false,
+        platform: "windows",
+        players: [],
+        smtc: {
+          capability: "unavailable",
+          isMonitoring: false,
+          potPlayerSessionCount: 0,
+          potPlayerSessionState: "notObserved",
+          sessionCount: 0,
+        },
+        status: "ready",
+      },
+    });
+  });
+
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/v1/servers/current") {

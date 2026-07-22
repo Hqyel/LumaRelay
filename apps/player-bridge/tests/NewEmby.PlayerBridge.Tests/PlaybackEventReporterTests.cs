@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using NewEmby.PlayerBridge.MediaSessions;
 using NewEmby.PlayerBridge.Playback;
 
@@ -270,19 +271,32 @@ public sealed class PlaybackEventReporterTests
 
   private sealed class RecordingPlaybackClient : IPlaybackEventClient
   {
-    public List<PlayerPlaybackSnapshot> PlayingSnapshots { get; } = [];
+    private readonly ConcurrentQueue<PlayerPlaybackSnapshot>
+      playingSnapshots = new();
+    private readonly ConcurrentQueue<PlayerPlaybackSnapshot>
+      progressSnapshots = new();
+    private readonly ConcurrentQueue<RecordedProgressEvent>
+      progressEvents = new();
+    private readonly ConcurrentQueue<RecordedStoppedEvent>
+      stoppedEvents = new();
 
-    public List<PlayerPlaybackSnapshot> ProgressSnapshots { get; } = [];
+    public IReadOnlyList<PlayerPlaybackSnapshot> PlayingSnapshots =>
+      playingSnapshots.ToArray();
 
-    public List<RecordedProgressEvent> ProgressEvents { get; } = [];
+    public IReadOnlyList<PlayerPlaybackSnapshot> ProgressSnapshots =>
+      progressSnapshots.ToArray();
 
-    public List<RecordedStoppedEvent> StoppedEvents { get; } = [];
+    public IReadOnlyList<RecordedProgressEvent> ProgressEvents =>
+      progressEvents.ToArray();
+
+    public IReadOnlyList<RecordedStoppedEvent> StoppedEvents =>
+      stoppedEvents.ToArray();
 
     public Task SendPlayingAsync(
       PlayerPlaybackSnapshot snapshot,
       CancellationToken cancellationToken)
     {
-      PlayingSnapshots.Add(snapshot);
+      playingSnapshots.Enqueue(snapshot);
       return Task.CompletedTask;
     }
 
@@ -292,8 +306,10 @@ public sealed class PlaybackEventReporterTests
       PlaybackTrackChange? trackChange,
       CancellationToken cancellationToken)
     {
-      ProgressSnapshots.Add(snapshot);
-      ProgressEvents.Add(new RecordedProgressEvent(eventName, trackChange));
+      progressSnapshots.Enqueue(snapshot);
+      progressEvents.Enqueue(new RecordedProgressEvent(
+        eventName,
+        trackChange));
       return Task.CompletedTask;
     }
 
@@ -302,7 +318,7 @@ public sealed class PlaybackEventReporterTests
       string reason,
       CancellationToken cancellationToken)
     {
-      StoppedEvents.Add(new RecordedStoppedEvent(snapshot, reason));
+      stoppedEvents.Enqueue(new RecordedStoppedEvent(snapshot, reason));
       return Task.CompletedTask;
     }
 

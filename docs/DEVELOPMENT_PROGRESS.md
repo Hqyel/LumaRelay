@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 24/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 25/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -306,18 +306,20 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M2-023` 实现 Bridge 检测、安装提示和配对界面。
 - [x] `M2-024` 实现本地播放准备弹层。
 - [x] `M2-025` 实现当前播放浮层和真实状态更新。
-- [ ] `M2-026` 完成暂停、拖动、结束、崩溃和断网 E2E。
+- [x] `M2-026` 完成暂停、拖动、结束、崩溃和断网 E2E。
   - 覆盖 SMTC 关闭、时间线停止更新、多实例和会话匹配失败。
+  - 剧集主操作和单集卡片只以 Episode ID 准备播放；STRM 安全支持 Emby
+    `DirectStreamUrl`、HTTP `Path` 和跨 Origin 重定向。
 
 ### M2 发布门
 
-- [ ] 播放器命令行和浏览器中都不存在 Emby AccessToken。
-- [ ] 未配对网页不能调用 Bridge 启动播放器。
-- [ ] SMTC 不可用时不能进入“完整进度同步”状态。
-- [ ] PotPlayer 多实例时不会把进度写入错误媒体。
+- [x] 播放器命令行和浏览器中都不存在 Emby AccessToken。
+- [x] 未配对网页不能调用 Bridge 启动播放器。
+- [x] SMTC 不可用时不能进入“完整进度同步”状态。
+- [x] PotPlayer 多实例时不会把进度写入错误媒体。
 - [ ] 正常退出后的 Emby 播放进度误差不超过 15 秒。
-- [ ] 重复或乱序事件不会破坏播放进度。
-- [ ] Bridge、PotPlayer、SMTC、Gateway 任一不可用时均有明确恢复说明。
+- [x] 重复或乱序事件不会破坏播放进度。
+- [x] Bridge、PotPlayer、SMTC、Gateway 任一不可用时均有明确恢复说明。
 
 ## 8. M3：前台体验完善
 
@@ -504,7 +506,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 进行中
 
-- 当前没有未收口的开发项；下一项为 `M2-026`。
+- 无正在编码的 M2 任务；等待使用新便携 Bridge 完成真实 PotPlayer 播放与
+  退出后进度误差验收。
 
 ### 延期
 
@@ -520,9 +523,11 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-026`，完成暂停、拖动、结束、崩溃和断网 E2E。
-2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
-3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
+1. 使用重新发布的便携 Bridge 分别播放一部电影和一集剧集，确认 PotPlayer
+   能读取 STRM，并验收正常退出后的 Emby 进度误差不超过 15 秒。
+2. 真实播放发布门通过后开始 `M3-001`。
+3. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
+4. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
 ## 14. 决策与变更日志
 
@@ -548,6 +553,9 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-026 | 完成 | 播放生命周期与恢复 E2E 已收口，并针对真实测试修复三项缺口：系列页把 Series ID 解析为续播或首个未看 Episode，单集卡片可直接准备播放；默认字幕只允许文本流，避免部分电影因内嵌图形字幕被 Gateway 拒绝；Gateway 重新 POST PlaybackInfo，支持 STRM 的 HTTP Path、DirectStreamUrl 和最多五次安全重定向，跨 Origin 自动剥离 Emby Token/授权头并保留提供方签名。Bridge 上游失败返回稳定 502。真实 Emby 4.8.9.0 对电影和单集各完成一个匿名化 Range 首字节读取，均为 1 个媒体源与 HTTP 206，测试会话已退出。全仓 format/lint/typecheck、240 项 JS/TS 单测、122 项 Bridge 测试、应用与 Storybook 构建、2 项视觉/axe、本地 smoke、生产依赖审计、30 项 Chromium E2E（1 项按设计跳过）及 Chromium/Firefox 2 项兼容回归全部通过。便携 Bridge 已重新发布并以原配对凭据启动，回环状态为 ready | Emby Client、Gateway、Web、Player Bridge、Playwright、真实 Emby smoke、项目计划、README、进度表 | 用户实测电影/单集 STRM 并完成真实 PotPlayer 进度门 |
+| 2026-07-22 | M2-026 | 验证中 | 新增真实 `PlaybackEventReporter → GatewayPlaybackEventClient → HTTP` 生命周期 E2E，覆盖 Playing、Pause、Unpause、Seek、Ended、播放器会话消失和首次 Pause 503 断网恢复；确认重试保持同一负载/序号且使用新 nonce，后续事件严格递增。Web E2E 覆盖暂停、拖动位置、结束、Bridge 断开、SMTC 不可用、时间线陈旧、多实例歧义和匹配超时；修复轮询失败后浮层继续沿用最后绿色状态的 bug。未配对浏览器启动被 401 阻止；既有测试记录列表改为并发安全快照。Bridge 121 项连续三轮 121/121、Web 31 项、Chromium 恢复 E2E 2/2 通过。全仓门首轮发现 Gateway lint 并已修复，修复后的全量复跑因执行配额阻塞，因此尚未勾选或提交 | Player Bridge、Gateway HTTP 边界、Web、Playwright、项目计划、README、进度表 | 复跑完整质量门 |
+| 2026-07-22 | M2-026 | 进行中 | 正在为真实序列化与重试链路增加播放生命周期 E2E，并补充 Web 对暂停、跳转、结束、Bridge 断开、SMTC 不可用、时间线陈旧、多实例和匹配超时的恢复回归；同时修复断网后浮层继续沿用最后绿色状态的问题 | Player Bridge、Gateway 协议边界、Web、Playwright、进度表 | 完成稳定性、恢复说明和全量质量门 |
 | 2026-07-22 | M2-025 | 完成 | Bridge 新增受配对 Origin 保护的 `/v1/playback/status`，将进程内播放选择、精确 PotPlayer 会话匹配和 SMTC 时间线合并为真实状态；播放、暂停、停止、结束、启动等待和不可用分别建模，同步质量独立区分等待、正常、陈旧和不可用，多实例歧义、匹配超时、播放器退出与时间线陈旧均返回可恢复警告。Web 每秒轮询并显示固定右下角玻璃浮层、真实时间/进度和媒体详情链接，减少动态效果时关闭动画。Contracts 15、Web 30、Bridge 116 项测试及 Web lint/typecheck、Chromium 实时播放→暂停、axe 和截图回归通过，视觉基线已人工核对；Bridge 全套测试首次出现既有并发列表读取偶发失败，原样重跑 116/116 通过，将在 M2-026 纳入稳定性场景 | Contracts、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-026 |
 | 2026-07-22 | M2-025 | 进行中 | 正在聚合 Bridge 内存播放会话、PotPlayer 会话匹配和 SMTC 时间线快照，并在 Web 提供每秒更新的当前播放浮层；状态必须区分启动等待、播放、暂停、结束、陈旧、多实例和匹配失败 | Contracts、Web、Player Bridge、进度表 | 完成本地状态契约、浮层及真实更新回归 |
 | 2026-07-22 | M2-024 | 完成 | Web 播放准备弹层现在读取当前用户级 PlaybackInfo，使用 Emby 默认值选择可直接播放的媒体源、音轨和文本字幕，并展示 Bridge、PotPlayer、SMTC 与续播状态；Gateway 签发前重新校验选择。配对 Bridge 一次兑换 PlayTicket，在进程内保存选择，以受限回环媒体/字幕 URL 启动 PotPlayer；Gateway 根据设备绑定 PlaybackSession 恢复加密 Emby 会话并支持 Range 静态流代理，Token 不进入浏览器、回环 URL、Bridge 响应或播放器命令行。Contracts 14、Emby Client 62、Gateway 106、Web 30、Bridge 113 项测试及 Web lint/typecheck、Chromium axe/启动流程/截图回归通过，视觉基线已人工核对 | Contracts、Emby Client、Gateway、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-025 |

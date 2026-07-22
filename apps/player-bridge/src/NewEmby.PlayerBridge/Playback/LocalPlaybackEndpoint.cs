@@ -134,21 +134,38 @@ internal static class LocalPlaybackEndpoint
           return;
         }
 
-        using var upstream = await streamClient.OpenAsync(
-          session,
-          resource,
-          context.Request.Headers.Range.ToString(),
-          context.RequestAborted);
-        context.Response.StatusCode = (int)upstream.StatusCode;
-        CopyHeader(upstream.Content.Headers.ContentType, context);
-        CopyHeader(upstream.Content.Headers.ContentLength, context);
-        CopyHeader(upstream.Content.Headers.ContentRange, context);
-        if (upstream.Headers.AcceptRanges.Count > 0)
-          context.Response.Headers.AcceptRanges =
-            string.Join(",", upstream.Headers.AcceptRanges);
-        await upstream.Content.CopyToAsync(
-          context.Response.Body,
-          context.RequestAborted);
+        HttpResponseMessage upstream;
+        try
+        {
+          upstream = await streamClient.OpenAsync(
+            session,
+            resource,
+            context.Request.Headers.Range.ToString(),
+            context.RequestAborted);
+        }
+        catch (HttpRequestException)
+        {
+          await WriteErrorAsync(
+            context,
+            502,
+            "UPSTREAM_STREAM_FAILED",
+            "The Bridge could not open the Gateway media stream.");
+          return;
+        }
+
+        using (upstream)
+        {
+          context.Response.StatusCode = (int)upstream.StatusCode;
+          CopyHeader(upstream.Content.Headers.ContentType, context);
+          CopyHeader(upstream.Content.Headers.ContentLength, context);
+          CopyHeader(upstream.Content.Headers.ContentRange, context);
+          if (upstream.Headers.AcceptRanges.Count > 0)
+            context.Response.Headers.AcceptRanges =
+              string.Join(",", upstream.Headers.AcceptRanges);
+          await upstream.Content.CopyToAsync(
+            context.Response.Body,
+            context.RequestAborted);
+        }
       });
   }
 

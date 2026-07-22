@@ -7,8 +7,10 @@ import {
   embyApiUrl,
   getAuthenticatedUser,
   getMediaHome,
+  getPlaybackOptions,
   getSeriesEpisodes,
   getSeriesSeasons,
+  loadPlaybackResource,
   logoutEmbySession,
   probeEmbyServer,
 } from "../packages/emby-client/dist/index.js";
@@ -143,6 +145,7 @@ try {
 
     let seasonCount = 0;
     let episodeCount = 0;
+    let episodePlaybackItemId;
     const seriesItem = EmbyBaseItemDtoSchema.safeParse(seriesItems.items[0]);
     if (seriesItem.success) {
       const seasons = await getSeriesSeasons(
@@ -162,6 +165,7 @@ try {
           { timeoutMs: 10_000 },
         );
         episodeCount = episodes.episodes.length;
+        episodePlaybackItemId = episodes.episodes[0]?.episodeId;
       }
     }
 
@@ -190,10 +194,74 @@ try {
       throw new Error(`Emby image smoke failed (${imageResponse.status})`);
     await imageResponse.arrayBuffer();
 
+    const playableItem = items.items
+      .map((item) => EmbyBaseItemDtoSchema.safeParse(item))
+      .find(
+        (result) =>
+          result.success &&
+          (result.data.Type === "Movie" || result.data.Type === "Episode"),
+      );
+    if (!playableItem?.success)
+      throw new Error(
+        "No authorized playable item was available for smoke testing",
+      );
+    const playbackTargets = [
+      {
+        itemId: playableItem.data.Id,
+        kind: playableItem.data.Type.toLowerCase(),
+      },
+    ];
+    if (
+      episodePlaybackItemId !== undefined &&
+      episodePlaybackItemId !== playableItem.data.Id
+    )
+      playbackTargets.push({ itemId: episodePlaybackItemId, kind: "episode" });
+
+    const playbackResults = [];
+    for (const target of playbackTargets) {
+      const playbackSources = await getPlaybackOptions(
+        server.baseUrl,
+        mediaInput,
+        target.itemId,
+        { timeoutMs: 10_000 },
+      );
+      const playbackSource =
+        playbackSources.find((source) => source.supportsDirectStream) ??
+        playbackSources[0];
+      if (playbackSource === undefined)
+        throw new Error("The playback item did not expose a media source");
+      const mediaResponse = await loadPlaybackResource(
+        server.baseUrl,
+        mediaInput,
+        {
+          audioStreamIndex: playbackSource.defaultAudioStreamIndex,
+          itemId: target.itemId,
+          mediaSourceId: playbackSource.mediaSourceId,
+          resumeTicks: 0,
+          subtitleStreamIndex: playbackSource.defaultSubtitleStreamIndex,
+        },
+        randomUUID(),
+        "media",
+        "bytes=0-0",
+        { timeoutMs: 15_000 },
+      );
+      const mediaReader = mediaResponse.body?.getReader();
+      if (mediaReader === undefined)
+        throw new Error("The playback stream response did not include a body");
+      const mediaChunk = await mediaReader.read();
+      await mediaReader.cancel();
+      if (mediaChunk.done || mediaChunk.value.byteLength === 0)
+        throw new Error("The playback stream returned no media bytes");
+      playbackResults.push(
+        `${target.kind}:${playbackSources.length}/${mediaResponse.status}`,
+      );
+    }
+
     console.log(
       `Emby smoke: auth=ok views=${views.total} media=${items.total} ` +
         `homeItems=${homeItemCount} homeMs=${homeMs} ` +
-        `seasons=${seasonCount} episodes=${episodeCount} image=ok`,
+        `seasons=${seasonCount} episodes=${episodeCount} image=ok ` +
+        `playback=${playbackResults.join(",")}`,
     );
   }
 } finally {

@@ -48,8 +48,9 @@ To verify a real Emby server without persisting credentials, set
 `EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and
 `EMBY_SMOKE_PASSWORD` in the command process, then run `pnpm smoke:emby`. The
 authenticated path checks the current user, views, filtered media items, one
-image and logout. It prints only version, status and counts, and always attempts
-logout in `finally`; never place these temporary values in `.env`.
+image, and one ranged media chunk for an authorized movie and episode when
+available. It prints only version, status and counts, and always attempts logout
+in `finally`; never place these temporary values in `.env`.
 
 The explicitly enabled `pnpm smoke:emby:write` additionally requires
 `EMBY_WRITE_SMOKE_CONFIRM=true` and both temporary credential variables. It

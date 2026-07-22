@@ -14,7 +14,7 @@ import {
   loadPlaybackResource,
   type AuthenticatedMediaRequest,
 } from "@newemby/emby-client";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 
 import {
   authenticateBridgeRequest,
@@ -60,7 +60,7 @@ function selectionIsAllowed(
 async function playbackFailure(
   error: unknown,
   requestId: string,
-  reply: import("fastify").FastifyReply,
+  reply: FastifyReply,
 ): Promise<void> {
   const kind = error instanceof EmbyMediaError ? error.kind : "unreachable";
   const mapped =

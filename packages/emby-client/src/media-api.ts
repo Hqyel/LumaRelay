@@ -151,11 +151,13 @@ export async function fetchEmby(
   options: MediaClientOptions,
   accept = "application/json",
   headers: Record<string, string> = {},
+  request: Pick<RequestInit, "body" | "method"> = {},
 ): Promise<Response> {
   const fetcher = options.fetch ?? globalThis.fetch;
 
   try {
     const response = await fetcher(url, {
+      ...request,
       headers: { ...authenticatedHeaders(input), ...headers, accept },
       redirect: "error",
       signal: AbortSignal.timeout(options.timeoutMs ?? 8000),

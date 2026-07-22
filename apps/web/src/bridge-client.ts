@@ -22,6 +22,42 @@ export interface BridgeCapabilityModel {
   status?: LocalBridgeStatus;
 }
 
+export class LocalBridgeError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly statusCode: number,
+  ) {
+    super(message);
+    this.name = "LocalBridgeError";
+  }
+}
+
+async function localBridgeError(response: Response): Promise<LocalBridgeError> {
+  try {
+    const body = (await response.json()) as {
+      error?: { code?: unknown; message?: unknown };
+    };
+    if (
+      typeof body.error?.code === "string" &&
+      typeof body.error.message === "string"
+    ) {
+      return new LocalBridgeError(
+        body.error.code,
+        body.error.message,
+        response.status,
+      );
+    }
+  } catch {
+    // The loopback service may be interrupted before writing JSON.
+  }
+  return new LocalBridgeError(
+    "LOCAL_BRIDGE_REQUEST_FAILED",
+    `Local Bridge returned HTTP ${response.status}`,
+    response.status,
+  );
+}
+
 export async function fetchLocalBridgeStatus(
   signal?: AbortSignal,
 ): Promise<LocalBridgeStatus> {
@@ -97,10 +133,7 @@ export async function startLocalPlayback(
     },
     method: "POST",
   });
-  if (!response.ok)
-    throw new Error(
-      `Local Bridge rejected playback with HTTP ${response.status}`,
-    );
+  if (!response.ok) throw await localBridgeError(response);
   return LocalPlaybackStartResponseSchema.parse(await response.json());
 }
 

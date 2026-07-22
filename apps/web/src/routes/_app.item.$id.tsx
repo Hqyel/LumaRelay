@@ -48,6 +48,20 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
   }, [seasonId, seasons.data]);
 
   const episodes = useQuery(seriesEpisodesQuery(item.itemId, seasonId));
+  const playbackEpisode =
+    episodes.data?.episodes.find(
+      (episode) => !episode.isPlayed && episode.playbackPositionSeconds > 0,
+    ) ??
+    episodes.data?.episodes.find((episode) => !episode.isPlayed) ??
+    episodes.data?.episodes[0];
+  const playbackTarget =
+    playbackEpisode === undefined
+      ? null
+      : {
+          itemId: playbackEpisode.episodeId,
+          playbackPositionSeconds: playbackEpisode.playbackPositionSeconds,
+          title: `${item.title} · ${playbackEpisode.name}`,
+        };
   const seasonSelector =
     seasons.data === undefined || seasons.data.seasons.length === 0 ? null : (
       <label className="detail-season-selector">
@@ -70,7 +84,7 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
 
   return (
     <div className="detail-page">
-      <MediaDetailHero item={item} series />
+      <MediaDetailHero item={item} playbackTarget={playbackTarget} series />
       <div className="detail-content">
         {seasons.isPending ? (
           <div

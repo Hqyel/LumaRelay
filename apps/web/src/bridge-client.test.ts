@@ -5,6 +5,7 @@ import {
   bridgeCapabilityModel,
   bridgePairingUri,
   fetchLocalPlaybackStatus,
+  startLocalPlayback,
 } from "./bridge-client.js";
 
 const status: LocalBridgeStatus = {
@@ -87,6 +88,29 @@ describe("local Bridge client", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(
       "http://127.0.0.1:58080/v1/playback/status",
     );
+    fetchMock.mockRestore();
+  });
+
+  it("preserves the Bridge error code when playback cannot start", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: "PLAY_TICKET_REDEEM_FAILED",
+            message: "The Bridge could not prepare local playback.",
+          },
+        }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 502,
+        },
+      ),
+    );
+
+    await expect(startLocalPlayback("temporary-ticket")).rejects.toMatchObject({
+      code: "PLAY_TICKET_REDEEM_FAILED",
+      statusCode: 502,
+    });
     fetchMock.mockRestore();
   });
 });

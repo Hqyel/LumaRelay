@@ -345,10 +345,14 @@ async function mockPageApi(
       });
       return;
     }
-    if (path === "/api/v1/media/items/movie-1/playback-options") {
+    if (
+      path.startsWith("/api/v1/media/items/") &&
+      path.endsWith("/playback-options")
+    ) {
+      const playbackItemId = path.split("/").at(-2)!;
       await route.fulfill({
         json: {
-          itemId: "movie-1",
+          itemId: playbackItemId,
           requestId: "request-playback-options",
           sources: [
             {
@@ -904,6 +908,17 @@ test("series details show season and horizontal episodes", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("series-detail.png", { fullPage: true });
+
+  const episodeOptions = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname ===
+      "/api/v1/media/items/episode-2/playback-options",
+  );
+  await page.getByRole("button", { exact: true, name: "播放" }).click();
+  await episodeOptions;
+  await expect(
+    page.getByRole("heading", { name: "本地播放准备" }),
+  ).toBeVisible();
 });
 
 test("movie library matches the reference card grid", async ({ page }) => {

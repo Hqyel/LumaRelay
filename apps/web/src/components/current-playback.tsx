@@ -42,7 +42,8 @@ function warningLabel(
 }
 
 export function CurrentPlayback() {
-  const { data: bridge } = useQuery(bridgeStatusQuery);
+  const bridgeQuery = useQuery(bridgeStatusQuery);
+  const bridge = bridgeQuery.data;
   const paired = bridge?.isPaired === true;
   const statusQuery = useQuery({
     enabled: paired,
@@ -60,13 +61,16 @@ export function CurrentPlayback() {
   });
   if (session === undefined) return null;
 
+  const connectionLost = bridgeQuery.isError || statusQuery.isError;
+  const syncState = connectionLost ? "unavailable" : session.syncState;
   const progress =
     session.durationTicks <= 0
       ? 0
       : Math.min(100, (session.positionTicks / session.durationTicks) * 100);
   const warning = warningLabel(session.warning);
-  const StateIcon =
-    session.state === "paused"
+  const StateIcon = connectionLost
+    ? AlertTriangle
+    : session.state === "paused"
       ? Pause
       : session.state === "playing"
         ? Play
@@ -77,12 +81,12 @@ export function CurrentPlayback() {
   return (
     <aside
       aria-label="当前本地播放"
-      className={`current-playback current-playback-${session.syncState}`}
+      className={`current-playback current-playback-${syncState}`}
     >
       <div className="current-playback-heading">
         <span className="current-playback-state">
           <StateIcon aria-hidden="true" size={15} />
-          {stateLabel(session)}
+          {connectionLost ? "Bridge 连接已中断" : stateLabel(session)}
         </span>
         <small>
           {formatTime(session.positionTicks)} /{" "}
@@ -106,7 +110,11 @@ export function CurrentPlayback() {
       >
         <span style={{ width: `${progress}%` }} />
       </div>
-      {warning === null ? (
+      {connectionLost ? (
+        <p aria-live="assertive" className="current-playback-warning">
+          无法读取本机播放状态，请确认 Bridge 仍在运行
+        </p>
+      ) : warning === null ? (
         <p>进度由本机 Bridge 与 SMTC 实时同步</p>
       ) : (
         <p aria-live="polite" className="current-playback-warning">

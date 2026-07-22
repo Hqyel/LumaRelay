@@ -15,6 +15,7 @@ import {
   type HomeMediaCardProps,
 } from "./home-media.js";
 import { PlayPreparationDialog } from "./play-preparation-dialog.js";
+import type { PlaybackTarget } from "./play-preparation-dialog.js";
 
 function formatRuntime(seconds: number | undefined): string | undefined {
   if (seconds === undefined) return undefined;
@@ -24,9 +25,11 @@ function formatRuntime(seconds: number | undefined): string | undefined {
 
 export function MediaDetailHero({
   item,
+  playbackTarget,
   series = false,
 }: {
   item: MediaDetail;
+  playbackTarget?: PlaybackTarget | null;
   series?: boolean;
 }) {
   const favoriteMutation = useFavoriteMutation();
@@ -102,7 +105,17 @@ export function MediaDetailHero({
           <p className="detail-tagline">{item.tagline}</p>
         )}
         <div className="detail-action-row">
-          <PlayPreparationDialog item={item} />
+          {series && playbackTarget == null ? (
+            <Button className="detail-play-button" disabled>
+              <Play aria-hidden="true" fill="currentColor" size={18} />
+              正在读取单集…
+            </Button>
+          ) : (
+            <PlayPreparationDialog
+              item={playbackTarget ?? item}
+              key={(playbackTarget ?? item).itemId}
+            />
+          )}
           <Button
             aria-pressed={item.isFavorite}
             disabled={favoritePending}
@@ -236,9 +249,22 @@ export function EpisodeCard({ episode }: { episode: EpisodeSummary }) {
           })}
           width={640}
         />
-        <span aria-hidden="true" className="detail-episode-play">
-          <Play fill="currentColor" size={42} />
-        </span>
+        <PlayPreparationDialog
+          item={{
+            itemId: episode.episodeId,
+            playbackPositionSeconds: episode.playbackPositionSeconds,
+            title: `${episode.seriesName} · ${episode.name}`,
+          }}
+          trigger={
+            <button
+              aria-label={`播放 ${episode.seriesName} ${episode.name}`}
+              className="detail-episode-play"
+              type="button"
+            >
+              <Play aria-hidden="true" fill="currentColor" size={42} />
+            </button>
+          }
+        />
         {episode.runtimeSeconds === undefined ? null : (
           <span className="detail-episode-duration">
             {formatRuntime(episode.runtimeSeconds)}

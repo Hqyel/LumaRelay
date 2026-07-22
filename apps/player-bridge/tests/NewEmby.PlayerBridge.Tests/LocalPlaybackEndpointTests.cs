@@ -85,6 +85,80 @@ public sealed class LocalPlaybackEndpointTests
     await application.StopAsync();
   }
 
+  [Fact]
+  public async Task RejectsPlaybackStartFromAnUnpairedBrowser()
+  {
+    var port = ReserveLoopbackPort();
+    var gateway = new GatewayHandler();
+    using var gatewayClient = new HttpClient(gateway);
+    var player = new RecordingPlayer();
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new EmptyCredentialStore(),
+      playerDiscovery: new EmptyPlayerDiscovery(),
+      gatewayHttpClient: gatewayClient,
+      playerAdapter: player);
+    await application.StartAsync();
+    using var localClient = new HttpClient(
+      new SocketsHttpHandler { UseProxy = false })
+    {
+      BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+    };
+    using var start = new HttpRequestMessage(
+      HttpMethod.Post,
+      "/v1/playback/start")
+    {
+      Content = JsonContent.Create(new { playTicket = Ticket() }),
+    };
+    start.Headers.Add("Origin", AllowedOrigin);
+    start.Headers.Add("X-NewEmby-Nonce", "U".PadRight(43, 'U'));
+
+    using var response = await localClient.SendAsync(start);
+
+    Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    Assert.Null(player.Request);
+    Assert.Empty(gateway.Nonces);
+    await application.StopAsync();
+  }
+
+  [Fact]
+  public async Task ReturnsStableErrorWhenGatewayStreamCannotBeOpened()
+  {
+    var port = ReserveLoopbackPort();
+    var gateway = new GatewayHandler(HttpStatusCode.BadGateway);
+    using var gatewayClient = new HttpClient(gateway);
+    await using var application = BridgeHost.Build(
+      ["--bridge-port", port.ToString(CultureInfo.InvariantCulture)],
+      new StoredCredentialStore(),
+      playerDiscovery: new EmptyPlayerDiscovery(),
+      gatewayHttpClient: gatewayClient,
+      playerAdapter: new RecordingPlayer());
+    await application.StartAsync();
+    using var localClient = new HttpClient(
+      new SocketsHttpHandler { UseProxy = false })
+    {
+      BaseAddress = new Uri($"http://127.0.0.1:{port}"),
+    };
+    using var start = new HttpRequestMessage(
+      HttpMethod.Post,
+      "/v1/playback/start")
+    {
+      Content = JsonContent.Create(new { playTicket = Ticket() }),
+    };
+    start.Headers.Add("Origin", AllowedOrigin);
+    start.Headers.Add("X-NewEmby-Nonce", "E".PadRight(43, 'E'));
+    using var startResponse = await localClient.SendAsync(start);
+
+    using var mediaResponse = await localClient.GetAsync(
+      $"/v1/playback/{PlaySessionId}/media");
+    var error = await mediaResponse.Content.ReadFromJsonAsync<ErrorResponse>();
+
+    Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+    Assert.Equal(HttpStatusCode.BadGateway, mediaResponse.StatusCode);
+    Assert.Equal("UPSTREAM_STREAM_FAILED", error?.Error.Code);
+    await application.StopAsync();
+  }
+
   private static string Ticket()
   {
     return "pt1.33333333-3333-4333-8333-333333333333."
@@ -93,6 +167,14 @@ public sealed class LocalPlaybackEndpointTests
 
   private sealed class GatewayHandler : HttpMessageHandler
   {
+    private readonly HttpStatusCode streamStatus;
+
+    public GatewayHandler(
+      HttpStatusCode streamStatus = HttpStatusCode.PartialContent)
+    {
+      this.streamStatus = streamStatus;
+    }
+
     public List<string> Nonces { get; } = [];
     public string? Range { get; private set; }
 
@@ -124,8 +206,7 @@ public sealed class LocalPlaybackEndpointTests
       }
 
       Range = request.Headers.Range?.ToString();
-      return Task.FromResult(new HttpResponseMessage(
-        HttpStatusCode.PartialContent)
+      return Task.FromResult(new HttpResponseMessage(streamStatus)
       {
         Content = new StringContent(
           "media-bytes",
@@ -134,6 +215,10 @@ public sealed class LocalPlaybackEndpointTests
       });
     }
   }
+
+  private sealed record ErrorResponse(ErrorBody Error);
+
+  private sealed record ErrorBody(string Code, string Message);
 
   private sealed class RecordingPlayer : IPlayerAdapter
   {
@@ -169,6 +254,19 @@ public sealed class LocalPlaybackEndpointTests
     }
 
     public BridgeCredential? Read() => Credential;
+
+    public void Save(BridgeCredential credential)
+    {
+    }
+  }
+
+  private sealed class EmptyCredentialStore : IBridgeCredentialStore
+  {
+    public void Delete()
+    {
+    }
+
+    public BridgeCredential? Read() => null;
 
     public void Save(BridgeCredential credential)
     {

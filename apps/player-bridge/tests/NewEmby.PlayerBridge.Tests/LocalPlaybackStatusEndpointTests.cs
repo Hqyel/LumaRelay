@@ -48,17 +48,22 @@ public sealed class LocalPlaybackStatusEndpointTests
     Assert.Equal("SMTC_STALE", status.Warning);
   }
 
-  [Fact]
-  public void ExposesAmbiguousMatchAsUnavailable()
+  [Theory]
+  [InlineData((int)PlayerSessionMatchState.Ambiguous, "SMTC_AMBIGUOUS")]
+  [InlineData((int)PlayerSessionMatchState.TimedOut, "SMTC_MATCH_TIMEOUT")]
+  [InlineData((int)PlayerSessionMatchState.ProcessExited, "PLAYER_EXITED")]
+  public void ExposesFailedMatchAsUnavailable(
+    int stateValue,
+    string expectedWarning)
   {
     var status = LocalPlaybackStatusEndpoint.CreateStatus(
       Session(),
-      new Matcher(PlayerSessionMatchState.Ambiguous),
+      new Matcher((PlayerSessionMatchState)stateValue),
       new Monitor(null));
 
     Assert.Equal("unavailable", status.State);
     Assert.Equal("unavailable", status.SyncState);
-    Assert.Equal("SMTC_AMBIGUOUS", status.Warning);
+    Assert.Equal(expectedWarning, status.Warning);
   }
 
   private static LocalPlaybackSession Session()

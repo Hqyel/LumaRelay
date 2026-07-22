@@ -1995,6 +1995,8 @@
   position: absolute;
   inset: 0;
   display: grid;
+  padding: 0;
+  border: 0;
   background: rgb(0 0 0 / 40%);
   color: #fff;
   opacity: 0;
@@ -2003,6 +2005,12 @@
 }
 
 .detail-episode-card:hover .detail-episode-play {
+  opacity: 1;
+}
+
+.detail-episode-play:focus-visible {
+  outline: 2px solid var(--color-accent-soft);
+  outline-offset: -3px;
   opacity: 1;
 }
 
