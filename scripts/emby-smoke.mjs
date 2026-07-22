@@ -230,7 +230,7 @@ try {
         playbackSources[0];
       if (playbackSource === undefined)
         throw new Error("The playback item did not expose a media source");
-      const mediaResponse = await loadPlaybackResource(
+      const mediaResource = await loadPlaybackResource(
         server.baseUrl,
         mediaInput,
         {
@@ -240,12 +240,15 @@ try {
           resumeTicks: 0,
           subtitleStreamIndex: playbackSource.defaultSubtitleStreamIndex,
         },
-        randomUUID(),
+        {
+          embyPlaySessionId: null,
+          localPlaySessionId: randomUUID(),
+        },
         "media",
         "bytes=0-0",
         { timeoutMs: 15_000 },
       );
-      const mediaReader = mediaResponse.body?.getReader();
+      const mediaReader = mediaResource.response.body?.getReader();
       if (mediaReader === undefined)
         throw new Error("The playback stream response did not include a body");
       const mediaChunk = await mediaReader.read();
@@ -253,7 +256,7 @@ try {
       if (mediaChunk.done || mediaChunk.value.byteLength === 0)
         throw new Error("The playback stream returned no media bytes");
       playbackResults.push(
-        `${target.kind}:${playbackSources.length}/${mediaResponse.status}`,
+        `${target.kind}:${playbackSources.length}/${mediaResource.response.status}`,
       );
     }
 

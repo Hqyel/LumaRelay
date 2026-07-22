@@ -52,6 +52,13 @@ image, and one ranged media chunk for an authorized movie and episode when
 available. It prints only version, status and counts, and always attempts logout
 in `finally`; never place these temporary values in `.env`.
 
+`pnpm smoke:emby:playback-session` requires both temporary credential variables.
+It requests one authorized movie at byte range zero, uses the Emby
+`PlaySessionId` returned by `PlaybackInfo` to send `Playing`, verifies that the
+same temporary device is visible in Emby's active sessions, and then sends
+`Stopped` at position zero and logs out in `finally`. It prints no server URL,
+account, item metadata, session ID or token.
+
 The explicitly enabled `pnpm smoke:emby:write` additionally requires
 `EMBY_WRITE_SMOKE_CONFIRM=true` and both temporary credential variables. It
 selects a zero-progress unplayed item, toggles its favorite state, verifies the

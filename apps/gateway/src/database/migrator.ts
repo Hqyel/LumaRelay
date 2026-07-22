@@ -15,6 +15,7 @@ import { PlayTicketsMigration } from "./migrations/007-play-tickets.js";
 import { PlaybackSessionsMigration } from "./migrations/008-playback-sessions.js";
 import { PlaybackEventsMigration } from "./migrations/009-playback-events.js";
 import { PlaybackDisplayTitleMigration } from "./migrations/010-playback-display-title.js";
+import { EmbyPlaySessionMigration } from "./migrations/011-emby-play-session.js";
 import { backupDatabase } from "./database.js";
 import type { DatabaseSchema } from "./types.js";
 
@@ -29,6 +30,7 @@ const migrations: Record<string, Migration> = {
   "008-playback-sessions": PlaybackSessionsMigration,
   "009-playback-events": PlaybackEventsMigration,
   "010-playback-display-title": PlaybackDisplayTitleMigration,
+  "011-emby-play-session": EmbyPlaySessionMigration,
 };
 
 function createMigrator(database: Kysely<DatabaseSchema>): Migrator {

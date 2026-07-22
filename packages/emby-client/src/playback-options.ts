@@ -69,10 +69,15 @@ const EmbyMediaSourceSchema = z.object({
 const EmbyPlaybackInfoSchema = z.object({
   ErrorCode: z.string().nullish(),
   MediaSources: z.array(EmbyMediaSourceSchema).nullish(),
-  PlaySessionId: z.string().nullish(),
+  PlaySessionId: z.string().trim().min(1).max(256).nullish(),
 });
 
 type EmbyMediaSource = z.infer<typeof EmbyMediaSourceSchema>;
+
+export interface PlaybackResourceSession {
+  embyPlaySessionId: string | null;
+  localPlaySessionId: string;
+}
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 const blockedRequiredHeaders = new Set([
@@ -256,6 +261,20 @@ async function preparePlayback(
   return parsePlaybackInfo(response);
 }
 
+async function reloadPlayback(
+  baseUrl: string,
+  input: AuthenticatedMediaRequest,
+  selection: PlayTicketSelection,
+  options: MediaClientOptions,
+) {
+  const url = embyApiUrl(
+    baseUrl,
+    `/Items/${encodeURIComponent(selection.itemId)}/PlaybackInfo`,
+  );
+  url.searchParams.set("UserId", input.userId);
+  return parsePlaybackInfo(await fetchEmby(url, input, options));
+}
+
 function sanitizeEmbyToken(url: URL, accessToken: string): URL {
   const sanitized = new URL(url);
   for (const [name, value] of [...sanitized.searchParams.entries()]) {
@@ -419,11 +438,11 @@ export async function loadPlaybackResource(
   baseUrl: string,
   input: AuthenticatedMediaRequest,
   selection: PlayTicketSelection,
-  playSessionId: string,
+  session: PlaybackResourceSession,
   resource: "media" | "subtitle",
   range: string | undefined,
   options: MediaClientOptions = {},
-): Promise<Response> {
+): Promise<{ embyPlaySessionId: string | null; response: Response }> {
   if (resource === "subtitle") {
     const url = embyApiUrl(
       baseUrl,
@@ -431,24 +450,30 @@ export async function loadPlaybackResource(
         selection.mediaSourceId,
       )}/Subtitles/${selection.subtitleStreamIndex ?? -1}/Stream.srt`,
     );
-    return fetchPlaybackStream(
-      baseUrl,
-      input,
-      undefined,
-      url,
-      "application/x-subrip,text/plain;q=0.9",
-      range,
-      options,
-    );
+    return {
+      embyPlaySessionId: null,
+      response: await fetchPlaybackStream(
+        baseUrl,
+        input,
+        undefined,
+        url,
+        "application/x-subrip,text/plain;q=0.9",
+        range,
+        options,
+      ),
+    };
   }
 
-  const playback = await preparePlayback(
-    baseUrl,
-    input,
-    selection,
-    playSessionId,
-    options,
-  );
+  const playback =
+    session.embyPlaySessionId === null
+      ? await preparePlayback(
+          baseUrl,
+          input,
+          selection,
+          session.localPlaySessionId,
+          options,
+        )
+      : await reloadPlayback(baseUrl, input, selection, options);
   const source = (playback.MediaSources ?? []).find(
     (candidate) => candidate.Id === selection.mediaSourceId,
   );
@@ -457,14 +482,23 @@ export async function loadPlaybackResource(
       "invalid-response",
       "The selected media source is no longer available",
     );
-  const embyPlaySessionId = clean(playback.PlaySessionId) ?? playSessionId;
-  return fetchPlaybackStream(
-    baseUrl,
-    input,
-    source,
-    mediaStreamUrl(baseUrl, input, selection, embyPlaySessionId, source),
-    "*/*",
-    range,
-    options,
-  );
+  const embyPlaySessionId =
+    session.embyPlaySessionId ?? clean(playback.PlaySessionId);
+  if (embyPlaySessionId === undefined)
+    throw new EmbyMediaError(
+      "invalid-response",
+      "The Emby playback response did not include a play session ID",
+    );
+  return {
+    embyPlaySessionId,
+    response: await fetchPlaybackStream(
+      baseUrl,
+      input,
+      source,
+      mediaStreamUrl(baseUrl, input, selection, embyPlaySessionId, source),
+      "*/*",
+      range,
+      options,
+    ),
+  };
 }

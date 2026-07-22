@@ -207,6 +207,50 @@ describe("PlayTicket store", () => {
     }
   });
 
+  it("binds one immutable Emby playback session to the local session", async () => {
+    const fixture = await createFixture();
+    try {
+      const issued = await fixture.issue();
+      if (issued === null) throw new Error("Ticket was not issued");
+      await fixture.store.redeem(issued.playTicket, DEVICE_ID);
+
+      await expect(
+        fixture.store.bindEmbyPlaySessionId!(
+          PLAY_SESSION_ID,
+          OTHER_DEVICE_ID,
+          "emby-session-1",
+        ),
+      ).resolves.toBe(false);
+      await expect(
+        fixture.store.bindEmbyPlaySessionId!(
+          PLAY_SESSION_ID,
+          DEVICE_ID,
+          "emby-session-1",
+        ),
+      ).resolves.toBe(true);
+      await expect(
+        fixture.store.bindEmbyPlaySessionId!(
+          PLAY_SESSION_ID,
+          DEVICE_ID,
+          "emby-session-1",
+        ),
+      ).resolves.toBe(true);
+      await expect(
+        fixture.store.bindEmbyPlaySessionId!(
+          PLAY_SESSION_ID,
+          DEVICE_ID,
+          "different-emby-session",
+        ),
+      ).resolves.toBe(false);
+
+      await expect(
+        fixture.store.findPlaybackSession!(PLAY_SESSION_ID, DEVICE_ID),
+      ).resolves.toMatchObject({ embyPlaySessionId: "emby-session-1" });
+    } finally {
+      await fixture.database.destroy();
+    }
+  });
+
   it("rejects expiration and revoked login sessions", async () => {
     const expired = await createFixture();
     try {

@@ -690,6 +690,11 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 - Bridge 按十秒周期及停止事件向 Emby 回传位置；“继续观看”是否生成仍遵循
   Emby 媒体库的最小续播百分比。短时间试播即使事件同步成功，也可能因未达到
   服务端阈值而不生成续播点，客户端不得伪造本地续播状态。
+- NewEmby 本地播放会话 ID 只用于 Gateway 与 Bridge 的鉴权、幂等和事件队列；
+  Gateway 必须持久化 `PlaybackInfo` 响应中的 Emby `PlaySessionId`，媒体流 URL 与
+  `Playing`、`Progress`、`Stopped` 上报必须使用同一个 Emby 会话 ID。尚未完成
+  上游会话绑定时不得把本地 UUID 上报给 Emby，也不得将单次 HTTP 成功误判为
+  Emby 已建立活动播放会话。
 - Gateway 不永久缓存媒体详情，避免和 Emby 元数据不同步。
 
 ## 10. 错误与空状态

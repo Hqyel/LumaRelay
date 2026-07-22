@@ -84,14 +84,17 @@ function createBridgeDeviceStore(): BridgeDeviceStore {
 }
 
 function createPlayTicketStore(): PlayTicketStore & {
+  bindEmbyPlaySessionId: ReturnType<typeof vi.fn>;
   findPlaybackSession: ReturnType<typeof vi.fn>;
   issue: ReturnType<typeof vi.fn>;
   redeem: ReturnType<typeof vi.fn>;
 } {
   return {
+    bindEmbyPlaySessionId: vi.fn().mockResolvedValue(true),
     findPlaybackSession: vi.fn().mockResolvedValue({
       authSessionId: "session-1",
       bridgeDeviceId: DEVICE_ID,
+      embyPlaySessionId: null,
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
@@ -155,15 +158,16 @@ async function createTestApp(playTicketStore = createPlayTicketStore()) {
           supportsDirectStream: true,
         },
       ]),
-      loadPlaybackResource: vi.fn().mockResolvedValue(
-        new Response("media-chunk", {
+      loadPlaybackResource: vi.fn().mockResolvedValue({
+        embyPlaySessionId: "emby-play-session-1",
+        response: new Response("media-chunk", {
           headers: {
             "accept-ranges": "bytes",
             "content-type": "video/x-matroska",
           },
           status: 206,
         }),
-      ),
+      }),
     },
     playTicketStore,
     serverStore: createServerStore(),
@@ -233,7 +237,7 @@ describe("PlayTicket routes", () => {
   });
 
   it("proxies ranged media only for the authenticated bound device", async () => {
-    const { app, bridgeDeviceStore } = await createTestApp();
+    const { app, bridgeDeviceStore, playTicketStore } = await createTestApp();
     const response = await app.inject({
       headers: {
         authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
@@ -248,6 +252,11 @@ describe("PlayTicket routes", () => {
     expect(response.body).toBe("media-chunk");
     expect(response.headers["content-type"]).toContain("video/x-matroska");
     expect(bridgeDeviceStore.authenticate).toHaveBeenCalled();
+    expect(playTicketStore.bindEmbyPlaySessionId).toHaveBeenCalledWith(
+      PLAY_SESSION_ID,
+      DEVICE_ID,
+      "emby-play-session-1",
+    );
   });
 
   it("requires exact Origin and CSRF before issuing", async () => {

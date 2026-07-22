@@ -39,6 +39,7 @@ export interface RedeemedPlayTicket {
 export interface StoredPlaybackSession {
   authSessionId: string;
   bridgeDeviceId: string;
+  embyPlaySessionId: string | null;
   playSessionId: string;
   selection: PlayTicketSelection;
   serverId: string;
@@ -70,6 +71,11 @@ export interface CompletePlaybackEventInput {
 }
 
 export interface PlayTicketStore {
+  bindEmbyPlaySessionId?(
+    playSessionId: string,
+    bridgeDeviceId: string,
+    embyPlaySessionId: string,
+  ): Promise<boolean>;
   claimPlaybackEvent?(
     input: ClaimPlaybackEventInput,
   ): Promise<ClaimPlaybackEventResult>;
@@ -144,6 +150,35 @@ export function createPlayTicketStore(
   random: PlayTicketRandomSource = defaultRandomSource,
 ): PlayTicketStore {
   return {
+    async bindEmbyPlaySessionId(
+      playSessionId: string,
+      bridgeDeviceId: string,
+      embyPlaySessionId: string,
+    ): Promise<boolean> {
+      return database.transaction().execute(async (transaction) => {
+        const session = await transaction
+          .selectFrom("playbackSessions")
+          .select("embyPlaySessionId")
+          .where("id", "=", playSessionId)
+          .where("bridgeDeviceId", "=", bridgeDeviceId)
+          .where("stoppedAt", "is", null)
+          .executeTakeFirst();
+        if (session === undefined) return false;
+        if (session.embyPlaySessionId !== null)
+          return session.embyPlaySessionId === embyPlaySessionId;
+
+        const result = await transaction
+          .updateTable("playbackSessions")
+          .set({ embyPlaySessionId })
+          .where("id", "=", playSessionId)
+          .where("bridgeDeviceId", "=", bridgeDeviceId)
+          .where("embyPlaySessionId", "is", null)
+          .where("stoppedAt", "is", null)
+          .executeTakeFirst();
+        return Number(result.numUpdatedRows) === 1;
+      });
+    },
+
     async claimPlaybackEvent(
       input: ClaimPlaybackEventInput,
     ): Promise<ClaimPlaybackEventResult> {
@@ -259,6 +294,7 @@ export function createPlayTicketStore(
       return {
         authSessionId: session.authSessionId,
         bridgeDeviceId: session.bridgeDeviceId,
+        embyPlaySessionId: session.embyPlaySessionId,
         playSessionId: session.id,
         selection: {
           audioStreamIndex: session.audioStreamIndex,
@@ -485,6 +521,7 @@ export function createPlayTicketStore(
             bridgeDeviceId: ticket.bridgeDeviceId,
             createdAt: redeemedAt,
             displayTitle: ticket.displayTitle,
+            embyPlaySessionId: null,
             embyItemId: ticket.embyItemId,
             embyUserId: ticket.embyUserId,
             id: ticket.playSessionId,

@@ -188,6 +188,7 @@ export function registerPlayTicketRoutes(
       async handler(request, reply) {
         if (
           dependencies.bridgeDeviceStore === undefined ||
+          dependencies.playTicketStore?.bindEmbyPlaySessionId === undefined ||
           dependencies.playTicketStore?.findPlaybackSession === undefined ||
           dependencies.authSessionStore?.findById === undefined ||
           dependencies.serverStore.getById === undefined
@@ -248,7 +249,7 @@ export function registerPlayTicketRoutes(
 
         try {
           const rangeHeader = request.headers.range;
-          const upstream = await (
+          const resource = await (
             dependencies.loadPlaybackResource ?? loadPlaybackResource
           )(
             server.baseUrl,
@@ -259,10 +260,34 @@ export function registerPlayTicketRoutes(
               userId: playback.userId,
             },
             playback.selection,
-            playback.playSessionId,
+            {
+              embyPlaySessionId: playback.embyPlaySessionId,
+              localPlaySessionId: playback.playSessionId,
+            },
             params.resource,
             Array.isArray(rangeHeader) ? rangeHeader[0] : rangeHeader,
           );
+          if (
+            params.resource === "media" &&
+            (resource.embyPlaySessionId === null ||
+              !(await dependencies.playTicketStore.bindEmbyPlaySessionId(
+                playback.playSessionId,
+                device.deviceId,
+                resource.embyPlaySessionId,
+              )))
+          ) {
+            await resource.response.body?.cancel();
+            return reply
+              .status(409)
+              .send(
+                errorEnvelope(
+                  "PLAYBACK_EVENT_OUT_OF_ORDER",
+                  "The Emby playback session could not be bound",
+                  request.id,
+                ),
+              );
+          }
+          const upstream = resource.response;
           reply.status(upstream.status);
           for (const header of [
             "accept-ranges",

@@ -126,6 +126,17 @@ export function registerPlaybackRoutes(
             ),
           );
       }
+      if (playback.embyPlaySessionId === null) {
+        return reply
+          .status(502)
+          .send(
+            errorEnvelope(
+              "EMBY_PLAYBACK_FAILED",
+              "The Emby playback session is not ready",
+              request.id,
+            ),
+          );
+      }
       if (body.eventType !== "playing" && playback.startedAt === null) {
         return reply
           .status(409)
@@ -215,7 +226,7 @@ export function registerPlaybackRoutes(
         itemId: playback.selection.itemId,
         mediaSourceId: playback.selection.mediaSourceId,
         playbackRate: body.playbackRate,
-        playSessionId: playback.playSessionId,
+        playSessionId: playback.embyPlaySessionId,
         positionTicks: body.positionTicks,
         subtitleStreamIndex:
           body.eventType === "progress" &&

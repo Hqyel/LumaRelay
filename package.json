@@ -22,6 +22,7 @@
     "storybook:build": "pnpm --filter @newemby/ui storybook:build",
     "smoke:local": "node scripts/local-smoke.mjs",
     "smoke:emby": "pnpm --filter @newemby/emby-client build && node scripts/emby-smoke.mjs",
+    "smoke:emby:playback-session": "pnpm --filter @newemby/emby-client build && node scripts/emby-playback-session-smoke.mjs",
     "smoke:emby:write": "pnpm --filter @newemby/emby-client build && node scripts/emby-write-smoke.mjs",
     "test": "pnpm -r --if-present test",
     "test:e2e": "playwright test -c apps/web/playwright.config.ts --project=chromium",

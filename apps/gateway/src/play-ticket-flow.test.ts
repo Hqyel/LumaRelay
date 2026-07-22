@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
@@ -30,6 +30,14 @@ describe("PlayTicket integrated flow", () => {
     const database = createDatabase(join(directory, "test.db"));
     const config = loadConfig({ NODE_ENV: "test" });
     const serverStore = createServerStore(database);
+    const loadPlaybackResource = vi.fn().mockImplementation(async () => ({
+      embyPlaySessionId: "emby-play-session-1",
+      response: new Response("media", {
+        headers: { "content-type": "video/mp4" },
+        status: 206,
+      }),
+    }));
+    const reportStarted = vi.fn().mockResolvedValue(undefined);
     let app: Awaited<ReturnType<typeof buildApp>> | undefined;
 
     try {
@@ -103,8 +111,10 @@ describe("PlayTicket integrated flow", () => {
               supportsDirectStream: true,
             },
           ],
+          loadPlaybackResource,
         },
         playTicketStore: createPlayTicketStore(database, config),
+        playback: { reportStarted },
         serverStore,
       });
       const csrf = await app.inject({
@@ -156,6 +166,69 @@ describe("PlayTicket integrated flow", () => {
       });
       expect(replayed.statusCode).toBe(401);
       expect(replayed.json().error.code).toBe("PLAY_TICKET_INVALID");
+
+      const playSessionId = issued.json().playSessionId as string;
+      const media = await app.inject({
+        headers: {
+          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
+          "x-newemby-nonce": "M".repeat(43),
+        },
+        method: "GET",
+        url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${playSessionId}/media`,
+      });
+      expect(media.statusCode).toBe(206);
+
+      const secondMedia = await app.inject({
+        headers: {
+          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
+          "x-newemby-nonce": "S".repeat(43),
+        },
+        method: "GET",
+        url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${playSessionId}/media`,
+      });
+      expect(secondMedia.statusCode).toBe(206);
+      expect(loadPlaybackResource).toHaveBeenLastCalledWith(
+        "https://emby.example.com/",
+        expect.any(Object),
+        expect.any(Object),
+        {
+          embyPlaySessionId: "emby-play-session-1",
+          localPlaySessionId: playSessionId,
+        },
+        "media",
+        undefined,
+      );
+
+      const playing = await app.inject({
+        body: {
+          eventType: "playing",
+          isPaused: false,
+          playbackRate: 1,
+          playSessionId,
+          positionTicks: 10_000_000,
+          sequence: 1,
+        },
+        headers: {
+          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
+          "x-newemby-nonce": "P".repeat(43),
+        },
+        method: "POST",
+        url: `/api/v1/bridge/devices/${DEVICE_ID}/playback-events`,
+      });
+      expect(playing.statusCode).toBe(200);
+      expect(reportStarted).toHaveBeenCalledWith(
+        "https://emby.example.com/",
+        expect.objectContaining({
+          playSessionId: "emby-play-session-1",
+        }),
+      );
+      const playbackSession = await database
+        .selectFrom("playbackSessions")
+        .select(["embyPlaySessionId", "id"])
+        .where("id", "=", playSessionId)
+        .executeTakeFirstOrThrow();
+      expect(playbackSession.embyPlaySessionId).toBe("emby-play-session-1");
+
       const raw = await database
         .selectFrom("playTickets")
         .selectAll()

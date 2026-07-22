@@ -9,6 +9,7 @@ import type { ServerStore } from "./database/server-store.js";
 
 const DEVICE_ID = "11111111-1111-4111-8111-111111111111";
 const PLAY_SESSION_ID = "22222222-2222-4222-8222-222222222222";
+const EMBY_PLAY_SESSION_ID = "emby-play-session-1";
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 
 afterEach(async () => {
@@ -64,6 +65,7 @@ function createDependencies() {
     findPlaybackSession: vi.fn().mockResolvedValue({
       authSessionId: "auth-session-1",
       bridgeDeviceId: DEVICE_ID,
+      embyPlaySessionId: EMBY_PLAY_SESSION_ID,
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
@@ -159,7 +161,7 @@ describe("Bridge playback routes", () => {
       expect.objectContaining({
         accessToken: "secret-upstream-token",
         itemId: "item-1",
-        playSessionId: PLAY_SESSION_ID,
+        playSessionId: EMBY_PLAY_SESSION_ID,
         positionTicks: 10_000_000,
       }),
     );
@@ -225,6 +227,7 @@ describe("Bridge playback routes", () => {
     ).mockResolvedValue({
       authSessionId: "auth-session-1",
       bridgeDeviceId: DEVICE_ID,
+      embyPlaySessionId: EMBY_PLAY_SESSION_ID,
       playSessionId: PLAY_SESSION_ID,
       selection: {
         audioStreamIndex: 1,
@@ -311,7 +314,7 @@ describe("Bridge playback routes", () => {
     expect(reportStopped).toHaveBeenCalledWith(
       "https://emby.example.com/",
       expect.objectContaining({
-        playSessionId: PLAY_SESSION_ID,
+        playSessionId: EMBY_PLAY_SESSION_ID,
         positionTicks: 580_000_000,
       }),
     );
@@ -335,6 +338,39 @@ describe("Bridge playback routes", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ duplicate: true, success: true });
+    expect(reportStarted).not.toHaveBeenCalled();
+  });
+
+  it("retries instead of reporting with an unbound local session ID", async () => {
+    const { app, dependencies, reportStarted } = await createTestApp();
+    vi.mocked(
+      dependencies.playTicketStore.findPlaybackSession!,
+    ).mockResolvedValue({
+      authSessionId: "auth-session-1",
+      bridgeDeviceId: DEVICE_ID,
+      embyPlaySessionId: null,
+      playSessionId: PLAY_SESSION_ID,
+      selection: {
+        audioStreamIndex: 1,
+        displayTitle: "示例电影",
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: 0,
+        subtitleStreamIndex: null,
+      },
+      serverId: "server-1",
+      startedAt: null,
+      stoppedAt: null,
+      userId: "user-1",
+    });
+
+    const response = await app.inject(requestOptions());
+
+    expect(response.statusCode).toBe(502);
+    expect(response.json().error.code).toBe("EMBY_PLAYBACK_FAILED");
+    expect(
+      dependencies.playTicketStore.claimPlaybackEvent,
+    ).not.toHaveBeenCalled();
     expect(reportStarted).not.toHaveBeenCalled();
   });
 

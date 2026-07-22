@@ -89,6 +89,7 @@ export interface PlaybackSessionsTable {
   bridgeDeviceId: string;
   createdAt: string;
   displayTitle: string;
+  embyPlaySessionId: string | null;
   embyItemId: string;
   embyUserId: string;
   id: string;

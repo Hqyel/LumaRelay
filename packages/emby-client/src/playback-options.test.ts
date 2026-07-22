@@ -157,7 +157,7 @@ describe("playback options", () => {
           status: 206,
         }),
       );
-    await loadPlaybackResource(
+    const resource = await loadPlaybackResource(
       "https://emby.example.com/",
       input,
       {
@@ -168,11 +168,16 @@ describe("playback options", () => {
         resumeTicks: 0,
         subtitleStreamIndex: null,
       },
-      "22222222-2222-4222-8222-222222222222",
+      {
+        embyPlaySessionId: null,
+        localPlaySessionId: "22222222-2222-4222-8222-222222222222",
+      },
       "media",
       "bytes=100-",
       { fetch: fetcher },
     );
+    expect(resource.embyPlaySessionId).toBe("emby-session");
+    expect(resource.response.status).toBe(206);
 
     const [prepareUrl, prepareInit] = fetcher.mock.calls[0] as [
       URL,
@@ -196,6 +201,56 @@ describe("playback options", () => {
       range: "bytes=100-",
       "x-emby-token": "upstream-secret-token",
     });
+  });
+
+  it("reuses an established Emby session for subsequent range requests", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            MediaSources: [
+              {
+                Container: "mkv",
+                Id: "source-1",
+                SupportsDirectStream: true,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response("media", { status: 206 }));
+
+    const resource = await loadPlaybackResource(
+      "https://emby.example.com/",
+      input,
+      {
+        audioStreamIndex: 1,
+        displayTitle: "绀轰緥鐢靛奖",
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: 0,
+        subtitleStreamIndex: null,
+      },
+      {
+        embyPlaySessionId: "emby-session",
+        localPlaySessionId: "22222222-2222-4222-8222-222222222222",
+      },
+      "media",
+      "bytes=200-",
+      { fetch: fetcher },
+    );
+
+    expect(resource.embyPlaySessionId).toBe("emby-session");
+    const [playbackUrl, playbackInit] = fetcher.mock.calls[0] as [
+      URL,
+      RequestInit,
+    ];
+    expect(playbackUrl.searchParams.get("UserId")).toBe("user-1");
+    expect(playbackInit.method).toBeUndefined();
+    const streamUrl = fetcher.mock.calls[1]![0] as URL;
+    expect(streamUrl.searchParams.get("PlaySessionId")).toBe("emby-session");
   });
 
   it("uses STRM HTTP paths without sending the Emby token off-origin", async () => {
@@ -233,7 +288,10 @@ describe("playback options", () => {
         resumeTicks: 0,
         subtitleStreamIndex: null,
       },
-      "22222222-2222-4222-8222-222222222222",
+      {
+        embyPlaySessionId: null,
+        localPlaySessionId: "22222222-2222-4222-8222-222222222222",
+      },
       "media",
       "bytes=0-",
       { fetch: fetcher },
@@ -250,6 +308,40 @@ describe("playback options", () => {
     expect(headers["x-emby-authorization"]).toBeUndefined();
   });
 
+  it("rejects media playback without an Emby play session ID", async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          MediaSources: [{ Id: "source-1", SupportsDirectStream: true }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      loadPlaybackResource(
+        "https://emby.example.com/",
+        input,
+        {
+          audioStreamIndex: null,
+          displayTitle: "绀轰緥鐢靛奖",
+          itemId: "item-1",
+          mediaSourceId: "source-1",
+          resumeTicks: 0,
+          subtitleStreamIndex: null,
+        },
+        {
+          embyPlaySessionId: null,
+          localPlaySessionId: "22222222-2222-4222-8222-222222222222",
+        },
+        "media",
+        undefined,
+        { fetch: fetcher },
+      ),
+    ).rejects.toMatchObject({ kind: "invalid-response" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it("removes Emby credentials after a same-origin stream redirect", async () => {
     const fetcher = vi
       .fn()
@@ -262,6 +354,7 @@ describe("playback options", () => {
                 Id: "source-1",
               },
             ],
+            PlaySessionId: "emby-session",
           }),
           { status: 200 },
         ),
@@ -287,7 +380,10 @@ describe("playback options", () => {
         resumeTicks: 0,
         subtitleStreamIndex: null,
       },
-      "22222222-2222-4222-8222-222222222222",
+      {
+        embyPlaySessionId: null,
+        localPlaySessionId: "22222222-2222-4222-8222-222222222222",
+      },
       "media",
       undefined,
       { fetch: fetcher },
