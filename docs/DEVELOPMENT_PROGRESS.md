@@ -2,7 +2,7 @@
 
 > 当前版本：v1.2  
 > 创建日期：2026-07-16  
-> 最近更新：2026-07-17
+> 最近更新：2026-07-22
 > 当前阶段：M2 PotPlayer 本地播放闭环
 > 依据：[项目规划](PROJECT_PLAN.md) · [界面规范](UX_SPEC.md)
 
@@ -34,7 +34,7 @@
 | D0 | 开发决策确认 | 完成 | 6/6 | 无 |
 | M0 | 基础设施与设计系统 | 进行中 | 18/19 | D0 完成 |
 | M1 | 媒体浏览 MVP | 完成 | 28/28 | 带 M0 外部阻塞进入 |
-| M2 | PotPlayer 本地播放闭环 | 进行中 | 9/26 | M1 登录与详情稳定 |
+| M2 | PotPlayer 本地播放闭环 | 进行中 | 10/26 | M1 登录与详情稳定 |
 | M3 | 前台体验完善 | 未开始 | 0/20 | M2 播放闭环通过 |
 | M4 | 管理后台基础 | 未开始 | 0/20 | M1 API 适配层稳定 |
 | M5 | 媒体与运维管理 | 未开始 | 0/25 | M4 权限与审计完成 |
@@ -279,7 +279,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 7.3 PlayTicket 与 PotPlayer
 
-- [ ] `M2-011` 实现一次性 PlayTicket 数据模型。
+- [x] `M2-011` 实现一次性 PlayTicket 数据模型。
 - [ ] `M2-012` 实现票据签发、设备绑定、过期和一次兑换。
 - [ ] `M2-013` Bridge 自动发现 PotPlayer 并读取版本。
 - [ ] `M2-014` 实现 PotPlayer 安全启动参数。
@@ -517,7 +517,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 ### 建议下一步
 
-1. 开始 `M2-011` 实现一次性 PlayTicket 数据模型。
+1. 开始 `M2-012` 实现票据签发、设备绑定、过期和一次兑换。
 2. 配置 GitHub 远程并让 Actions 首次全量通过，完成 `M0-004`。
 3. 安装 Docker 后实际构建并启动 Compose/Caddy 示例。
 
@@ -543,6 +543,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 | 日期 | 任务 ID | 状态 | 结果与验证 | 提交/文件 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-07-22 | M2-011 | 完成 | 已固定 `pt1.<ticket_id>.<32-byte Base64URL secret>` 版本化不透明票据格式和播放选择契约；新增 `play_tickets` 迁移，仅持久化 secret 的 HMAC 摘要，并关联认证会话、Bridge 设备、Server、Emby 用户/条目、媒体源和唯一 PlaySessionId，记录创建、最长 60 秒过期及兑换状态。数据库约束覆盖摘要格式、非空媒体 ID、JavaScript 安全范围内的整数 Ticks、非负音字幕索引、可解析且有序的时间、唯一票据和唯一播放会话；本任务未提前实现签发或兑换。根级 format/lint/typecheck、202 项 JS/TS 单测、45 项 .NET 测试及全量构建通过且 .NET 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke 和差异检查通过，临时数据库及备份已清理 | Contracts、Gateway、SQLite 迁移、项目计划、进度表 | M2-012 |
+| 2026-07-22 | M2-011 | 进行中 | 正在建立只持久化票据 HMAC 摘要的一次性 PlayTicket 数据模型，显式关联认证会话、Bridge 设备、Server、Emby 用户/条目、媒体源、播放会话、续播点、音字幕选择、过期和兑换状态；本任务不提前实现签发或兑换接口 | Gateway、SQLite、Contracts、项目计划、进度表 | 完成迁移约束和 `up/down/up` 验证 |
 | 2026-07-17 | M2-010 | 完成 | 已新增当前登录用户、当前服务器范围内的 Bridge 设备列表和 CSRF/精确 Origin 保护的网页撤销接口，跨用户设备统一返回不存在；Bridge 可使用设备凭证与新 nonce 自撤销，服务器实际切换会批量撤销旧服务器设备，已撤销凭证不能再认证。便携 Bridge 新增 `--unpair`，仅在 Gateway 撤销成功或已返回 401 时清理当前 Windows 用户 Credential Manager；网页可通过受 Origin 与 nonce 保护的回环接口清理本机凭证。完整 `verify:local` 通过：188 项 JS/TS 单测、45 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke、Windows 单文件便携发布和差异检查通过，临时数据库及备份已清理 | Contracts、Gateway、SQLite、Player Bridge、项目计划、README、进度表 | M2-011 |
 | 2026-07-17 | M2-010 | 进行中 | 正在实现当前登录用户的 Bridge 设备列表、CSRF 保护的解除配对、设备凭证自撤销、服务器切换批量撤销，以及 Bridge 远端撤销成功后清理 Windows Credential Manager | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成所有权隔离与撤销后认证失败验证 |
 | 2026-07-17 | M2-009 | 完成 | 已为浏览器到回环 Bridge 的带 Origin 请求实施配对来源精确匹配，未配对或非允许网页不获得 CORS；无 Origin 只读状态保留本机诊断，状态写请求要求 Base64URL nonce，并以线程安全五分钟内存窗口拒绝重放，PNA 预检只对允许来源开放。Bridge 到 Gateway 使用 `NewEmbyDevice` 凭证方案和新 nonce，`POST /api/v1/bridge/devices/:deviceId/heartbeat` 验证设备；Gateway 以 SQLite 唯一约束保存 nonce HMAC 摘要，跨进程/重启拒绝五分钟内重放，并区分无效凭证、非法 nonce 和重放。根级 format/lint/typecheck、184 项 JS/TS 单测、40 项 .NET 测试和全量构建通过且 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke 和差异检查通过 | Contracts、Gateway、SQLite、Player Bridge、Origin/CORS、nonce、README、进度表 | M2-010 |

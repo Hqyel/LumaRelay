@@ -64,11 +64,30 @@ export interface BridgeRequestNoncesTable {
   nonceHash: string;
 }
 
+export interface PlayTicketsTable {
+  audioStreamIndex: number | null;
+  authSessionId: string;
+  bridgeDeviceId: string;
+  createdAt: string;
+  embyItemId: string;
+  embyUserId: string;
+  expiresAt: string;
+  id: string;
+  mediaSourceId: string;
+  playSessionId: string;
+  redeemedAt: string | null;
+  resumeTicks: number;
+  secretHash: string;
+  serverId: string;
+  subtitleStreamIndex: number | null;
+}
+
 export interface DatabaseSchema {
   appSettings: AppSettingsTable;
   authSessions: AuthSessionsTable;
   bridgeDevices: BridgeDevicesTable;
   bridgePairingCodes: BridgePairingCodesTable;
   bridgeRequestNonces: BridgeRequestNoncesTable;
+  playTickets: PlayTicketsTable;
   servers: ServersTable;
 }

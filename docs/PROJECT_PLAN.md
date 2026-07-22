@@ -184,26 +184,36 @@ nonce。Bridge 以内存五分钟窗口拒绝重放，并支持 Private Network 
 
 ### 4.3 PlayTicket 设计
 
-票据建议包含或关联：
+`M2-011` 将票据固定为版本化不透明字符串
+`pt1.<ticket_id>.<32-byte Base64URL secret>`。`ticket_id` 只用于定位记录，不是
+认证凭据；随机 secret 的明文只允许出现在签发响应和后续一次兑换请求中，
+Gateway 仅持久化带域分隔的 HMAC-SHA256 摘要。票据记录包含或关联：
 
 ```text
 ticket_id
+secret_hash
 user_session_id
 bridge_device_id
+server_id
+emby_user_id
 emby_item_id
 media_source_id
+play_session_id
 resume_ticks
 audio_stream_index
 subtitle_stream_index
+created_at
 expires_at
-nonce
+redeemed_at
 ```
 
 安全要求：
 
-- 票据有效期不超过 60 秒。
-- 票据只允许兑换一次。
+- 票据有效期不超过 60 秒，数据库同时约束创建与过期时间顺序。
+- `redeemed_at` 初始为空；票据只允许兑换一次。
 - 必须绑定 Bridge 设备和当前登录用户。
+- 续播 Ticks 必须为 JavaScript 安全范围内的非负整数，音轨和字幕索引必须为空
+  或非负整数。
 - 播放命令行不出现 Emby AccessToken。
 - Bridge 回环服务校验 Origin、配对凭证和请求 nonce。
 - 回环服务只监听 `127.0.0.1` 和 `::1`。

@@ -10,6 +10,9 @@ import {
   ErrorEnvelopeSchema,
   HealthResponseSchema,
   MediaHomeResponseSchema,
+  PLAY_TICKET_LIFETIME_SECONDS,
+  PlayTicketSchema,
+  PlayTicketSelectionSchema,
   ProbeServerRequestSchema,
   ProbeServerResponseSchema,
 } from "./index.js";
@@ -152,5 +155,35 @@ describe("shared API contracts", () => {
         requestId: "request-devices",
       }).success,
     ).toBe(true);
+  });
+
+  it("defines a versioned opaque PlayTicket and bounded playback selection", () => {
+    const ticket = `pt1.11111111-1111-4111-8111-111111111111.${"C".repeat(43)}`;
+    expect(PlayTicketSchema.safeParse(ticket).success).toBe(true);
+    expect(PLAY_TICKET_LIFETIME_SECONDS).toBe(60);
+    expect(
+      PlayTicketSelectionSchema.safeParse({
+        audioStreamIndex: 1,
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: 600_000_000,
+        subtitleStreamIndex: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects malformed PlayTickets and unsafe playback values", () => {
+    expect(PlayTicketSchema.safeParse("pt1.visible-secret").success).toBe(
+      false,
+    );
+    expect(
+      PlayTicketSelectionSchema.safeParse({
+        audioStreamIndex: -1,
+        itemId: "item-1",
+        mediaSourceId: "source-1",
+        resumeTicks: Number.MAX_SAFE_INTEGER + 1,
+        subtitleStreamIndex: 0,
+      }).success,
+    ).toBe(false);
   });
 });
