@@ -102,6 +102,42 @@ internal sealed class WindowsSmtcSession : ISmtcSession
       properties.AlbumTitle ?? string.Empty);
   }
 
+  public SmtcPlaybackInfo GetPlaybackInfo()
+  {
+    ObjectDisposedException.ThrowIf(isDisposed, this);
+    var playback = session.GetPlaybackInfo();
+    var state = playback.PlaybackStatus switch
+    {
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Closed =>
+        SmtcPlaybackState.Closed,
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Opened =>
+        SmtcPlaybackState.Opened,
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Changing =>
+        SmtcPlaybackState.Changing,
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped =>
+        SmtcPlaybackState.Stopped,
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing =>
+        SmtcPlaybackState.Playing,
+      GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused =>
+        SmtcPlaybackState.Paused,
+      _ => SmtcPlaybackState.Unknown,
+    };
+    return new SmtcPlaybackInfo(state, playback.PlaybackRate ?? 0);
+  }
+
+  public SmtcTimelineProperties GetTimelineProperties()
+  {
+    ObjectDisposedException.ThrowIf(isDisposed, this);
+    var timeline = session.GetTimelineProperties();
+    return new SmtcTimelineProperties(
+      timeline.StartTime.Ticks,
+      timeline.EndTime.Ticks,
+      timeline.Position.Ticks,
+      timeline.MinSeekTime.Ticks,
+      timeline.MaxSeekTime.Ticks,
+      timeline.LastUpdatedTime);
+  }
+
   public void Dispose()
   {
     if (isDisposed)

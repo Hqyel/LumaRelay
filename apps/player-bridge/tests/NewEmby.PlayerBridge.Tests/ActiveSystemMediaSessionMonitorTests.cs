@@ -182,6 +182,16 @@ public sealed class ActiveSystemMediaSessionMonitorTests
           string.Empty, string.Empty));
     }
 
+    public SmtcPlaybackInfo GetPlaybackInfo()
+    {
+      return new SmtcPlaybackInfo(SmtcPlaybackState.Unknown, 0);
+    }
+
+    public SmtcTimelineProperties GetTimelineProperties()
+    {
+      return new SmtcTimelineProperties(0, 0, 0, 0, 0, default);
+    }
+
     public void RaiseMediaPropertiesChanged()
     {
       MediaPropertiesChanged?.Invoke(this, EventArgs.Empty);

@@ -143,6 +143,22 @@ isolated by their distinct PlaySession IDs. The matched session handle remains
 inside the Bridge for the M2-017 timeline reader and is removed explicitly when
 the playback lifecycle ends; it is not exposed by `/v1/status`.
 
+For every matched session, the playback monitor reads GSMTC playback status,
+rate, timeline start/end, reported position, seek range and last-updated time.
+All timeline values are converted to non-negative ticks relative to the media
+start and clamped to the validated duration. `Playing`, `Paused`, `Stopped`,
+`Closed`, `Opened` and `Changing` remain distinct internal states. Position
+changes more than two seconds away from expected normal progress are marked as a
+seek; a playing timeline more than five seconds old is marked stale.
+
+PotPlayer can briefly continue reporting `Playing` after a completed item while
+resetting the timeline to zero. The monitor therefore preserves the previous
+valid duration and reports `Ended` when a near-end timeline is followed by that
+reset, or when `Stopped`/`Closed` is observed within two seconds of the end.
+Playback and timeline events trigger immediate refresh, with a one-second poll
+as a fallback. These snapshots stay inside the Bridge; Emby Playing, Progress
+and Stopped calls begin with M2-018 rather than being inferred in this task.
+
 To revoke the current portable Bridge from both sides, run:
 
 ```text

@@ -35,10 +35,12 @@ internal static class BridgeHost
       ?? SystemMediaSessionMonitorFactory.Create();
     var discovery = playerDiscovery ?? new PotPlayerDiscovery();
     var sessionMatcher = new PotPlayerSessionMatcher(mediaSessionMonitor);
+    var playbackMonitor = new PotPlayerPlaybackMonitor(sessionMatcher);
     builder.Services.AddSingleton<ISystemMediaSessionMonitor>(
       mediaSessionMonitor);
     builder.Services.AddHostedService<SmtcMonitorHostedService>();
     builder.Services.AddSingleton<IHostedService>(sessionMatcher);
+    builder.Services.AddSingleton<IHostedService>(playbackMonitor);
     builder.Services.AddSingleton<IPlayerAdapter>(new PotPlayerLauncher(
       serverOptions.Port,
       discovery,

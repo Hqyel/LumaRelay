@@ -34,6 +34,29 @@ internal sealed record SmtcMediaProperties(
   string Artist,
   string AlbumTitle);
 
+internal enum SmtcPlaybackState
+{
+  Unknown,
+  Closed,
+  Opened,
+  Changing,
+  Stopped,
+  Playing,
+  Paused,
+}
+
+internal sealed record SmtcPlaybackInfo(
+  SmtcPlaybackState State,
+  double PlaybackRate);
+
+internal sealed record SmtcTimelineProperties(
+  long StartTicks,
+  long EndTicks,
+  long PositionTicks,
+  long MinSeekTicks,
+  long MaxSeekTicks,
+  DateTimeOffset LastUpdatedAt);
+
 internal sealed class SmtcSessionEventArgs(
   SmtcSessionEventKind kind,
   string? sourceAppUserModelId,
@@ -65,6 +88,9 @@ internal interface ISmtcSession : IDisposable
 
   Task<SmtcMediaProperties?> GetMediaPropertiesAsync(
     CancellationToken cancellationToken);
+
+  SmtcPlaybackInfo GetPlaybackInfo();
+  SmtcTimelineProperties GetTimelineProperties();
 }
 
 internal interface ISmtcSessionManager : IDisposable
