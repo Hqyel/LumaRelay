@@ -1,8 +1,18 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react";
-import { forwardRef, type ComponentPropsWithoutRef } from "react";
+import {
+  forwardRef,
+  type ComponentPropsWithoutRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type WheelEvent,
+} from "react";
 
 import { cn } from "./cn.js";
+import {
+  startOverflowMarquee,
+  stopOverflowMarquee,
+} from "./overflow-marquee.js";
 
 export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
@@ -10,26 +20,88 @@ export const SelectValue = SelectPrimitive.Value;
 export const SelectTrigger = forwardRef<
   HTMLButtonElement,
   ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ children, className, ...props }, ref) => (
-  <SelectPrimitive.Trigger
-    className={cn(
-      "flex h-11 w-full items-center justify-between rounded-control border " +
-        "border-border bg-field px-3 text-body text-text shadow-[inset_0_1px_rgb(var(--theme-foreground-rgb)_/_4%)] " +
-        "outline-none backdrop-blur-xl transition-[border-color,box-shadow,background] duration-150 " +
-        "hover:border-border-hover focus:border-accent focus:shadow-[0_0_0_3px_rgb(124_92_255_/_20%)] " +
-        "data-[placeholder]:text-text-subtle data-[state=open]:border-accent " +
-        "data-[state=open]:[&_svg]:rotate-180 [&_svg]:transition-transform",
+>(
+  (
+    {
+      children,
       className,
-    )}
-    ref={ref}
-    {...props}
-  >
-    {children}
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown aria-hidden="true" size={17} />
-    </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
-));
+      onKeyDown,
+      onMouseEnter,
+      onMouseLeave,
+      onWheel,
+      ...props
+    },
+    ref,
+  ) => {
+    const valueElement = (target: HTMLButtonElement): HTMLSpanElement | null =>
+      target.querySelector<HTMLSpanElement>(".newemby-select-value-scroll");
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented || !event.shiftKey) return;
+      const value = valueElement(event.currentTarget);
+      if (value === null || value.scrollWidth <= value.clientWidth) return;
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        value.scrollBy({
+          behavior: "smooth",
+          left: event.key === "ArrowLeft" ? -80 : 80,
+        });
+      }
+    };
+
+    const handleMouseEnter = (event: MouseEvent<HTMLButtonElement>) => {
+      onMouseEnter?.(event);
+      const value = valueElement(event.currentTarget);
+      if (value !== null) startOverflowMarquee(value);
+    };
+
+    const handleMouseLeave = (event: MouseEvent<HTMLButtonElement>) => {
+      onMouseLeave?.(event);
+      const value = valueElement(event.currentTarget);
+      if (value !== null) stopOverflowMarquee(value);
+    };
+
+    const handleWheel = (event: WheelEvent<HTMLButtonElement>) => {
+      onWheel?.(event);
+      if (event.defaultPrevented) return;
+      const value = valueElement(event.currentTarget);
+      if (value === null || value.scrollWidth <= value.clientWidth) return;
+      const distance =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      if (distance === 0) return;
+      event.preventDefault();
+      value.scrollLeft += distance;
+    };
+
+    return (
+      <SelectPrimitive.Trigger
+        className={cn(
+          "newemby-select-trigger flex h-11 w-full items-center justify-between rounded-control border " +
+            "border-border bg-field px-3 text-body text-text shadow-[inset_0_1px_rgb(var(--theme-foreground-rgb)_/_4%)] " +
+            "outline-none backdrop-blur-xl transition-[border-color,box-shadow,background] duration-150 " +
+            "hover:border-border-hover focus:border-accent focus:shadow-[0_0_0_3px_rgb(124_92_255_/_20%)] " +
+            "data-[placeholder]:text-text-subtle data-[state=open]:border-accent " +
+            "data-[state=open]:[&_svg]:rotate-180 [&_svg]:transition-transform",
+          className,
+        )}
+        onKeyDown={handleKeyDown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onWheel={handleWheel}
+        ref={ref}
+        {...props}
+      >
+        <span className="newemby-select-value-scroll">{children}</span>
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown aria-hidden="true" size={17} />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+    );
+  },
+);
 SelectTrigger.displayName = "SelectTrigger";
 
 export const SelectContent = forwardRef<

@@ -94,8 +94,8 @@
   --color-border: rgb(15 23 42 / 9%);
   --color-border-hover: rgb(15 23 42 / 16%);
   --color-text: #1a1a2e;
-  --color-text-muted: rgb(26 26 46 / 62%);
-  --color-text-subtle: rgb(26 26 46 / 43%);
+  --color-text-muted: rgb(26 26 46 / 70%);
+  --color-text-subtle: rgb(26 26 46 / 64%);
   --color-field: rgb(15 23 42 / 4%);
   --color-field-focus: rgb(255 255 255 / 94%);
   --color-overlay: rgb(15 23 42 / 48%);
@@ -211,6 +211,24 @@ a {
     opacity: 0;
     transform: translateY(-0.25rem) scale(0.98);
   }
+}
+
+.newemby-select-value-scroll {
+  min-width: 0;
+  max-width: calc(100% - 1.75rem);
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.newemby-select-value-scroll > span {
+  display: inline-block;
+  min-width: max-content;
+}
+
+.newemby-select-trigger > svg {
+  flex: none;
 }
 
 :focus-visible {

@@ -1,6 +1,16 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+async function chooseSelectOption(page: Page, label: string, option: string) {
+  await page.getByLabel(label, { exact: true }).click();
+  await page.getByRole("option", { exact: true, name: option }).click();
+}
+
+async function openMovieAction(page: Page, action: string) {
+  await page.getByRole("button", { name: "更多电影操作" }).click();
+  return page.getByRole("menuitem", { exact: true, name: action });
+}
+
 const server = {
   baseUrl: "https://emby.example.com/",
   capabilityFlags: { ping: true, publicInfo: true },
@@ -79,12 +89,16 @@ const seriesItems = Array.from({ length: 8 }, (_, index) => ({
   unplayedItemCount: index + 1,
 }));
 
+const movieOverview =
+  "穿越群星之后，一名旅人沿着失落的航线重新寻找属于自己的家园，也重新理解那些被时间留下的人。旅途中接连出现的旧坐标和静默信号，让每一次选择都指向一段被刻意隐藏的往事；只有重新面对离别、承诺与归途，他才能知道所谓家园究竟是一处地点，还是仍愿意等待自己的人。";
+const episodeCardOverview =
+  "一段来自失落航线的静默信号重新串联起所有线索，也迫使众人在未知星域中重新审视彼此的选择与尚未兑现的承诺。";
+
 const movieDetail = {
   ...movieItems[0],
   backdropImageTag: "backdrop-movie-1",
   genres: ["科幻", "剧情", "冒险"],
-  overview:
-    "穿越群星之后，一名旅人沿着失落的航线重新寻找属于自己的家园，也重新理解那些被时间留下的人。",
+  overview: movieOverview,
   premiereDate: "2026-03-14T00:00:00.000Z",
   tagline: "每一次远行，都是为了回家。",
 };
@@ -131,8 +145,15 @@ const episodes = Array.from({ length: 6 }, (_, index) => ({
   episodeId: `episode-${index + 1}`,
   episodeNumber: index + 1,
   isPlayed: index === 0,
-  name: ["离港", "静默信号", "重力井", "无名坐标", "回声", "归途"][index],
-  overview: "新的线索将众人带向未知星域。",
+  name: [
+    "离港",
+    "静默信号",
+    "重力井",
+    "无名坐标与最后一段失落航线的回声以及归途尽头的秘密",
+    "回声",
+    "归途",
+  ][index],
+  overview: index === 1 ? episodeCardOverview : "新的线索将众人带向未知星域。",
   playbackPositionSeconds: index === 1 ? 1320 : 0,
   premiereDate: `2026-0${index + 1}-12T08:00:00.000Z`,
   primaryImageTag: `episode-image-${index + 1}`,
@@ -399,7 +420,7 @@ async function mockPageApi(
               defaultAudioStreamIndex: 1,
               defaultSubtitleStreamIndex: 2,
               mediaSourceId: "source-1",
-              name: "1080p 原始版本",
+              name: "星海归途.2026.1080p.WEB-DL.H265.AAC.中文字幕收藏版.原始媒体版本",
               runtimeTicks: 72_000_000_000,
               sizeBytes: 4_294_967_296,
               subtitleTracks: [
@@ -701,6 +722,8 @@ test("connect page is accessible by keyboard and matches its baseline", async ({
   ).toBeVisible();
 
   await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /^主题：/ })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByLabel("Emby 服务器地址")).toBeFocused();
   await page
     .getByLabel("Emby 服务器地址")
@@ -720,6 +743,8 @@ test("login page is accessible by keyboard and matches its baseline", async ({
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Alex" })).toBeVisible();
 
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /^主题：/ })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: /Home Emby/ })).toBeFocused();
   await page.keyboard.press("Tab");
@@ -742,6 +767,18 @@ test("application shell is accessible and matches its baseline", async ({
   await expect(page.getByRole("heading", { name: "首页" })).toBeVisible();
   await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
   await expect(page.getByText("已观看 22:00 · 剩余 26:00")).toBeVisible();
+  await expect(page.locator(".newemby-app-header")).toHaveCSS(
+    "border-bottom-width",
+    "0px",
+  );
+  await expect(page.locator(".newemby-app-header")).toHaveCSS(
+    "box-shadow",
+    "none",
+  );
+  await expect(page.locator(".newemby-app-header")).not.toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
 
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "跳到主要内容" })).toBeFocused();
@@ -761,20 +798,26 @@ test("application shell is accessible and matches its baseline", async ({
     .getByRole("link", { name: /静默信号/ })
     .first()
     .click();
-  await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
+  await expect(
+    page.getByText("第 1 季 第 2 集", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
   await expect(
     page.getByText("一段静默信号让所有线索重新指向失落的航线。"),
   ).toHaveCount(1);
-  await expect(page.getByRole("heading", { name: "演职人员" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "相关演员" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "相关推荐" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "媒体信息" })).toBeVisible();
   await expect(page.getByText("1920×1080")).toBeVisible();
   await expect(page.getByText("yuv420p10le")).toBeVisible();
   await expect(page.getByText("48,000 Hz")).toBeVisible();
-  await expect(page.locator(".detail-content > :last-child")).toContainText(
-    "媒体信息",
-  );
+  await expect(
+    page.locator(".episode-reference-lower > :last-child"),
+  ).toContainText("媒体信息");
+  await expect(
+    page.getByRole("button", { name: "更多单集操作" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("版本")).toContainText("星海归途.2026");
   await expect(page.getByRole("button", { name: "继续播放" })).toBeVisible();
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
@@ -816,12 +859,58 @@ test("legacy search route returns to home", async ({ page }) => {
 test("movie details match the reference immersive layout", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/item/movie-1");
-  await expect(page.getByRole("heading", { name: "星海归途" })).toBeVisible();
-  await expect(page.getByText("每一次远行，都是为了回家。")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { exact: true, name: "星海归途" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "返回上一页" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "更多电影操作" }),
+  ).toBeVisible();
+  await expect(page.getByText("2026-03-14")).toBeVisible();
+  await expect(page.getByText("2小时0分钟0秒")).toBeVisible();
+  await expect(page.getByText("1080P", { exact: true })).toBeVisible();
+  await expect(page.getByText("24 FPS", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("版本")).toContainText("星海归途.2026");
+  await expect(page.getByLabel("详情音轨")).toContainText("中文 AAC 5.1");
+  await expect(page.getByLabel("详情字幕")).toContainText("简体中文");
+  const versionValue = page
+    .getByLabel("版本")
+    .locator(".newemby-select-value-scroll");
+  await expect(versionValue).toHaveCSS("white-space", "nowrap");
+  await expect(versionValue).toHaveCSS("overflow-x", "hidden");
+  expect(
+    await versionValue.evaluate(
+      (element) => element.scrollWidth > element.clientWidth,
+    ),
+  ).toBe(true);
+  await page.getByLabel("版本").hover();
+  await expect
+    .poll(() => versionValue.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(0);
+  const firstVersionOffset = await versionValue.evaluate(
+    (element) => element.scrollLeft,
+  );
+  await page.waitForTimeout(500);
+  expect(
+    await versionValue.evaluate((element) => element.scrollLeft),
+  ).toBeGreaterThan(firstVersionOffset);
+  await page.mouse.move(0, 0);
+  await expect
+    .poll(() => versionValue.evaluate((element) => element.scrollLeft))
+    .toBe(0);
+  await page.getByRole("button", { exact: true, name: "更多" }).click();
+  await expect(page.getByRole("dialog", { name: "剧情简介" })).toBeVisible();
+  await expect(page.getByText(movieOverview, { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  const immersiveHeader = page.locator(".newemby-app-header");
+  await expect(immersiveHeader).toHaveAttribute("data-immersive", "true");
+  await expect(immersiveHeader).not.toHaveAttribute("data-scrolled", "true");
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("movie-detail.png", { fullPage: true });
+  await page.evaluate(() => window.scrollTo(0, 300));
+  await expect(immersiveHeader).toHaveAttribute("data-scrolled", "true");
 });
 
 test("local playback preparation is accessible and starts the Bridge", async ({
@@ -888,9 +977,13 @@ test("local playback preparation is accessible and starts the Bridge", async ({
   await expect(
     page.getByRole("heading", { name: "本地播放准备" }),
   ).toBeVisible();
-  await expect(page.getByLabel("播放版本")).toHaveValue("source-1");
-  await expect(page.getByLabel("音轨")).toHaveValue("1");
-  await expect(page.getByLabel("字幕")).toHaveValue("2");
+  await expect(page.getByLabel("播放版本")).toContainText("1080p");
+  await expect(page.getByLabel("音轨", { exact: true })).toContainText(
+    "中文 AAC 5.1",
+  );
+  await expect(page.getByLabel("字幕", { exact: true })).toContainText(
+    "简体中文",
+  );
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("playback-preparation.png");
@@ -986,27 +1079,80 @@ test("series details show season and horizontal episodes", async ({ page }) => {
   await mockPageApi(page, true);
   await page.goto("/item/series-1");
   await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
-  await expect(page.getByLabel("选择季")).toHaveValue("season-1");
+  await expect(
+    page.getByText("第 1 季 第 2 集", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "更多剧集操作" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("版本")).toContainText("星海归途.2026");
+  await expect(page.getByLabel("选择季")).toContainText("第 1 季");
   await expect(page.getByText("1. 离港")).toBeVisible();
   await expect(page.getByText("22:00 / 48:00")).toBeVisible();
+  const episodeOverviewCard = page
+    .locator(".detail-episode-card")
+    .filter({ hasText: "2. 静默信号" });
+  await episodeOverviewCard
+    .getByRole("button", { exact: true, name: "更多" })
+    .click();
+  await expect(page.getByRole("dialog", { name: "2. 静默信号" })).toBeVisible();
+  await expect(
+    page.getByText(episodeCardOverview, { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  const longEpisodeTitle = page.getByRole("link", {
+    name: "4. 无名坐标与最后一段失落航线的回声以及归途尽头的秘密",
+  });
+  const longEpisodeCard = page
+    .locator(".detail-episode-card")
+    .filter({ has: longEpisodeTitle });
+  expect(
+    await longEpisodeTitle.evaluate(
+      (element) => element.scrollWidth > element.clientWidth,
+    ),
+  ).toBe(true);
+  await longEpisodeCard.hover();
+  await expect(longEpisodeCard).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await expect(longEpisodeCard.locator(".detail-episode-info")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await expect(longEpisodeCard).toHaveCSS("box-shadow", "none");
+  await expect
+    .poll(() => longEpisodeTitle.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(0);
+  const firstTitleOffset = await longEpisodeTitle.evaluate(
+    (element) => element.scrollLeft,
+  );
+  await page.waitForTimeout(500);
+  expect(
+    await longEpisodeTitle.evaluate((element) => element.scrollLeft),
+  ).toBeGreaterThan(firstTitleOffset);
+  await page.mouse.move(0, 0);
+  await expect
+    .poll(() => longEpisodeTitle.evaluate((element) => element.scrollLeft))
+    .toBe(0);
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("series-detail.png", { fullPage: true });
 
-  const episodeOptions = page.waitForRequest(
-    (request) =>
-      new URL(request.url()).pathname ===
-      "/api/v1/media/items/episode-2/playback-options",
-  );
   await page.getByRole("button", { exact: true, name: "继续播放" }).click();
-  await episodeOptions;
   await expect(
     page.getByRole("heading", { name: "本地播放准备" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: /2\. 静默信号/ }).click();
-  await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "群星之间" })).toBeVisible();
+  await expect(
+    page.getByText("第 1 季 第 2 集", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("一段静默信号让所有线索重新指向失落的航线。"),
+  ).toHaveCount(1);
 });
 
 test("movie library matches the reference card grid", async ({ page }) => {
@@ -1014,11 +1160,20 @@ test("movie library matches the reference card grid", async ({ page }) => {
   await page.goto("/movies?page=1");
   await expect(page.getByRole("heading", { name: "全部电影" })).toBeVisible();
   const firstCard = page.getByRole("link", { name: /星海归途/ }).first();
+  const cardInfo = firstCard.locator(".home-card-info");
+  const restingBackground = await cardInfo.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
   await firstCard.hover();
   await expect(firstCard.locator(".home-poster-wrapper")).not.toHaveCSS(
     "transform",
     "none",
   );
+  await expect
+    .poll(() =>
+      cardInfo.evaluate((element) => getComputedStyle(element).backgroundColor),
+    )
+    .toBe(restingBackground);
   await page.mouse.move(0, 0);
   await page.waitForTimeout(300);
   await waitForImages(page);
@@ -1084,9 +1239,9 @@ test("media filters use canonical shareable URL state", async ({ page }) => {
     .getByRole("textbox", { exact: true, name: "年份" })
     .fill("2026, 2024");
   await page.getByLabel("最低评分").fill("8");
-  await page.getByLabel("观看状态").selectOption("unplayed");
-  await page.getByLabel("收藏状态").selectOption("true");
-  await page.locator('select[name="sortBy"]').selectOption("communityRating");
+  await chooseSelectOption(page, "观看状态", "未看");
+  await chooseSelectOption(page, "收藏状态", "仅收藏");
+  await chooseSelectOption(page, "排序", "社区评分");
   const filteredRequest = page.waitForRequest((request) =>
     request.url().includes("/api/v1/media/items?"),
   );
@@ -1104,6 +1259,79 @@ test("media filters use canonical shareable URL state", async ({ page }) => {
   const browserParams = new URL(page.url()).searchParams;
   expect(browserParams.getAll("genre")).toEqual(["剧情", "科幻"]);
   expect(browserParams.getAll("year")).toEqual(["2024", "2026"]);
+});
+
+test("theme menu persists light and follows the system preference", async ({
+  page,
+}) => {
+  await mockPageApi(page, true);
+  await page.goto("/home");
+
+  const themeButton = page.getByRole("button", { name: /^主题：/ });
+  await expect(themeButton).toHaveAccessibleName("主题：跟随系统");
+  await themeButton.click();
+  await page.getByRole("menuitemradio", { name: "亮色" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-mode",
+    "light",
+  );
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("application-shell-light.png", {
+    fullPage: true,
+  });
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(themeButton).toHaveAccessibleName("主题：亮色");
+  await themeButton.click();
+  await page.getByRole("menuitemradio", { name: "跟随系统" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme-mode",
+    "system",
+  );
+});
+
+test("light theme covers authentication, library controls, and details", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("newemby.theme", "light");
+  });
+  await mockPageApi(page, true);
+
+  await page.goto("/login");
+  await expect(
+    page.getByRole("heading", { name: "登录媒体服务器" }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("login-page-light.png", {
+    fullPage: true,
+  });
+
+  await page.goto("/movies?page=1");
+  await expect(page.getByRole("heading", { name: "全部电影" })).toBeVisible();
+  await expect(page.getByLabel("观看状态")).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("movie-library-light.png", {
+    fullPage: true,
+  });
+
+  await page.goto("/item/movie-1");
+  await expect(
+    page.getByRole("heading", { exact: true, name: "星海归途" }),
+  ).toBeVisible();
+  await waitForImages(page);
+  await expectNoAccessibilityViolations(page);
+  await settleVisualState(page);
+  await expect(page).toHaveScreenshot("movie-detail-light.png", {
+    fullPage: true,
+  });
 });
 
 test("browser back restores media URL and scroll position", async ({
@@ -1160,7 +1388,20 @@ test("authorized libraries match the reference glass list", async ({
   await expect(
     page.getByRole("heading", { level: 2, name: "媒体库" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /我的电影/ })).toBeVisible();
+  const libraryCard = page.getByRole("link", { name: /我的电影/ });
+  await expect(libraryCard).toBeVisible();
+  const restingBackground = await libraryCard.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  await libraryCard.hover();
+  await expect
+    .poll(() =>
+      libraryCard.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+    )
+    .toBe(restingBackground);
+  await page.mouse.move(0, 0);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
   await expect(page).toHaveScreenshot("media-libraries.png", {
@@ -1244,25 +1485,19 @@ test("favorite updates optimistically, survives refresh, and is restored", async
 }) => {
   await mockPageApi(page, true);
   await page.goto("/item/movie-1");
-  const favoriteButton = page.getByRole("button", { name: "已收藏" });
-  await expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
-  await favoriteButton.click();
-  await expect(page.getByRole("button", { name: "收藏" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await (await openMovieAction(page, "取消收藏")).click();
+  await expect(await openMovieAction(page, "收藏")).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "收藏" })).toBeVisible();
+  await expect(await openMovieAction(page, "收藏")).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.goto("/home");
   await expect(page.getByRole("heading", { name: "我的收藏" })).toHaveCount(0);
 
   await page.goto("/item/movie-1");
-  await page.getByRole("button", { name: "收藏" }).click();
-  await expect(page.getByRole("button", { name: "已收藏" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await (await openMovieAction(page, "收藏")).click();
+  await expect(await openMovieAction(page, "取消收藏")).toBeVisible();
 });
 
 test("played state updates optimistically, survives refresh, and is restored", async ({
@@ -1270,25 +1505,19 @@ test("played state updates optimistically, survives refresh, and is restored", a
 }) => {
   await mockPageApi(page, true);
   await page.goto("/item/movie-1");
-  const playedButton = page.getByRole("button", { name: "标记已看" });
-  await expect(playedButton).toHaveAttribute("aria-pressed", "false");
-  await playedButton.click();
-  await expect(page.getByRole("button", { name: "标记未看" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await (await openMovieAction(page, "标记已看")).click();
+  await expect(await openMovieAction(page, "标记未看")).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.reload();
-  await expect(page.getByRole("button", { name: "标记未看" })).toBeVisible();
+  await expect(await openMovieAction(page, "标记未看")).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.goto("/home");
   await expect(page.getByLabel("已看").first()).toBeVisible();
 
   await page.goto("/item/movie-1");
-  await page.getByRole("button", { name: "标记未看" }).click();
-  await expect(page.getByRole("button", { name: "标记已看" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await (await openMovieAction(page, "标记未看")).click();
+  await expect(await openMovieAction(page, "标记已看")).toBeVisible();
 });
 
 test("failed played update rolls back and remains actionable", async ({
@@ -1296,14 +1525,12 @@ test("failed played update rolls back and remains actionable", async ({
 }) => {
   await mockPageApi(page, true, "normal", true);
   await page.goto("/item/movie-1");
-  const playedButton = page.getByRole("button", { name: "标记已看" });
-  await playedButton.click();
+  await (await openMovieAction(page, "标记已看")).click();
 
   await expect(page.getByRole("alert")).toContainText(
     "观看状态更新失败，已恢复原状态，请重试",
   );
-  await expect(playedButton).toHaveAttribute("aria-pressed", "false");
-  await expect(playedButton).toBeEnabled();
+  await expect(await openMovieAction(page, "标记已看")).toBeEnabled();
 });
 
 test("administrator entry matches the compact glass management shell", async ({

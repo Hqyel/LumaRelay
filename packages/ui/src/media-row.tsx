@@ -23,7 +23,7 @@ export function MediaRow({
     progress === undefined ? undefined : Math.min(100, Math.max(0, progress));
 
   return (
-    <article className="group grid grid-cols-[8rem_1fr_auto] items-center gap-4 rounded-panel border border-border bg-glass p-3 shadow-[0_2px_8px_rgb(var(--theme-shadow-rgb)_/_16%)] backdrop-blur-xl transition-[background,border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-accent/50 hover:bg-accent/10 hover:shadow-[0_8px_28px_rgb(var(--theme-shadow-rgb)_/_22%)] motion-reduce:transform-none sm:grid-cols-[12rem_1fr_auto]">
+    <article className="group grid grid-cols-[8rem_1fr_auto] items-center gap-4 rounded-panel border border-border bg-glass p-3 shadow-[0_2px_8px_rgb(var(--theme-shadow-rgb)_/_16%)] backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_8px_28px_rgb(var(--theme-shadow-rgb)_/_22%)] motion-reduce:transform-none sm:grid-cols-[12rem_1fr_auto]">
       <div className="relative aspect-video overflow-hidden rounded-poster bg-bg-elevated">
         <ImageFallback
           alt={title}

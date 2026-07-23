@@ -5,19 +5,42 @@ import type {
   PlaybackMediaSource,
   PlaybackTrack,
 } from "@newemby/contracts";
-import { Button, ImageFallback } from "@newemby/ui";
+import {
+  Button,
+  Dialog,
+  ImageFallback,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  startOverflowMarquee,
+  stopOverflowMarquee,
+} from "@newemby/ui";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowLeft,
   AudioLines,
   Captions,
   CheckCircle2,
   Film,
   Heart,
+  MoreHorizontal,
   Play,
   Sparkles,
   Users,
   Video,
 } from "lucide-react";
+import {
+  type KeyboardEvent,
+  type MouseEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { mediaImageUrl } from "../api.js";
 import { episodePlaybackTitle, mediaPlaybackTitle } from "../playback-title.js";
@@ -28,8 +51,11 @@ import {
   HomeScroller,
   type HomeMediaCardProps,
 } from "./home-media.js";
-import { PlayPreparationDialog } from "./play-preparation-dialog.js";
-import type { PlaybackTarget } from "./play-preparation-dialog.js";
+import {
+  PlayPreparationDialog,
+  type PlaybackSelection,
+  type PlaybackTarget,
+} from "./play-preparation-dialog.js";
 
 function formatRuntime(seconds: number | undefined): string | undefined {
   if (seconds === undefined) return undefined;
@@ -47,6 +73,436 @@ function formatPlaybackClock(seconds: number): string {
     )
     .filter((_, index) => hours > 0 || index > 0)
     .join(":");
+}
+
+function referenceRuntime(seconds: number | undefined): string | undefined {
+  if (seconds === undefined) return undefined;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remaining = seconds % 60;
+  return hours > 0
+    ? `${hours}小时${minutes}分钟${remaining}秒`
+    : `${minutes}分钟${remaining}秒`;
+}
+
+function referenceDate(value: string | undefined, year: number | undefined) {
+  if (value === undefined) return year?.toString();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? year?.toString()
+    : parsed.toISOString().slice(0, 10);
+}
+
+function sourceResolution(source: PlaybackMediaSource | undefined) {
+  const width = source?.video?.width;
+  if (width === undefined) return undefined;
+  if (width >= 3840) return "4K";
+  if (width >= 2560) return "2K";
+  if (width >= 1920) return "1080P";
+  if (width >= 1280) return "720P";
+  return `${width}P`;
+}
+
+function sourceFrameRate(source: PlaybackMediaSource | undefined) {
+  const rate = source?.video?.frameRate;
+  return rate === undefined ? undefined : `${Math.round(rate)} FPS`;
+}
+
+function hasChineseSubtitle(source: PlaybackMediaSource | undefined) {
+  if (source === undefined) return false;
+  const chinese = new Set(["chi", "zho", "zh"]);
+  const defaultAudio =
+    source.audioTracks.find((track) => track.isDefault) ??
+    source.audioTracks[0];
+  if (
+    defaultAudio?.language !== undefined &&
+    chinese.has(defaultAudio.language)
+  )
+    return false;
+  return source.subtitleTracks.some(
+    (track) => track.language !== undefined && chinese.has(track.language),
+  );
+}
+
+function ExpandablePreview({
+  className,
+  dialogTitle,
+  limit,
+  text,
+}: {
+  className: string;
+  dialogTitle: string;
+  limit: number;
+  text: string;
+}) {
+  const preview = useRef<HTMLSpanElement>(null);
+  const limitedByLength = text.length > limit;
+  const previewText = limitedByLength
+    ? `${text.slice(0, limit).trimEnd()}…`
+    : text;
+  const [truncated, setTruncated] = useState(limitedByLength);
+
+  useLayoutEffect(() => {
+    const element = preview.current;
+    if (element === null) return;
+    const update = () =>
+      setTruncated(
+        limitedByLength || element.scrollWidth > element.clientWidth + 1,
+      );
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => window.removeEventListener("resize", update);
+    }
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [limitedByLength, text]);
+
+  return (
+    <div className={className}>
+      <span ref={preview}>{previewText}</span>
+      {truncated ? (
+        <Dialog
+          title={dialogTitle}
+          trigger={
+            <button className="detail-overview-more" type="button">
+              更多
+            </button>
+          }
+        >
+          <p className="detail-overview-dialog-text">{text}</p>
+        </Dialog>
+      ) : null}
+    </div>
+  );
+}
+
+function DetailOverview({ text }: { text: string }) {
+  return (
+    <ExpandablePreview
+      className="detail-overview-preview"
+      dialogTitle="剧情简介"
+      limit={120}
+      text={text}
+    />
+  );
+}
+
+function overflowElement(event: { currentTarget: HTMLElement }): HTMLElement {
+  return event.currentTarget;
+}
+
+function scrollOverflowOnKey(event: KeyboardEvent<HTMLElement>) {
+  if (!event.shiftKey) return;
+  const element = overflowElement(event);
+  if (element.scrollWidth <= element.clientWidth) return;
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  element.scrollBy({
+    behavior: "smooth",
+    left: event.key === "ArrowLeft" ? -80 : 80,
+  });
+}
+
+export function ReferenceDetailHeader({
+  contextLabel,
+  episodePosition,
+  item,
+  overview,
+  playbackTarget,
+  series = false,
+  sources,
+  title,
+  visualItem = item,
+  runtimeSeconds,
+}: {
+  contextLabel?: string;
+  episodePosition?: string;
+  item: MediaDetail;
+  overview?: string;
+  playbackTarget?: PlaybackTarget | null;
+  series?: boolean;
+  sources: PlaybackMediaSource[];
+  title?: string;
+  visualItem?: MediaDetail;
+  runtimeSeconds?: number;
+}) {
+  const favoriteMutation = useFavoriteMutation();
+  const playedMutation = usePlayedMutation();
+  const [sourceId, setSourceId] = useState("");
+  const [audioIndex, setAudioIndex] = useState<number | null>(null);
+  const [subtitleIndex, setSubtitleIndex] = useState<number | null>(null);
+  const selectedSource = useMemo(
+    () => sources.find((source) => source.mediaSourceId === sourceId),
+    [sourceId, sources],
+  );
+
+  useEffect(() => {
+    if (selectedSource !== undefined) return;
+    const source =
+      sources.find((candidate) => candidate.supportsDirectStream) ?? sources[0];
+    if (source === undefined) return;
+    setSourceId(source.mediaSourceId);
+    setAudioIndex(source.defaultAudioStreamIndex);
+    setSubtitleIndex(source.defaultSubtitleStreamIndex);
+  }, [selectedSource, sources]);
+
+  const selection = useMemo<PlaybackSelection | undefined>(
+    () =>
+      selectedSource === undefined
+        ? undefined
+        : { audioIndex, sourceId, subtitleIndex },
+    [audioIndex, selectedSource, sourceId, subtitleIndex],
+  );
+  const textSubtitles =
+    selectedSource?.subtitleTracks.filter((track) => track.isText) ?? [];
+  const showSelectors =
+    sources.length > 1 ||
+    (selectedSource?.audioTracks.length ?? 0) > 1 ||
+    textSubtitles.length > 0;
+  const effectivePlaybackTarget = playbackTarget ?? {
+    displayTitle: mediaPlaybackTitle(item),
+    itemId: item.itemId,
+    playbackPositionSeconds: item.playbackPositionSeconds,
+    title: item.title,
+  };
+  const favoritePending =
+    favoriteMutation.isPending &&
+    favoriteMutation.variables.item.itemId === item.itemId;
+  const playedPending =
+    playedMutation.isPending &&
+    playedMutation.variables.item.itemId === item.itemId;
+  const technical = [
+    sourceResolution(selectedSource),
+    sourceFrameRate(selectedSource),
+    selectedSource?.video?.videoRange === undefined ||
+    selectedSource.video.videoRange === "SDR"
+      ? undefined
+      : selectedSource.video.videoRange,
+  ].filter((value): value is string => value !== undefined);
+  const effectiveContextLabel = contextLabel ?? (series ? "剧集" : "电影");
+  const effectiveOverview = overview ?? item.overview;
+  const effectiveTitle = title ?? item.title;
+
+  function chooseSource(value: string) {
+    const source = sources.find(
+      (candidate) => candidate.mediaSourceId === value,
+    );
+    if (source === undefined) return;
+    setSourceId(value);
+    setAudioIndex(source.defaultAudioStreamIndex);
+    setSubtitleIndex(source.defaultSubtitleStreamIndex);
+  }
+
+  return (
+    <>
+      <section className="movie-reference-hero">
+        <ImageFallback
+          alt=""
+          className="movie-reference-backdrop-image"
+          containerClassName="movie-reference-backdrop"
+          fetchPriority="high"
+          height={1080}
+          loading="eager"
+          src={mediaImageUrl({
+            imageType: "backdrop",
+            itemId: visualItem.itemId,
+            preset: "hero",
+            tag: visualItem.backdropImageTag,
+          })}
+          width={1920}
+        />
+        <button
+          aria-label="返回上一页"
+          className="movie-reference-back"
+          onClick={() => window.history.back()}
+          type="button"
+        >
+          <ArrowLeft aria-hidden="true" size={22} />
+        </button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              aria-label={`更多${effectiveContextLabel}操作`}
+              className="movie-reference-more"
+              type="button"
+            >
+              <MoreHorizontal aria-hidden="true" size={23} />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              align="end"
+              className="movie-reference-menu"
+              sideOffset={8}
+            >
+              <DropdownMenu.Label>
+                {effectiveContextLabel}操作
+              </DropdownMenu.Label>
+              <DropdownMenu.Item
+                disabled={favoritePending}
+                onSelect={() =>
+                  favoriteMutation.mutate({
+                    favorite: !item.isFavorite,
+                    item,
+                  })
+                }
+              >
+                <Heart aria-hidden="true" size={17} />
+                {item.isFavorite ? "取消收藏" : "收藏"}
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                disabled={playedPending}
+                onSelect={() =>
+                  playedMutation.mutate({ item, played: !item.isPlayed })
+                }
+              >
+                <CheckCircle2 aria-hidden="true" size={17} />
+                {item.isPlayed ? "标记未看" : "标记已看"}
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </section>
+
+      <section className="movie-reference-content">
+        <h1>{effectiveTitle}</h1>
+        <div className="movie-reference-meta">
+          {item.communityRating === undefined ? null : (
+            <span className="movie-reference-rating">
+              ★ {item.communityRating.toFixed(1)}
+            </span>
+          )}
+          {[
+            referenceDate(item.premiereDate, item.productionYear),
+            episodePosition,
+            referenceRuntime(runtimeSeconds ?? item.runtimeSeconds),
+            formatFileSize(selectedSource?.sizeBytes),
+          ]
+            .filter((value): value is string => value !== undefined)
+            .map((value) => (
+              <span className="movie-reference-meta-item" key={value}>
+                {value}
+              </span>
+            ))}
+          {technical.map((value) => (
+            <span className="movie-reference-meta-badge" key={value}>
+              {value}
+            </span>
+          ))}
+          {hasChineseSubtitle(selectedSource) ? (
+            <span className="movie-reference-meta-badge is-accent">中字</span>
+          ) : null}
+        </div>
+
+        <div className="movie-reference-action-row">
+          {series && playbackTarget === null ? (
+            <Button className="detail-play-button" disabled>
+              <Play aria-hidden="true" fill="currentColor" size={18} />
+              正在读取单集…
+            </Button>
+          ) : (
+            <PlayPreparationDialog
+              item={effectivePlaybackTarget}
+              key={effectivePlaybackTarget.itemId}
+              selection={selection}
+            />
+          )}
+          {effectiveOverview === undefined ? null : (
+            <DetailOverview text={effectiveOverview} />
+          )}
+        </div>
+
+        {favoriteMutation.isError ? (
+          <p aria-live="polite" className="detail-action-error" role="alert">
+            收藏状态更新失败，已恢复原状态，请重试。
+          </p>
+        ) : null}
+        {playedMutation.isError ? (
+          <p aria-live="polite" className="detail-action-error" role="alert">
+            观看状态更新失败，已恢复原状态，请重试。
+          </p>
+        ) : null}
+
+        {showSelectors && selectedSource !== undefined ? (
+          <div className="movie-reference-selections">
+            <div>
+              <span>
+                <Video aria-hidden="true" size={15} /> 版本
+              </span>
+              <Select onValueChange={chooseSource} value={sourceId}>
+                <SelectTrigger aria-label="版本">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map((source) => (
+                    <SelectItem
+                      key={source.mediaSourceId}
+                      value={source.mediaSourceId}
+                    >
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedSource.audioTracks.length === 0 ? null : (
+              <div>
+                <span>
+                  <AudioLines aria-hidden="true" size={15} /> 音轨
+                </span>
+                <Select
+                  onValueChange={(value) => setAudioIndex(Number(value))}
+                  value={audioIndex?.toString()}
+                >
+                  <SelectTrigger aria-label="详情音轨">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedSource.audioTracks.map((track) => (
+                      <SelectItem
+                        key={track.index}
+                        value={track.index.toString()}
+                      >
+                        {track.displayTitle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div>
+              <span>
+                <Captions aria-hidden="true" size={15} /> 字幕
+              </span>
+              <Select
+                onValueChange={(value) =>
+                  setSubtitleIndex(value === "off" ? null : Number(value))
+                }
+                value={subtitleIndex?.toString() ?? "off"}
+              >
+                <SelectTrigger aria-label="详情字幕">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">关闭字幕</SelectItem>
+                  {textSubtitles.map((track) => (
+                    <SelectItem
+                      key={track.index}
+                      value={track.index.toString()}
+                    >
+                      {track.displayTitle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </>
+  );
 }
 
 export function MediaDetailHero({
@@ -434,10 +890,16 @@ export function MediaSourceDetails({
   );
 }
 
-export function PeopleScroller({ people }: { people: PersonSummary[] }) {
+export function PeopleScroller({
+  people,
+  title = "演职人员",
+}: {
+  people: PersonSummary[];
+  title?: string;
+}) {
   if (people.length === 0) return null;
   return (
-    <HomeScroller icon={<Users size={20} />} title="演职人员">
+    <HomeScroller icon={<Users size={20} />} title={title}>
       {people.slice(0, 20).map((person) => (
         <article
           className="detail-person"
@@ -496,7 +958,21 @@ export function EpisodeCard({
         );
 
   return (
-    <article className="detail-episode-card">
+    <article
+      className="detail-episode-card"
+      onMouseEnter={(event: MouseEvent<HTMLElement>) => {
+        const title = event.currentTarget.querySelector<HTMLElement>(
+          ".detail-episode-title",
+        );
+        if (title !== null) startOverflowMarquee(title);
+      }}
+      onMouseLeave={(event: MouseEvent<HTMLElement>) => {
+        const title = event.currentTarget.querySelector<HTMLElement>(
+          ".detail-episode-title",
+        );
+        if (title !== null) stopOverflowMarquee(title);
+      }}
+    >
       <div className="detail-episode-thumb">
         <Link
           aria-label={`查看 ${episode.seriesName ?? "剧集"} ${episode.name} 详情`}
@@ -562,20 +1038,35 @@ export function EpisodeCard({
           </span>
         )}
       </div>
-      <Link
-        className="detail-episode-info"
-        params={{ id: episode.episodeId }}
-        to="/item/$id"
-      >
-        <p>
+      <div className="detail-episode-info">
+        <Link
+          className="detail-episode-title"
+          onKeyDown={scrollOverflowOnKey}
+          params={{ id: episode.episodeId }}
+          title={
+            episode.episodeNumber === undefined
+              ? episode.name
+              : `${episode.episodeNumber}. ${episode.name}`
+          }
+          to="/item/$id"
+        >
           {episode.episodeNumber === undefined
             ? episode.name
             : `${episode.episodeNumber}. ${episode.name}`}
-        </p>
+        </Link>
         {episode.overview === undefined ? null : (
-          <span>{episode.overview}</span>
+          <ExpandablePreview
+            className="detail-episode-overview"
+            dialogTitle={
+              episode.episodeNumber === undefined
+                ? episode.name
+                : `${episode.episodeNumber}. ${episode.name}`
+            }
+            limit={50}
+            text={episode.overview}
+          />
         )}
-      </Link>
+      </div>
     </article>
   );
 }

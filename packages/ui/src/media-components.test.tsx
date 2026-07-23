@@ -69,12 +69,13 @@ describe("media foundation components", () => {
   });
 
   it("renders compact media row metadata", () => {
-    render(
+    const { container } = render(
       <MediaRow metadata="第 2 集 · 45 分钟" progress={60} title="无人码头" />,
     );
 
     expect(screen.getByText("无人码头")).toBeTruthy();
     expect(screen.getByText("第 2 集 · 45 分钟")).toBeTruthy();
+    expect(container.firstElementChild?.className).not.toContain("hover:bg");
   });
 
   it("clamps media row progress semantics and presentation", () => {

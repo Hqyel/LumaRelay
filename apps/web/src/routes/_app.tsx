@@ -9,7 +9,7 @@ import {
   redirect,
   useRouterState,
 } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { logout } from "../api.js";
 import { authRedirectForError, navigationForUser } from "../auth-routing.js";
@@ -164,10 +164,23 @@ function HeaderActions({ user }: { user: UserProfile }) {
 
 function FrontAppLayout() {
   const expandedNavigation = useUiStore((state) => state.navigationExpanded);
+  const [immersiveHeaderScrolled, setImmersiveHeaderScrolled] = useState(false);
   const { data: session } = useQuery(sessionQuery);
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
+  const immersiveHeader = pathname.startsWith("/item/");
+
+  useEffect(() => {
+    if (!immersiveHeader) {
+      setImmersiveHeaderScrolled(false);
+      return;
+    }
+    const update = () => setImmersiveHeaderScrolled(window.scrollY > 96);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [immersiveHeader]);
 
   if (session === undefined) return null;
   const title =
@@ -185,6 +198,8 @@ function FrontAppLayout() {
     <AppShell
       expandedNavigation={expandedNavigation}
       headerActions={<HeaderActions user={session.user} />}
+      immersiveHeader={immersiveHeader}
+      immersiveHeaderScrolled={immersiveHeaderScrolled}
       navigation={navigationForUser(session.user, pathname)}
       renderHomeLink={renderHomeLink}
       renderNavigationLink={renderNavigationLink}

@@ -9,6 +9,8 @@ import {
   EmptyState,
   ErrorState,
   Input,
+  Select,
+  SelectTrigger,
   Skeleton,
 } from "./index.js";
 
@@ -64,5 +66,24 @@ describe("base UI components", () => {
     expect(
       screen.getByRole("button", { name: "保存" }).getAttribute("type"),
     ).toBe("button");
+  });
+
+  it("keeps long select values on one horizontally scrollable line", () => {
+    render(
+      <Select defaultValue="long">
+        <SelectTrigger aria-label="版本">
+          <span>很长的媒体版本名称</span>
+        </SelectTrigger>
+      </Select>,
+    );
+
+    expect(screen.getByLabelText("版本").className).toContain(
+      "newemby-select-trigger",
+    );
+    expect(
+      screen
+        .getByLabelText("版本")
+        .querySelector(".newemby-select-value-scroll"),
+    ).not.toBeNull();
   });
 });

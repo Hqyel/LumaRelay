@@ -1,5 +1,13 @@
 import type { PlaybackMediaSource } from "@newemby/contracts";
-import { Button, Dialog } from "@newemby/ui";
+import {
+  Button,
+  Dialog,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@newemby/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Play, Radio } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -32,6 +40,12 @@ export interface PlaybackTarget {
   title: string;
 }
 
+export interface PlaybackSelection {
+  audioIndex: number | null;
+  sourceId: string;
+  subtitleIndex: number | null;
+}
+
 function startErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === "PLAYBACK_SELECTION_INVALID")
@@ -52,9 +66,11 @@ function startErrorMessage(error: unknown): string {
 
 export function PlayPreparationDialog({
   item,
+  selection,
   trigger,
 }: {
   item: PlaybackTarget;
+  selection?: PlaybackSelection;
   trigger?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -75,6 +91,13 @@ export function PlayPreparationDialog({
       ),
     [optionsQuery.data, sourceId],
   );
+
+  useEffect(() => {
+    if (!open || selection === undefined) return;
+    setSourceId(selection.sourceId);
+    setAudioIndex(selection.audioIndex);
+    setSubtitleIndex(selection.subtitleIndex);
+  }, [open, selection]);
 
   useEffect(() => {
     const source = firstSource(optionsQuery.data?.sources ?? []);
@@ -177,13 +200,12 @@ export function PlayPreparationDialog({
 
         {selectedSource === undefined ? null : (
           <div className="play-preparation-fields">
-            <label>
+            <div>
               <span>播放版本</span>
-              <select
-                onChange={(event) => {
+              <Select
+                onValueChange={(value) => {
                   const source = optionsQuery.data?.sources.find(
-                    (candidate) =>
-                      candidate.mediaSourceId === event.currentTarget.value,
+                    (candidate) => candidate.mediaSourceId === value,
                   );
                   if (source === undefined) return;
                   setSourceId(source.mediaSourceId);
@@ -192,56 +214,71 @@ export function PlayPreparationDialog({
                 }}
                 value={sourceId}
               >
-                {optionsQuery.data?.sources.map((source) => (
-                  <option
-                    key={source.mediaSourceId}
-                    value={source.mediaSourceId}
-                  >
-                    {source.name}
-                    {source.container === undefined
-                      ? ""
-                      : ` · ${source.container.toUpperCase()}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>音轨</span>
-              <select
-                onChange={(event) =>
-                  setAudioIndex(Number(event.currentTarget.value))
-                }
-                value={audioIndex ?? ""}
-              >
-                {selectedSource.audioTracks.map((track) => (
-                  <option key={track.index} value={track.index}>
-                    {track.displayTitle}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>字幕</span>
-              <select
-                onChange={(event) =>
-                  setSubtitleIndex(
-                    event.currentTarget.value === ""
-                      ? null
-                      : Number(event.currentTarget.value),
-                  )
-                }
-                value={subtitleIndex ?? ""}
-              >
-                <option value="">关闭字幕</option>
-                {selectedSource.subtitleTracks
-                  .filter((track) => track.isText)
-                  .map((track) => (
-                    <option key={track.index} value={track.index}>
-                      {track.displayTitle}
-                    </option>
+                <SelectTrigger aria-label="播放版本">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {optionsQuery.data?.sources.map((source) => (
+                    <SelectItem
+                      key={source.mediaSourceId}
+                      value={source.mediaSourceId}
+                    >
+                      {source.name}
+                      {source.container === undefined
+                        ? ""
+                        : ` · ${source.container.toUpperCase()}`}
+                    </SelectItem>
                   ))}
-              </select>
-            </label>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <span>音轨</span>
+              <Select
+                onValueChange={(value) => setAudioIndex(Number(value))}
+                value={audioIndex?.toString()}
+              >
+                <SelectTrigger aria-label="音轨">
+                  <SelectValue placeholder="没有音轨" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedSource.audioTracks.map((track) => (
+                    <SelectItem
+                      key={track.index}
+                      value={track.index.toString()}
+                    >
+                      {track.displayTitle}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <span>字幕</span>
+              <Select
+                onValueChange={(value) =>
+                  setSubtitleIndex(value === "off" ? null : Number(value))
+                }
+                value={subtitleIndex?.toString() ?? "off"}
+              >
+                <SelectTrigger aria-label="字幕">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">关闭字幕</SelectItem>
+                  {selectedSource.subtitleTracks
+                    .filter((track) => track.isText)
+                    .map((track) => (
+                      <SelectItem
+                        key={track.index}
+                        value={track.index.toString()}
+                      >
+                        {track.displayTitle}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
 

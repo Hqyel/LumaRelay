@@ -29,7 +29,7 @@ function UserAvatar({ avatarUrl, name }: { avatarUrl?: string; name: string }) {
     );
 
   return (
-    <span className="grid size-11 place-items-center rounded-full bg-white/5 text-body font-semibold text-text-muted">
+    <span className="grid size-11 place-items-center rounded-full bg-field text-body font-semibold text-text-muted">
       {name.slice(0, 1).toUpperCase()}
     </span>
   );

@@ -1,5 +1,12 @@
 import type { MediaLibrary } from "@newemby/contracts";
-import { ImageFallback } from "@newemby/ui";
+import {
+  ImageFallback,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@newemby/ui";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -9,7 +16,7 @@ import {
   Music2,
   Tv,
 } from "lucide-react";
-import type { FormEvent, ReactNode } from "react";
+import { useId, type FormEvent, type ReactNode } from "react";
 
 import { mediaImageUrl } from "../api.js";
 import {
@@ -71,6 +78,51 @@ function listValue(value: FormDataEntryValue | null): string[] {
   ].sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
+const allValue = "__newemby_all__";
+
+function formValue(data: FormData, name: string) {
+  const value = data.get(name);
+  return value === allValue ? "" : String(value ?? "");
+}
+
+function FilterSelect({
+  defaultValue,
+  label,
+  name,
+  options,
+}: {
+  defaultValue: string;
+  label: string;
+  name: string;
+  options: Array<{ label: string; value: string }>;
+}) {
+  const labelId = useId();
+
+  return (
+    <div className="media-filter-field">
+      <span id={labelId}>{label}</span>
+      <Select defaultValue={defaultValue || allValue} name={name}>
+        <SelectTrigger
+          aria-labelledby={labelId}
+          className="media-filter-select"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem
+              key={option.value || allValue}
+              value={option.value || allValue}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function MediaBrowserFilters({
   libraries,
   onApply,
@@ -92,15 +144,15 @@ export function MediaBrowserFilters({
     const rawMinRating = data.get("minCommunityRating");
     const minRating = rawMinRating === "" ? undefined : Number(rawMinRating);
     onApply({
-      favorite: data.get("favorite") === "true" ? true : undefined,
+      favorite: formValue(data, "favorite") === "true" ? true : undefined,
       genre: listValue(data.get("genre")),
       kind:
-        showKinds && data.get("kind") !== ""
-          ? [String(data.get("kind")) as MediaBrowserSearch["kind"][number]]
+        showKinds && formValue(data, "kind") !== ""
+          ? [formValue(data, "kind") as MediaBrowserSearch["kind"][number]]
           : [],
       libraryId:
-        libraries !== undefined && data.get("libraryId") !== ""
-          ? String(data.get("libraryId"))
+        libraries !== undefined && formValue(data, "libraryId") !== ""
+          ? formValue(data, "libraryId")
           : undefined,
       minCommunityRating:
         minRating !== undefined &&
@@ -111,17 +163,20 @@ export function MediaBrowserFilters({
           : undefined,
       officialRating: listValue(data.get("officialRating")),
       page: 1,
-      playState: String(
-        data.get("playState"),
+      playState: formValue(
+        data,
+        "playState",
       ) as MediaBrowserSearch["playState"],
       seriesStatus: showSeriesStatus
-        ? (String(
-            data.get("seriesStatus"),
+        ? (formValue(
+            data,
+            "seriesStatus",
           ) as MediaBrowserSearch["seriesStatus"])
         : "any",
-      sortBy: String(data.get("sortBy")) as MediaBrowserSearch["sortBy"],
-      sortOrder: String(
-        data.get("sortOrder"),
+      sortBy: formValue(data, "sortBy") as MediaBrowserSearch["sortBy"],
+      sortOrder: formValue(
+        data,
+        "sortOrder",
       ) as MediaBrowserSearch["sortOrder"],
       year: listValue(data.get("year"))
         .map(Number)
@@ -137,31 +192,31 @@ export function MediaBrowserFilters({
       onSubmit={submit}
     >
       {libraries === undefined ? null : (
-        <label className="media-filter-field">
-          <span>媒体库</span>
-          <select defaultValue={search.libraryId ?? ""} name="libraryId">
-            <option value="">全部媒体库</option>
-            {libraries.map((library) => (
-              <option key={library.libraryId} value={library.libraryId}>
-                {library.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FilterSelect
+          defaultValue={search.libraryId ?? ""}
+          label="媒体库"
+          name="libraryId"
+          options={[
+            { label: "全部媒体库", value: "" },
+            ...libraries.map((library) => ({
+              label: library.name,
+              value: library.libraryId,
+            })),
+          ]}
+        />
       )}
       {showKinds ? (
-        <label className="media-filter-field">
-          <span>类型</span>
-          <select
-            defaultValue={search.kind.length === 1 ? search.kind[0] : ""}
-            name="kind"
-          >
-            <option value="">电影、剧集和视频</option>
-            <option value="movie">电影</option>
-            <option value="series">剧集</option>
-            <option value="video">视频</option>
-          </select>
-        </label>
+        <FilterSelect
+          defaultValue={search.kind.length === 1 ? (search.kind[0] ?? "") : ""}
+          label="类型"
+          name="kind"
+          options={[
+            { label: "电影、剧集和视频", value: "" },
+            { label: "电影", value: "movie" },
+            { label: "剧集", value: "series" },
+            { label: "视频", value: "video" },
+          ]}
+        />
       ) : null}
       <label className="media-filter-field media-filter-wide">
         <span>类型标签</span>
@@ -200,48 +255,58 @@ export function MediaBrowserFilters({
           type="number"
         />
       </label>
-      <label className="media-filter-field">
-        <span>观看状态</span>
-        <select defaultValue={search.playState} name="playState">
-          <option value="any">全部</option>
-          <option value="unplayed">未看</option>
-          <option value="played">已看</option>
-        </select>
-      </label>
-      <label className="media-filter-field">
-        <span>收藏状态</span>
-        <select defaultValue={search.favorite ? "true" : ""} name="favorite">
-          <option value="">全部</option>
-          <option value="true">仅收藏</option>
-        </select>
-      </label>
+      <FilterSelect
+        defaultValue={search.playState}
+        label="观看状态"
+        name="playState"
+        options={[
+          { label: "全部", value: "any" },
+          { label: "未看", value: "unplayed" },
+          { label: "已看", value: "played" },
+        ]}
+      />
+      <FilterSelect
+        defaultValue={search.favorite ? "true" : ""}
+        label="收藏状态"
+        name="favorite"
+        options={[
+          { label: "全部", value: "" },
+          { label: "仅收藏", value: "true" },
+        ]}
+      />
       {showSeriesStatus ? (
-        <label className="media-filter-field">
-          <span>剧集状态</span>
-          <select defaultValue={search.seriesStatus} name="seriesStatus">
-            <option value="any">全部</option>
-            <option value="continuing">连载中</option>
-            <option value="ended">已完结</option>
-          </select>
-        </label>
+        <FilterSelect
+          defaultValue={search.seriesStatus}
+          label="剧集状态"
+          name="seriesStatus"
+          options={[
+            { label: "全部", value: "any" },
+            { label: "连载中", value: "continuing" },
+            { label: "已完结", value: "ended" },
+          ]}
+        />
       ) : null}
-      <label className="media-filter-field">
-        <span>排序</span>
-        <select defaultValue={search.sortBy} name="sortBy">
-          <option value="name">名称</option>
-          <option value="premiereDate">首映日期</option>
-          <option value="dateAdded">加入日期</option>
-          <option value="productionYear">年份</option>
-          <option value="communityRating">社区评分</option>
-        </select>
-      </label>
-      <label className="media-filter-field">
-        <span>顺序</span>
-        <select defaultValue={search.sortOrder} name="sortOrder">
-          <option value="ascending">升序</option>
-          <option value="descending">降序</option>
-        </select>
-      </label>
+      <FilterSelect
+        defaultValue={search.sortBy}
+        label="排序"
+        name="sortBy"
+        options={[
+          { label: "名称", value: "name" },
+          { label: "首映日期", value: "premiereDate" },
+          { label: "加入日期", value: "dateAdded" },
+          { label: "年份", value: "productionYear" },
+          { label: "社区评分", value: "communityRating" },
+        ]}
+      />
+      <FilterSelect
+        defaultValue={search.sortOrder}
+        label="顺序"
+        name="sortOrder"
+        options={[
+          { label: "升序", value: "ascending" },
+          { label: "降序", value: "descending" },
+        ]}
+      />
       <div className="media-filter-actions">
         <button className="media-filter-reset" onClick={onReset} type="button">
           重置

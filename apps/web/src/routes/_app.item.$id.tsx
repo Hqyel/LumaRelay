@@ -1,5 +1,12 @@
 import type { MediaItemResponse } from "@newemby/contracts";
-import { EmptyState } from "@newemby/ui";
+import {
+  EmptyState,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@newemby/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tv } from "lucide-react";
@@ -8,9 +15,9 @@ import { useEffect, useState } from "react";
 import { HomeScroller } from "../components/home-media.js";
 import {
   EpisodeCard,
-  MediaDetailHero,
   MediaSourceDetails,
   PeopleScroller,
+  ReferenceDetailHeader,
   RelatedScroller,
 } from "../components/media-detail.js";
 import { MediaErrorState } from "../components/media-state.js";
@@ -69,30 +76,61 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
           playbackPositionSeconds: playbackEpisode.playbackPositionSeconds,
           title: `${item.title} · ${playbackEpisode.name}`,
         };
+  const playbackOptions = useQuery(
+    playbackOptionsQuery(playbackEpisode?.episodeId ?? ""),
+  );
+  const episodePosition =
+    playbackEpisode === undefined
+      ? undefined
+      : [
+          playbackEpisode.seasonNumber === undefined
+            ? undefined
+            : `第 ${playbackEpisode.seasonNumber} 季`,
+          playbackEpisode.episodeNumber === undefined
+            ? undefined
+            : `第 ${playbackEpisode.episodeNumber} 集`,
+        ]
+          .filter(Boolean)
+          .join(" ");
   const seasonSelector =
     seasons.data === undefined || seasons.data.seasons.length === 0 ? null : (
-      <label className="detail-season-selector">
-        <span className="sr-only">选择季</span>
-        <select
-          onChange={(event) => setSeasonId(event.currentTarget.value)}
-          value={seasonId ?? ""}
-        >
-          {seasons.data.seasons.map((season) => (
-            <option key={season.seasonId} value={season.seasonId}>
-              {season.name}
-              {season.unplayedEpisodeCount > 0
-                ? ` · ${season.unplayedEpisodeCount} 集未看`
-                : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="detail-season-selector">
+        <Select onValueChange={setSeasonId} value={seasonId}>
+          <SelectTrigger aria-label="选择季">
+            <SelectValue placeholder="选择季" />
+          </SelectTrigger>
+          <SelectContent>
+            {seasons.data.seasons.map((season) => (
+              <SelectItem key={season.seasonId} value={season.seasonId}>
+                {season.name}
+                {season.unplayedEpisodeCount > 0
+                  ? ` · ${season.unplayedEpisodeCount} 集未看`
+                  : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     );
 
   return (
-    <div className="detail-page">
-      <MediaDetailHero item={item} playbackTarget={playbackTarget} series />
-      <div className="detail-content">
+    <div className="detail-page movie-reference-page">
+      <ReferenceDetailHeader
+        episodePosition={episodePosition}
+        item={item}
+        playbackTarget={playbackTarget}
+        runtimeSeconds={playbackEpisode?.runtimeSeconds}
+        series
+        sources={playbackOptions.data?.sources ?? []}
+      />
+      <div className="movie-reference-lower series-reference-lower">
+        {playbackOptions.isError ? (
+          <MediaErrorState
+            error={playbackOptions.error}
+            onRetry={() => void playbackOptions.refetch()}
+            subject="当前单集媒体版本"
+          />
+        ) : null}
         {seasons.isPending ? (
           <div
             aria-label="正在加载季"
@@ -157,8 +195,11 @@ function SeriesDetail({ detail }: { detail: MediaItemResponse }) {
             ))}
           </HomeScroller>
         )}
-        <PeopleScroller people={people} />
+        <PeopleScroller people={people} title="相关演员" />
         <RelatedScroller items={relatedItems} />
+        {playbackOptions.data === undefined ? null : (
+          <MediaSourceDetails sources={playbackOptions.data.sources} />
+        )}
       </div>
     </div>
   );
@@ -181,7 +222,7 @@ function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
       : `第 ${item.episodeNumber} 集`,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" ");
   const visualItem =
     series.data?.item.kind === "series" ? series.data.item : item;
   const playbackTarget = {
@@ -192,16 +233,19 @@ function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
   };
 
   return (
-    <div className="detail-page">
-      <MediaDetailHero
+    <div className="detail-page movie-reference-page">
+      <ReferenceDetailHeader
+        contextLabel="单集"
+        episodePosition={episodePosition}
         item={item}
-        kicker={[episodePosition, item.title].filter(Boolean).join(" · ")}
         overview={item.overview ?? visualItem.overview}
         playbackTarget={playbackTarget}
+        runtimeSeconds={item.runtimeSeconds}
+        sources={playbackOptions.data?.sources ?? []}
         title={visualItem.title}
         visualItem={visualItem}
       />
-      <div className="detail-content">
+      <div className="movie-reference-lower episode-reference-lower">
         {episodes.data === undefined ||
         episodes.data.episodes.length === 0 ? null : (
           <HomeScroller icon={<Tv size={20} />} title="本季单集">
@@ -214,7 +258,7 @@ function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
             ))}
           </HomeScroller>
         )}
-        <PeopleScroller people={people} />
+        <PeopleScroller people={people} title="相关演员" />
         <RelatedScroller items={relatedItems} />
         {playbackOptions.isPending ? (
           <div
@@ -241,6 +285,34 @@ function EpisodeDetail({ detail }: { detail: MediaItemResponse }) {
   );
 }
 
+function MovieDetail({ detail }: { detail: MediaItemResponse }) {
+  const { item, people, relatedItems } = detail;
+  const playbackOptions = useQuery(playbackOptionsQuery(item.itemId));
+
+  return (
+    <div className="detail-page movie-reference-page">
+      <ReferenceDetailHeader
+        item={item}
+        sources={playbackOptions.data?.sources ?? []}
+      />
+      <div className="movie-reference-lower">
+        {playbackOptions.isError ? (
+          <MediaErrorState
+            error={playbackOptions.error}
+            onRetry={() => void playbackOptions.refetch()}
+            subject="媒体版本"
+          />
+        ) : null}
+        <PeopleScroller people={people} title="相关演员" />
+        <RelatedScroller items={relatedItems} />
+        {playbackOptions.data === undefined ? null : (
+          <MediaSourceDetails sources={playbackOptions.data.sources} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ItemPage() {
   const { id } = Route.useParams();
   const query = useQuery(mediaItemQuery(id));
@@ -255,19 +327,11 @@ function ItemPage() {
       />
     );
 
-  const { item, people, relatedItems } = query.data;
+  const { item } = query.data;
   if (item.kind === "series") return <SeriesDetail detail={query.data} />;
   if (item.kind === "episode") return <EpisodeDetail detail={query.data} />;
 
-  return (
-    <div className="detail-page">
-      <MediaDetailHero item={item} />
-      <div className="detail-content">
-        <PeopleScroller people={people} />
-        <RelatedScroller items={relatedItems} />
-      </div>
-    </div>
-  );
+  return <MovieDetail detail={query.data} />;
 }
 
 export const Route = createFileRoute("/_app/item/$id")({

@@ -235,18 +235,20 @@ test("completes login, browse, filter, favorite restore, and logout", async ({
     .first()
     .click();
   await expect(page).toHaveURL(/\/item\/movie-1/);
-  await page.getByRole("button", { name: "收藏" }).click();
-  await expect(page.getByRole("button", { name: "已收藏" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await page.getByRole("button", { name: "更多电影操作" }).click();
+  await page.getByRole("menuitem", { name: "收藏", exact: true }).click();
+  await page.getByRole("button", { name: "更多电影操作" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "取消收藏", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.reload();
-  await expect(page.getByRole("button", { name: "已收藏" })).toBeVisible();
-  await page.getByRole("button", { name: "已收藏" }).click();
-  await expect(page.getByRole("button", { name: "收藏" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await page.getByRole("button", { name: "更多电影操作" }).click();
+  await page.getByRole("menuitem", { name: "取消收藏", exact: true }).click();
+  await page.getByRole("button", { name: "更多电影操作" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "收藏", exact: true }),
+  ).toBeVisible();
   expect(favorite).toBe(false);
 
   await page.goto("/home");

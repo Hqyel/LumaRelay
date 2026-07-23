@@ -40,7 +40,7 @@ export function SideNavigation({ items, renderLink }: SideNavigationProps) {
           (item.disabled
             ? "cursor-not-allowed text-text-muted opacity-35"
             : item.active
-              ? "bg-[linear-gradient(135deg,#7C5CFF_0%,#764BA2_100%)] text-on-accent shadow-[0_2px_8px_rgb(0_0_0_/_20%),0_0_20px_rgb(124_92_255_/_30%)]"
+              ? "bg-[linear-gradient(135deg,#7C5CFF_0%,#764BA2_100%)] text-on-accent"
               : "text-text-muted hover:bg-accent/10 hover:text-text active:scale-95");
         const children = (
           <>
@@ -107,6 +107,8 @@ export interface AppShellProps {
   children: ReactNode;
   expandedNavigation?: boolean;
   headerActions?: ReactNode;
+  immersiveHeader?: boolean;
+  immersiveHeaderScrolled?: boolean;
   navigation: SideNavigationItem[];
   renderHomeLink?: SideNavigationProps["renderHomeLink"];
   renderNavigationLink?: NavigationLinkRenderer;
@@ -116,6 +118,8 @@ export interface AppShellProps {
 export function AppShell({
   children,
   headerActions,
+  immersiveHeader = false,
+  immersiveHeaderScrolled = false,
   navigation,
   renderHomeLink,
   renderNavigationLink,
@@ -141,7 +145,13 @@ export function AppShell({
       >
         跳到主要内容
       </a>
-      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between gap-3 border-b border-border bg-glass px-3 shadow-[0_2px_8px_rgb(var(--theme-shadow-rgb)_/_20%)] backdrop-blur-xl sm:px-4">
+      <header
+        className="newemby-app-header fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between gap-3 border-b border-border bg-transparent px-3 shadow-none sm:px-4"
+        data-immersive={immersiveHeader || undefined}
+        data-scrolled={
+          immersiveHeader && immersiveHeaderScrolled ? true : undefined
+        }
+      >
         <div className="flex min-w-0 items-center gap-2">
           {renderHomeLink?.(brand, brandClassName) ?? (
             <a aria-label="NewEmby 首页" className={brandClassName} href="/">
@@ -155,7 +165,10 @@ export function AppShell({
         </div>
         <ContextHeader actions={headerActions} title={title} />
       </header>
-      <main className="min-h-screen pt-12" id="main-content">
+      <main
+        className={`min-h-screen${immersiveHeader ? "" : " pt-12"}`}
+        id="main-content"
+      >
         {children}
       </main>
     </div>

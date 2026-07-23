@@ -19,6 +19,7 @@ import {
 import type { ReactNode } from "react";
 
 import { adminRedirectForUser, authRedirectForError } from "../auth-routing.js";
+import { ThemeToggle } from "../components/theme-toggle.js";
 import { sessionQuery } from "../session-query.js";
 
 const navigation: SideNavigationItem[] = [
@@ -108,15 +109,18 @@ function AdminFoundationPage() {
   return (
     <AdminShell
       actions={
-        <button
-          aria-label="管理帮助（尚未开放）"
-          className="grid size-8 cursor-not-allowed place-items-center rounded-control text-text-muted opacity-40"
-          disabled
-          title="管理帮助（尚未开放）"
-          type="button"
-        >
-          <BookOpen aria-hidden="true" size={19} />
-        </button>
+        <>
+          <ThemeToggle />
+          <button
+            aria-label="管理帮助（尚未开放）"
+            className="grid size-8 cursor-not-allowed place-items-center rounded-control text-text-muted opacity-40"
+            disabled
+            title="管理帮助（尚未开放）"
+            type="button"
+          >
+            <BookOpen aria-hidden="true" size={19} />
+          </button>
+        </>
       }
       breadcrumbs={["管理后台", "概览"]}
       navigation={navigation}
@@ -133,7 +137,7 @@ function AdminFoundationPage() {
           <p className="text-label font-semibold uppercase tracking-[0.14em] text-accent-hover">
             NewEmby Control Center
           </p>
-          <h2 className="mt-1 text-h2 font-semibold text-white">服务器概览</h2>
+          <h2 className="mt-1 text-h2 font-semibold text-text">服务器概览</h2>
           <p className="mt-2 max-w-2xl text-small text-text-muted">
             管理能力将按 M4 进度逐项开放；当前页面仅展示安全边界和入口状态。
           </p>
@@ -141,44 +145,44 @@ function AdminFoundationPage() {
         <section className="relative grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map(({ label, value }, index) => (
             <article
-              className="group min-h-32 rounded-panel border border-white/10 bg-[#141423]/70 p-5 shadow-[0_4px_20px_rgb(0_0_0_/_30%)] backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:border-white/15 hover:shadow-[0_8px_36px_rgb(0_0_0_/_40%)] motion-reduce:transform-none"
+              className="group min-h-32 rounded-panel border border-border bg-glass p-5 shadow-card backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1 hover:border-accent/50 hover:shadow-panel motion-reduce:transform-none"
               key={label}
             >
               <div className="flex items-center justify-between">
                 <p className="text-small text-text-muted">{label}</p>
                 <span
                   aria-hidden="true"
-                  className={`size-2 rounded-full ${index === 0 ? "bg-success shadow-[0_0_10px_rgb(53_199_138_/_65%)]" : "bg-white/20"}`}
+                  className={`size-2 rounded-full ${index === 0 ? "bg-success shadow-[0_0_10px_rgb(53_199_138_/_65%)]" : "bg-text-subtle"}`}
                 />
               </div>
-              <p className="mt-5 text-h2 font-semibold text-white">{value}</p>
+              <p className="mt-5 text-h2 font-semibold text-text">{value}</p>
             </article>
           ))}
         </section>
-        <section className="relative mt-6 overflow-hidden rounded-panel border border-white/10 bg-[#141423]/70 shadow-[0_4px_20px_rgb(0_0_0_/_30%)] backdrop-blur-xl">
-          <div className="border-b border-white/10 px-5 py-4">
-            <h2 className="text-body font-semibold text-white">管理模块</h2>
+        <section className="relative mt-6 overflow-hidden rounded-panel border border-border bg-glass shadow-card backdrop-blur-xl">
+          <div className="border-b border-border px-5 py-4">
+            <h2 className="text-body font-semibold text-text">管理模块</h2>
             <p className="mt-1 text-small text-text-muted">
               未实现入口保持禁用，不会导航到空白或 404 页面。
             </p>
           </div>
-          <div className="grid gap-px bg-white/[0.06] sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
             {navigation.slice(1, 5).map((item) => (
               <div
-                className="flex min-h-20 items-center gap-3 bg-[#141423] px-5 text-text-muted"
+                className="flex min-h-20 items-center gap-3 bg-bg-elevated px-5 text-text-muted"
                 key={item.href}
               >
                 <span
                   aria-hidden="true"
-                  className="grid size-9 place-items-center rounded-control bg-white/[0.05] text-white/35"
+                  className="grid size-9 place-items-center rounded-control bg-field text-text-subtle"
                 >
                   {item.icon}
                 </span>
                 <div>
-                  <p className="text-small font-medium text-white/55">
+                  <p className="text-small font-medium text-text-muted">
                     {item.label}
                   </p>
-                  <p className="mt-0.5 text-label text-white/55">尚未开放</p>
+                  <p className="mt-0.5 text-label text-text-muted">尚未开放</p>
                 </div>
               </div>
             ))}
