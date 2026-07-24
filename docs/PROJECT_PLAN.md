@@ -1,4 +1,4 @@
-# NewEmby 项目详细规划
+# LumaRelay 项目详细规划
 
 > 文档状态：已确认方案 v1.2  
 > 产品形态：现代化 Emby Web 客户端 + 本地播放器桥接 + 管理后台  
@@ -6,13 +6,13 @@
 
 ## 1. 项目定义
 
-NewEmby 不是另一个媒体服务器，也不接管 Emby 的媒体扫描、用户、
+LumaRelay 不是另一个媒体服务器，也不接管 Emby 的媒体扫描、用户、
 元数据和权限系统。它是覆盖在 Emby API 之上的新客户端体验。
 
 系统由三部分组成：
 
 1. Web 客户端：媒体发现、搜索、详情、收藏、播放入口和后台管理。
-2. NewEmby Gateway：统一登录、会话保护、API 适配和本地播放票据。
+2. LumaRelay Gateway：统一登录、会话保护、API 适配和本地播放票据。
 3. Player Bridge：由用户在电脑上直接运行的便携应用，唤起本地播放器并回传
    播放进度。
 
@@ -74,7 +74,7 @@ NewEmby 不是另一个媒体服务器，也不接管 Emby 的媒体扫描、用
                        HTTPS / HttpOnly Cookie              │
                                                             ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ NewEmby Gateway                                               │
+│ LumaRelay Gateway                                               │
 │ Session · Emby Adapter · Play Ticket · Audit · Admin Guard    │
 └───────────────────────────────┬──────────────────────────────┘
                                 │ X-Emby-Token
@@ -102,7 +102,7 @@ Player Bridge ── one-time ticket ── Gateway ── media URL / Emby
 浏览器自定义协议只能打开应用，不能可靠读取播放器的暂停、跳转、
 播放结束和错误状态。Player Bridge 提供以下能力：
 
-- 注册 `newemby://` 自定义协议。
+- 注册 `lumarelay://` 自定义协议。
 - 在回环地址启动只监听本机的 HTTP 服务。
 - 首版检测 PotPlayer、其版本及 Windows SMTC 是否启用。
 - 通过 Windows Global System Media Transport Controls 读取 PotPlayer 的
@@ -115,8 +115,8 @@ Player Bridge ── one-time ticket ── Gateway ── media URL / Emby
 ### 3.3 首版服务器范围
 
 - 首版部署只允许一个当前 Emby Server，不提供服务器切换界面。
-- `EMBY_BASE_URL` 提供默认服务器，`/connect` 只允许选择部署配置中
-  `EMBY_ALLOWED_SERVER_ORIGINS` 声明的地址。
+- `LUMARELAY_EMBY_BASE_URL` 提供默认服务器，`/connect` 只允许选择部署配置中
+  `LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS` 声明的地址。
 - SQLite 使用 `servers` 表保存服务器 ID、地址、版本和能力探测结果，
   业务表和缓存键从一开始携带 `server_id`。
 - 更换当前服务器前必须退出登录并清理原服务器会话，不能复用 Token。
@@ -146,8 +146,8 @@ Bridge 版本。Gateway 在同一 SQLite 事务中删除配对码、创建设备
 Bridge 将 Gateway Origin、设备 ID、凭证和允许来源保存到当前用户的 Credential
 Manager Generic Credential，不写入文件、注册表、命令行或日志。
 
-已配对 Bridge 调用 Gateway 时使用 `Authorization: NewEmbyDevice <credential>`
-和 `X-NewEmby-Nonce`。`POST /api/v1/bridge/devices/:deviceId/heartbeat` 作为首个
+已配对 Bridge 调用 Gateway 时使用 `Authorization: LumaRelayDevice <credential>`
+和 `X-LumaRelay-Nonce`。`POST /api/v1/bridge/devices/:deviceId/heartbeat` 作为首个
 认证探针；Gateway 只保存 nonce 的 HMAC 摘要，并以设备 ID + 摘要唯一约束提供
 跨进程、跨重启的五分钟重放窗口。无效凭证、非法 nonce 和重放分别返回
 `BRIDGE_CREDENTIAL_INVALID`、`NONCE_INVALID` 和 `REPLAY_DETECTED`。
@@ -257,7 +257,7 @@ redeemed_at
   成功返回 `playTicket`、`playSessionId`、`expiresAt` 和固定
   `expiresInSeconds: 60`。
 - `POST /api/v1/bridge/devices/:deviceId/play-tickets/redeem`：Bridge 提交
-  `playTicket`，同时使用 `NewEmbyDevice` 设备凭证与新 nonce。Gateway 原子写入
+  `playTicket`，同时使用 `LumaRelayDevice` 设备凭证与新 nonce。Gateway 原子写入
   `redeemedAt` 后返回 `playSessionId` 和播放选择；响应不包含 Emby AccessToken、
   设备凭证或票据摘要。
 
@@ -319,7 +319,7 @@ Bridge 只从运行中进程、Windows App Paths、DAUM 安装信息和有界标
 PotPlayer 启动参数只允许携带短时 PlayTicket 或本地 Bridge URL，不能把
 Emby AccessToken 放入 `/headers`、媒体 URL 或进程命令行。Bridge 使用
 `/seek` 设置续播位置，并用 `/title` 传递用户可读的规范媒体标题，帮助匹配由
-NewEmby 启动的 SMTC 会话。电影标题仅使用电影名；单集标题使用
+LumaRelay 启动的 SMTC 会话。电影标题仅使用电影名；单集标题使用
 `剧集名称-单集名称-第x/y集`。
 
 实际进程启动固定使用 `UseShellExecute=false` 和逐项 `ArgumentList`，禁止
@@ -334,7 +334,7 @@ Bridge 在进程创建成功后记录进程 ID、启动时间和 PlaySessionId�
 匹配只接受仍为同一存活进程、来源是受支持 PotPlayer 标识且媒体标题精确等于
 该 PlaySession 规范 `displayTitle` 的唯一候选；单一但标题不符的会话不得猜测
 绑定，重复精确候选必须标记为歧义。同一时间存在多个相同 `displayTitle` 的
-NewEmby 启动记录时，即使只观察到一个候选也不得猜测。匹配在会话和媒体属性
+LumaRelay 启动记录时，即使只观察到一个候选也不得猜测。匹配在会话和媒体属性
 事件后刷新，并使用一秒轮询兜底；15 秒内没有候选标记为超时，进程退出或 PID
 已复用则立即失效。内部仍按 PlaySessionId 隔离，匹配到的会话句柄不得通过状态
 API 公开，并由后续时间线和停止流程显式解除跟踪。
@@ -550,7 +550,7 @@ PlaybackSession 中的轨道选择，字幕索引 `null` 表示关闭字幕。
 - 编辑标题、排序名、简介、年份、类型、分级和 Provider IDs。
 - 查看、选择、上传和删除图片。
 - 刷新元数据并选择替换范围。
-- 所有写入操作写入 NewEmby 审计记录。
+- 所有写入操作写入 LumaRelay 审计记录。
 
 ### 6.6 A06 计划任务 `/admin/tasks`
 
@@ -694,7 +694,7 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 - Bridge 按十秒周期及停止事件向 Emby 回传位置；“继续观看”是否生成仍遵循
   Emby 媒体库的最小续播百分比。短时间试播即使事件同步成功，也可能因未达到
   服务端阈值而不生成续播点，客户端不得伪造本地续播状态。
-- NewEmby 本地播放会话 ID 只用于 Gateway 与 Bridge 的鉴权、幂等和事件队列；
+- LumaRelay 本地播放会话 ID 只用于 Gateway 与 Bridge 的鉴权、幂等和事件队列；
   Gateway 必须持久化 `PlaybackInfo` 响应中的 Emby `PlaySessionId`，媒体流 URL 与
   `Playing`、`Progress`、`Stopped` 上报必须使用同一个 Emby 会话 ID。尚未完成
   上游会话绑定时不得把本地 UUID 上报给 Emby，也不得将单次 HTTP 成功误判为
@@ -787,7 +787,7 @@ Bridge 只提供极简托盘界面，复杂配置仍在 Web 中完成。
 验收：PotPlayer 暂停、拖动、正常退出和异常退出后，Emby 中的进度误差
 不超过 15 秒；SMTC 关闭时阻止进入“完整同步”状态并提供启用说明。
 
-便携版 Bridge 正常启动时刷新当前用户的 `newemby://` 协议注册；Web 通过
+便携版 Bridge 正常启动时刷新当前用户的 `lumarelay://` 协议注册；Web 通过
 固定回环地址读取版本、配对、PotPlayer 和 SMTC 分项状态。首次连接使用 Gateway
 签发的 60 秒一次性配对码唤起 Bridge，浏览器在获得精确 Origin 授权前不得把
 CORS 失败解释为确定的“程序未运行”。
@@ -832,13 +832,13 @@ Public Browser
   │ HTTPS
   ▼
 Caddy / Nginx
-  ├── /      ── NewEmby Web
-  └── /api/* ── NewEmby Gateway ── HTTPS ── Public Emby API
+  ├── /      ── LumaRelay Web
+  └── /api/* ── LumaRelay Gateway ── HTTPS ── Public Emby API
                          │
-                         └── /data/newemby.db
+                         └── /data/lumarelay.db
 
 Player Bridge ── localhost only ── Browser
-Player Bridge ── HTTPS ─────────── NewEmby Gateway
+Player Bridge ── HTTPS ─────────── LumaRelay Gateway
 ```
 
 - Web、Gateway、反向代理和 SQLite volume 属于同一个 Docker Compose
@@ -853,18 +853,18 @@ Player Bridge ── HTTPS ─────────── NewEmby Gateway
 
 | 变量 | 用途 |
 |---|---|
-| `NEWEMBY_PUBLIC_ORIGIN` | NewEmby 的公开 HTTPS Origin |
-| `EMBY_BASE_URL` | 当前且唯一的 Emby HTTPS API 地址 |
-| `EMBY_ALLOWED_SERVER_ORIGINS` | 允许探测的 Emby Origin 精确列表 |
-| `GATEWAY_HOST` | Gateway 监听地址，容器内默认 `0.0.0.0` |
-| `GATEWAY_PORT` | Gateway 容器端口，默认 `3000` |
-| `GATEWAY_TRUST_PROXY` | 可信反向代理跳数或网段 |
-| `DATABASE_PATH` | SQLite 数据文件路径 |
-| `SESSION_SECRET` | NewEmby 会话签名密钥 |
-| `TOKEN_ENCRYPTION_KEY` | Emby Token 字段加密密钥 |
-| `COOKIE_SECURE` | 生产环境固定为 `true` |
-| `LOG_LEVEL` | 结构化日志级别 |
-| `BRIDGE_ALLOWED_ORIGINS` | M2 Bridge 可接受的 NewEmby Origin |
+| `LUMARELAY_PUBLIC_ORIGIN` | LumaRelay 的公开 HTTPS Origin |
+| `LUMARELAY_EMBY_BASE_URL` | 当前且唯一的 Emby HTTPS API 地址 |
+| `LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS` | 允许探测的 Emby Origin 精确列表 |
+| `LUMARELAY_HOST` | Gateway 监听地址，容器内默认 `0.0.0.0` |
+| `LUMARELAY_PORT` | Gateway 容器端口，默认 `3000` |
+| `LUMARELAY_TRUST_PROXY` | 可信反向代理跳数或网段 |
+| `LUMARELAY_DATABASE_PATH` | SQLite 数据文件路径 |
+| `LUMARELAY_SESSION_SECRET` | LumaRelay 会话签名密钥 |
+| `LUMARELAY_TOKEN_ENCRYPTION_KEY` | Emby Token 字段加密密钥 |
+| `LUMARELAY_COOKIE_SECURE` | 生产环境固定为 `true` |
+| `LUMARELAY_LOG_LEVEL` | 结构化日志级别 |
+| `LUMARELAY_BRIDGE_ALLOWED_ORIGINS` | M2 Bridge 可接受的 LumaRelay Origin |
 
 所有密钥由部署环境生成，不写入镜像、Compose 文件或仓库。
 
@@ -873,8 +873,8 @@ Player Bridge ── HTTPS ─────────── NewEmby Gateway
 - 首版支持公网访问，但只支持 HTTPS。HTTP 仅限本机开发环境。
 - Caddy/Nginx 终止 TLS，生产环境启用 HSTS，并把 `/api/*` 转发给
   Gateway 的容器内地址。
-- `NEWEMBY_PUBLIC_ORIGIN`、`EMBY_ALLOWED_SERVER_ORIGINS` 和
-  `BRIDGE_ALLOWED_ORIGINS` 使用完整 Origin 精确匹配，不接受通配符。
+- `LUMARELAY_PUBLIC_ORIGIN`、`LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS` 和
+  `LUMARELAY_BRIDGE_ALLOWED_ORIGINS` 使用完整 Origin 精确匹配，不接受通配符。
 - Web 与 Gateway 同源，生产环境不启用开放式 CORS。
 - 会话 Cookie 使用 `HttpOnly`、`Secure`、`SameSite=Lax` 和根路径。
 - Gateway 只信任部署配置声明的代理跳数或网段，不信任任意
@@ -924,8 +924,8 @@ Player Bridge ── HTTPS ─────────── NewEmby Gateway
 3. 已确认：Web 与 Gateway 同一部署单元，可与公网 Emby 分开部署。
 4. 已确认：首版单服务器，数据模型预留多服务器字段。
 5. 已确认：首版支持公网访问，强制 HTTPS 和精确可信 Origin。
-6. 已确认：正式名称 NewEmby，应用 ID `NewEmby.PlayerBridge`，协议
-   `newemby://`，主强调色 `#7C5CFF`，使用仓库自有 SVG Logo。
+6. 已确认：正式名称 LumaRelay，应用 ID `LumaRelay.PlayerBridge`，协议
+   `lumarelay://`，主强调色 `#7C5CFF`，使用仓库自有 SVG Logo。
 
 ## 17. 官方参考
 

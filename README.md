@@ -1,112 +1,145 @@
-# NewEmby
+# LumaRelay
 
-NewEmby is a modern Emby Web client with a protected Gateway and a Windows
-local-player Bridge. It does not implement an HTML5 video player.
+**English** | [简体中文](README.zh-CN.md)
 
-## Requirements
+LumaRelay is a modern, self-hosted media interface for Emby. A protected Gateway
+talks to Emby while a Windows Player Bridge safely hands playback to a local
+PotPlayer instance. LumaRelay does not include an HTML5 video player, and the
+browser and player command line never receive the Emby access token.
 
-- Node.js 22.13.x 或更新的 Node.js 22 版本
-- pnpm 11.13.1
-- Docker with Compose for the production topology
-- .NET SDK 8.0.422 for Player Bridge development
-- Windows 10 version 2004（build 19041）或更新版本用于运行 Player Bridge
-- PotPlayer 1.7.22398.0 或更新版本用于首版完整本地播放支持
+> `v0.2.0-rc.1` is a release candidate. The installer and final 15-second
+> progress-accuracy gate are still in progress, so do not treat the RC as a
+> stable release.
 
-The checked-in package manager and lock file are authoritative. On Windows, use
-`pnpm.cmd` if PowerShell execution policy blocks `pnpm.ps1`. If the bundled
-Corepack has stale signing keys, run commands with
-`npx --yes pnpm@11.13.1 <command>`.
+## Features
 
-## Local development
+- Responsive React library, search, details, user state, and adaptive themes.
+- Fastify Gateway with SQLite, CSRF protection, rate limits, and log redaction.
+- One-time play tickets that keep Emby access tokens out of the browser.
+- Windows Player Bridge pairing, PotPlayer launch, SMTC monitoring, and playback
+  progress reporting.
+- One application image serving both the Web UI and `/api/v1`; no separate Web
+  and Gateway containers.
 
-1. Copy `.env.example` to `.env` when overriding development defaults. Gateway
-   loads the root file automatically; explicit process variables take priority.
-2. Install dependencies with `pnpm install --frozen-lockfile`.
-3. Start Web and Gateway with `pnpm dev`.
-4. Run the non-Docker startup check with `pnpm smoke:local`.
-5. Run the complete local quality gate with `pnpm verify:local`.
+## Architecture
 
-Install the Playwright Chromium and Firefox runtimes once with
-`pnpm exec playwright install chromium firefox`. `pnpm test:e2e` keeps the pixel
-baselines on Chromium, while `pnpm test:compat` checks Chromium and Firefox
-functionality, keyboard behavior, layout overflow and console errors. On Windows
-with Chrome and Edge installed, run `pnpm test:compat:local` for the
-four-browser desktop compatibility gate.
-
-The repository `global.json` pins the Player Bridge SDK. Build and test it with
-`pnpm --filter @newemby/player-bridge build` and
-`pnpm --filter @newemby/player-bridge test`. Create the Windows self-contained
-single-file artifact with `pnpm bridge:publish`; output is written to
-`apps/player-bridge/artifacts/win-x64` and remains untracked.
-
-The current Bridge distribution is portable: place the published executable in a
-stable directory, run it directly, and use `--register-protocol` once from that
-location. Run `--shutdown` and `--unregister-protocol` before moving or deleting
-it. An installer, uninstaller and automatic updater are intentionally deferred.
-
-To verify a real Emby server without persisting credentials, set
-`EMBY_SMOKE_BASE_URL` and optionally both `EMBY_SMOKE_USERNAME` and
-`EMBY_SMOKE_PASSWORD` in the command process, then run `pnpm smoke:emby`. The
-authenticated path checks the current user, views, filtered media items, one
-image, and one ranged media chunk for an authorized movie and episode when
-available. It prints only version, status and counts, and always attempts logout
-in `finally`; never place these temporary values in `.env`.
-
-`pnpm smoke:emby:playback-session` requires both temporary credential variables.
-It requests one authorized movie at byte range zero, uses the Emby
-`PlaySessionId` returned by `PlaybackInfo` to send `Playing`, verifies that the
-same temporary device is visible in Emby's active sessions, and then sends
-`Stopped` at position zero and logs out in `finally`. It prints no server URL,
-account, item metadata, session ID or token.
-
-The explicitly enabled `pnpm smoke:emby:write` additionally requires
-`EMBY_WRITE_SMOKE_CONFIRM=true` and both temporary credential variables. It
-selects a zero-progress unplayed item, toggles its favorite state, verifies the
-write, then repeats the check for played state. It restores both original states
-in `finally` and then logs out. The command does not print the server address,
-account, item metadata, cookie or token.
-
-The development Web server is served by Vite. Production uses the same public
-origin for Web and `/api/*`; the browser never receives the Emby access token.
-The smoke command uses isolated ports and a temporary SQLite database, then
-stops both services automatically.
-
-## Production topology
-
-`compose.yaml` starts Caddy, the static Web container, Gateway and a persistent
-SQLite volume. Only Caddy publishes host ports. Set `NEWEMBY_DOMAIN` to a DNS
-name whose A/AAAA record points at the deployment before starting:
-
-```shell
-docker compose up --build -d
+```mermaid
+flowchart LR
+  B["Browser"] --> A["LumaRelay application container"]
+  A --> E["Emby Server"]
+  B --> P["Windows Player Bridge (loopback only)"]
+  P --> T["PotPlayer"]
+  P --> A
+  C["Caddy or an existing HTTPS reverse proxy"] --> A
 ```
 
-Do not commit `.env`, database files, Emby tokens or generated secrets.
+Caddy is only an optional HTTPS entry point. If you already operate a reverse
+proxy, the LumaRelay application is the only container you need.
 
-Compose always runs Gateway in production mode and therefore rejects the
-development secrets and HTTP origins from `.env.example`. Before deployment, set
-HTTPS origins and generate independent secrets, for example with
-`node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
-for `SESSION_SECRET` and
-`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
-for `TOKEN_ENCRYPTION_KEY`. `EMBY_BASE_URL` must appear in the exact
-`EMBY_ALLOWED_SERVER_ORIGINS` list. Migration commands create a consistent
-SQLite backup beside the database before an actual up or down migration and
-retain the five newest backups.
+## Docker quick start
 
-## Development and version conventions
+1. Copy the configuration and replace the development values with your HTTPS
+   origins and independently generated secrets:
 
-- Keep `main` releasable and use short-lived branches named
-  `<type>/<task-id>-<summary>`, for example `feature/M1-013-home-page`.
-  Codex-created branches use the required `codex/` prefix.
-- Each change handles one progress task or a tightly coupled group. Update
-  `docs/DEVELOPMENT_PROGRESS.md` in the same change after verification.
-- Commit messages follow Conventional Commits and include the task ID in the
-  scope, for example `chore(M0-001): initialize pnpm workspace`.
-- Allowed commit types are `feat`, `fix`, `docs`, `test`, `refactor`, `perf`,
-  `build`, `ci` and `chore`.
-- Versions follow Semantic Versioning. Milestone releases are `v0.1.0` for
-  M0-M1, `v0.2.0` for M2, `v0.3.0` for M3, `v0.4.0` for M4, `v0.5.0` for M5 and
-  `v1.0.0` after the M6 scope is accepted.
-- Create release tags and changelog entries only after the corresponding release
-  gate passes. Do not tag partially verified work.
+   ```shell
+   cp .env.example .env
+   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+
+2. Start LumaRelay with the optional Caddy HTTPS profile:
+
+   ```shell
+   docker compose pull
+   docker compose --profile https up -d
+   ```
+
+With an existing reverse proxy, use `docker compose up -d app` or run only the
+application image:
+
+```shell
+docker run -d \
+  --name lumarelay \
+  --env-file .env \
+  -e NODE_ENV=production \
+  -e LUMARELAY_COOKIE_SECURE=true \
+  -e LUMARELAY_DATABASE_PATH=/data/lumarelay.db \
+  -p 127.0.0.1:3000:3000 \
+  -v lumarelay_data:/data \
+  ghcr.io/hqyel/lumarelay:edge
+```
+
+Proxy HTTPS traffic to `http://127.0.0.1:3000`. Production mode rejects HTTP
+public origins, HTTP Emby origins, development secrets, and insecure cookies.
+
+Key configuration:
+
+| Variable                                | Purpose                                             |
+| --------------------------------------- | --------------------------------------------------- |
+| `LUMARELAY_DOMAIN`                      | Public domain used by the included Caddy service    |
+| `LUMARELAY_PUBLIC_ORIGIN`               | Exact HTTPS Web origin                              |
+| `LUMARELAY_EMBY_BASE_URL`               | Active Emby Server URL                              |
+| `LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS` | Exact Emby origins the Gateway may contact          |
+| `LUMARELAY_BRIDGE_ALLOWED_ORIGINS`      | Exact Web origins accepted by Player Bridge         |
+| `LUMARELAY_SESSION_SECRET`              | Independent random secret of at least 32 characters |
+| `LUMARELAY_TOKEN_ENCRYPTION_KEY`        | Canonical Base64 value containing 32 random bytes   |
+| `LUMARELAY_COOKIE_SECURE`               | Must be `true` in production                        |
+| `LUMARELAY_DATABASE_PATH`               | SQLite path; `/data/lumarelay.db` in the container  |
+| `LUMARELAY_HOST` / `LUMARELAY_PORT`     | Application listener; defaults to `127.0.0.1:3000`  |
+| `LUMARELAY_TRUST_PROXY`                 | Trusted proxy hop count or exact IP/CIDR list       |
+| `LUMARELAY_LOG_LEVEL`                   | Gateway log level; defaults to `info`               |
+| `LUMARELAY_IMAGE_TAG`                   | Compose image tag; defaults to `edge`               |
+
+## Windows Player Bridge
+
+Download `LumaRelay.PlayerBridge-<version>-win-x64.zip` from a GitHub Release,
+extract it to a stable directory, and register the protocol:
+
+```powershell
+.\LumaRelay.PlayerBridge.exe --register-protocol
+```
+
+Generate a 60-second pairing code from the Bridge page in LumaRelay and complete
+the pairing locally. Before moving or deleting the executable, run `--shutdown`
+and `--unregister-protocol`. The current RC is portable and does not yet include
+an installer or automatic updater. Its loopback service remains on port `58080`;
+set `LUMARELAY_BRIDGE_PORT` only if that port is unavailable.
+
+## Development
+
+Development requires Node.js 22.13.x, pnpm 11.13.1, and .NET SDK 8.0.422. The
+Player Bridge requires Windows 10 version 2004 (build 19041) or newer and
+PotPlayer 1.7.22398.0 or newer.
+
+```shell
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm verify:local
+pnpm bridge:publish
+```
+
+Real-server smoke tests read temporary `LUMARELAY_EMBY_SMOKE_BASE_URL`,
+`LUMARELAY_EMBY_SMOKE_USERNAME`, and `LUMARELAY_EMBY_SMOKE_PASSWORD` values from
+the current process. Never store them in `.env` or commit them.
+
+## Images and releases
+
+- `edge`: latest successful build from `main`.
+- `sha-<commit>`: immutable commit image.
+- `0.2.0-rc.1`: release-candidate image and GitHub prerelease.
+- `latest`, `X.Y`, and `X`: stable releases only.
+
+Published images include an SBOM and build provenance. Tagged releases also
+include the Windows Player Bridge archive and `SHA256SUMS`.
+
+## Security and license
+
+Read [SECURITY.md](SECURITY.md) before exposing LumaRelay to a network. Never
+commit `.env`, databases, logs, Emby tokens, server credentials, or generated
+secrets.
+
+LumaRelay is an independent open-source project and is not affiliated with or
+endorsed by Emby or the owners of PotPlayer. Product names and trademarks belong
+to their respective owners.
+
+Licensed under the [MIT License](LICENSE).

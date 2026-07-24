@@ -1,4 +1,4 @@
-# NewEmby 开发进度表
+# LumaRelay 开发进度表
 
 > 当前版本：v1.2  
 > 创建日期：2026-07-16  
@@ -93,7 +93,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
   - 结论：数据模型和缓存键预留 `serverId`，首版界面、登录和会话
     只支持一个当前服务器，多服务器切换延期到 M6。
 - [x] `D0-006` 确认项目正式名称和品牌资源。
-  - 结论：使用 NewEmby、`NewEmby.PlayerBridge`、`newemby://`、
+  - 结论：使用 LumaRelay、`LumaRelay.PlayerBridge`、`lumarelay://`、
     `#7C5CFF` 和仓库自有 SVG Logo。
 
 ### D0 发布门
@@ -184,7 +184,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M1-001` 实现服务器连接页面 `/connect`。
 - [x] `M1-002` 实现公共用户读取与登录页面 `/login`。
 - [x] `M1-003` Gateway 实现用户名密码认证代理。
-- [x] `M1-004` 使用 HttpOnly Cookie 建立 NewEmby 会话。
+- [x] `M1-004` 使用 HttpOnly Cookie 建立 LumaRelay 会话。
 - [x] `M1-005` 加密保存 Emby AccessToken。
 - [x] `M1-006` 实现当前用户、权限和管理员能力探测。
 - [x] `M1-007` 实现退出、Token 撤销和 401 统一恢复流程。
@@ -222,7 +222,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 以下返修不计入 M1 原有 28 项。所有页面统一以
 `C:\Users\ifwwww\Desktop\常用脚本\emby-win` 的对应源码为表现层基线，
-同时保留 NewEmby 品牌色、React 技术栈、Gateway 安全边界和可访问性要求。
+同时保留 LumaRelay 品牌色、React 技术栈、Gateway 安全边界和可访问性要求。
 
 - [x] `UX-001` 首页横向轨道、媒体库、卡片、拖拽和动效迁移。
 - [x] `UX-002` 前台应用外壳、紧凑导航、顶栏和用户菜单迁移。
@@ -272,7 +272,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
   - 使用 self-contained single-file 发布，并预留 `IPlayerAdapter`。
 - [x] `M2-002` 实现回环 HTTP 服务，仅监听 localhost。
 - [x] `M2-003` 实现 `/v1/status` 和版本兼容响应。
-- [x] `M2-004` 注册 `newemby://` 自定义协议。
+- [x] `M2-004` 注册 `lumarelay://` 自定义协议。
 - [x] `M2-005` 实现系统托盘、启动和退出。
 - [ ] `M2-006` 实现 Windows 安装与卸载流程。
   - 状态：延期。当前版本采用 self-contained single-file 便携发布，用户解压后
@@ -297,7 +297,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 - [x] `M2-015` 实现 Windows SMTC 能力检查和会话事件订阅。
   - 已验证 GSMTC API 能力并订阅会话、媒体属性、播放信息和时间线事件；
     PotPlayer 空闲且没有会话时标记为“尚未观察”，不误判设置已关闭。
-- [x] `M2-016` 匹配 NewEmby 启动的 PotPlayer 会话。
+- [x] `M2-016` 匹配 LumaRelay 启动的 PotPlayer 会话。
   - 综合进程生命周期、`/title` 会话标识和媒体属性，处理多实例。
 - [x] `M2-017` 读取时长、位置、更新时间、暂停、跳转和结束状态。
 
@@ -337,7 +337,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 
 - [x] `M2-QA-003` 修复 Emby 上游播放会话绑定和真实进度回传。
   - 状态：完成。
-  - 持久化 `PlaybackInfo` 返回的 Emby `PlaySessionId`，与 NewEmby 本地会话
+  - 持久化 `PlaybackInfo` 返回的 Emby `PlaySessionId`，与 LumaRelay 本地会话
     ID 分离。
   - Playing、Progress、Stopped 只能使用已绑定的 Emby 播放会话 ID，不得把
     上游 HTTP 成功误判为真实会话已建立。
@@ -572,13 +572,13 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-16 | 技术决策 | Windows 首发，PotPlayer 为第一播放器适配器，通过 SMTC 回传状态；mpv 调整为第二适配器 | D0, M2, M6 | 项目组 |
 | 2026-07-16 | 部署 | Web 与 Gateway 同源公网部署，通过 HTTPS 访问现有公网 Emby | D0, M0–M6 | 项目组 |
 | 2026-07-16 | 范围 | 首版单 Emby Server，数据模型预留多服务器字段 | D0, M0, M6 | 项目组 |
-| 2026-07-16 | 品牌 | 使用 NewEmby、`NewEmby.PlayerBridge`、`newemby://` 和自有 SVG | D0, M0, M2 | 项目组 |
+| 2026-07-16 | 品牌 | 使用 LumaRelay、`LumaRelay.PlayerBridge`、`lumarelay://` 和自有 SVG | D0, M0, M2 | 项目组 |
 | 2026-07-16 | 工具链 | Node 基线由 22.12 提升至 22.13，以满足冻结锁文件中 ESLint 依赖的最低引擎要求 | M0 | 项目组 |
-| 2026-07-16 | 设计 | 后续所有前端及现有页面统一迁移到本机 `emby-win` 参考应用的布局、卡片和动效基线，保留 NewEmby 品牌与安全架构 | M0–M6 | 项目组 |
+| 2026-07-16 | 设计 | 后续所有前端及现有页面统一迁移到本机 `emby-win` 参考应用的布局、卡片和动效基线，保留 LumaRelay 品牌与安全架构 | M0–M6 | 项目组 |
 | 2026-07-17 | 设计 | 搜索不再使用独立页面，按参考应用 `SearchDropdown.vue` 迁移到顶栏展开输入框与玻璃结果浮层；`/search` 仅保留兼容重定向 | M1、UX-005 | 项目组 |
 | 2026-07-17 | 范围 | `M2-006` Windows 安装与卸载延期；当前 Bridge 采用 self-contained single-file 便携发布，延期项不计完成且不阻塞 `M2-007` | M2、M3 | 项目组 |
 | 2026-07-22 | 技术决策 | Bridge 运行基线锁定为 Windows 10 version 2004（build 19041）或更新版本，与 `net8.0-windows10.0.19041.0` TFM 一致；GSMTC 管理器在 Windows build 26100 单文件实机验证为可用 | D0、M2 | 项目组 |
-| 2026-07-22 | 技术决策 | PotPlayer 最低支持版本锁定为 `1.7.22398.0`；会话匹配必须同时满足存活启动进程、受支持来源和精确 `NewEmby:<PlaySessionId>` 标题，重复候选不得猜测绑定 | D0、M2 | 项目组 |
+| 2026-07-22 | 技术决策 | PotPlayer 最低支持版本锁定为 `1.7.22398.0`；会话匹配必须同时满足存活启动进程、受支持来源和精确 `LumaRelay:<PlaySessionId>` 标题，重复候选不得猜测绑定 | D0、M2 | 项目组 |
 | 2026-07-22 | 技术决策 | `M2-QA-001` 以经契约校验的用户可读 `displayTitle` 取代内部 UUID 标题；电影使用电影名，单集使用“剧集名称-单集名称-第x/y集”。会话仍以 PlaySessionId 隔离；同名并发启动直接标记歧义，不猜测绑定。本决策取代上一条标题匹配格式，保留其来源、存活进程和唯一候选约束 | M2 | 项目组 |
 | 2026-07-22 | 设计 | 全站以 `emby-win` 的暗黑/亮色语义变量、ThemeToggle、BaseSelect、MediaCard 和动效源码为细节基线；主题能力从 M3-009 提前交付，M3-009 后续只需补齐设置页入口、界面密度、动效和海报尺寸 | UX-007～008、M3 | 项目组 |
 
@@ -595,7 +595,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-22 | UX-008 | 进行中 | 主题基础和共享控件已稳定，开始逐页消除暗色硬编码并补充亮色、暗黑、跟随系统视觉、键盘和可访问性覆盖 | Web、Playwright、进度表 | 完成全部已实现页面复原与全量回归 |
 | 2026-07-22 | UX-007 | 完成 | 新增暗黑、亮色、跟随系统三种主题，支持本地持久化、系统主题实时监听、根节点与浏览器主题色同步；登录页和应用顶栏均提供可键盘操作的三选一主题菜单。共享 UI 的输入、选择器、按钮、菜单、应用/管理外壳、弹层、抽屉、Toast、状态、媒体卡和媒体行改用语义变量，并按参考组件补齐下拉动效、箭头旋转、选中渐变、卡片上浮/缩放/紫色描边和封面缩放。UI 25 项及 Web 37 项单测通过，两包 lint/typecheck/build 通过，生产 Web 构建成功 | UI、Web、主题单测、进度表 | UX-008 |
 | 2026-07-22 | UX-007 | 进行中 | 正在逐项对照参考应用的全局主题、ThemeToggle、BaseSelect、表单、按钮、菜单、卡片和动效源码，建立亮色、暗黑、跟随系统三种可持久化主题；浏览器控制技能因本机运行时无法写入 kernel assets 暂不可用，继续使用仓库 Playwright、截图基线与源码对照完成视觉验证 | UI、Web、Storybook、Playwright、进度表 | 完成主题基础、自定义控件和专项回归 |
-| 2026-07-22 | M2-QA-003 | 完成 | 根因是 Gateway 将 NewEmby 本地 UUID 用于 Emby Playing/Progress/Stopped，而未持久化 `PlaybackInfo` 返回的上游 `PlaySessionId`；新增 011 迁移分离两类 ID，事件在未绑定时保持可重试且只以上游 ID 上报。用户即时复测又暴露 PotPlayer 多 Range 请求重复 POST `PlaybackInfo` 会生成新 ID 并触发 502，现改为首个请求创建并绑定、后续请求读取媒体源并复用同一会话；失败 URL 原样复测已由 502 恢复为 HTTP 206。Emby Client 67 项、Gateway 108 项单测及两包 lint/typecheck/build 通过，集成测试覆盖创建、二次 Range 复用与 Playing 上报；全仓其余 JS/TS、Storybook、2 项视觉/axe、30 项 Chromium E2E（1 项按设计跳过）、Chromium/Firefox 兼容、本地 Smoke 与生产审计通过。真实 Emby 4.8.9.0 已验证电影/单集 Range 206，并确认短暂电影 Playing 在活动会话中可见，随后 Stopped 与 Logout 均成功；未输出或保存敏感数据。当前系统缺少 `global.json` 要求的 .NET SDK 8.0.422，本轮未改动 Bridge 且其 123 项既有回归未复跑 | Emby Client、Gateway、SQLite、Smoke、README、项目计划、进度表 | 用户以全新 PotPlayer 会话完成真实播放进度发布门 |
+| 2026-07-22 | M2-QA-003 | 完成 | 根因是 Gateway 将 LumaRelay 本地 UUID 用于 Emby Playing/Progress/Stopped，而未持久化 `PlaybackInfo` 返回的上游 `PlaySessionId`；新增 011 迁移分离两类 ID，事件在未绑定时保持可重试且只以上游 ID 上报。用户即时复测又暴露 PotPlayer 多 Range 请求重复 POST `PlaybackInfo` 会生成新 ID 并触发 502，现改为首个请求创建并绑定、后续请求读取媒体源并复用同一会话；失败 URL 原样复测已由 502 恢复为 HTTP 206。Emby Client 67 项、Gateway 108 项单测及两包 lint/typecheck/build 通过，集成测试覆盖创建、二次 Range 复用与 Playing 上报；全仓其余 JS/TS、Storybook、2 项视觉/axe、30 项 Chromium E2E（1 项按设计跳过）、Chromium/Firefox 兼容、本地 Smoke 与生产审计通过。真实 Emby 4.8.9.0 已验证电影/单集 Range 206，并确认短暂电影 Playing 在活动会话中可见，随后 Stopped 与 Logout 均成功；未输出或保存敏感数据。当前系统缺少 `global.json` 要求的 .NET SDK 8.0.422，本轮未改动 Bridge 且其 123 项既有回归未复跑 | Emby Client、Gateway、SQLite、Smoke、README、项目计划、进度表 | 用户以全新 PotPlayer 会话完成真实播放进度发布门 |
 | 2026-07-22 | M2-QA-003 | 进行中 | 用户复测确认 Emby 后台在电影播放期间没有活动卡片或播放/停止记录。只读审计显示最新电影会话约 95 秒、12 个 Gateway 事件均完成，但官方契约要求使用 `PlaybackInfo` 响应中的 `PlaySessionId`；当前实现只将其用于媒体 URL，事件上报仍使用本地 UUID，正在修复两类会话 ID 的持久化绑定 | Emby Client、Gateway、SQLite、Player Bridge、进度表 | 完成迁移、绑定、上报回归与真实服务器验证 |
 | 2026-07-22 | M2-QA-002 | 完成 | 只读审计确认用户电影试播已产生 Playing、每 10 秒 Progress 和 Stopped 共 15 个事件，Gateway 最终位置约 69 秒；未出现“继续观看”是尚未达到 Emby 媒体库最小续播百分比，而非 Bridge/Gateway 事件丢失，播放准备弹层已明确说明该策略且不伪造本地续播点。单集详情改为复用所属剧集背景、Logo、标题、类型和内容层级，仅在英雄区用单集简介替换剧集简介；保留本季单集、演职人员和相关推荐，并在最下方按 Emby 风格分栏展示安全的媒体源摘要及视频、音频、字幕流字段。全仓 format/lint/typecheck、244 项 JS/TS 单测、123 项 Bridge 测试、应用与 Storybook 构建、2 项组件视觉/axe、30 项 Chromium E2E（1 项按设计跳过）、Chromium/Firefox 兼容回归、本地 Smoke、生产依赖审计和差异检查全部通过；新增单集详情截图已人工核对。真实路径、地址、用户名、媒体名称和 Token 均未写入测试或文档 | Contracts、Emby Client、Web、Playwright、项目规划、UX 规范、进度表 | 使用超过服务端续播阈值的真实电影完成 M2 最后一项发布门 |
 | 2026-07-22 | M2-QA-002 | 进行中 | 用户实测电影约一分钟未出现续播点；只读审计确认该播放会话已完成 Playing、10 秒 Progress 与 Stopped 共 15 个事件，Gateway 最终位置约 69 秒，正在核对 Emby 最小续播百分比策略。同时按剧集详情结构重做单集详情并补充媒体源视频格式 | Emby Client、Gateway、Web、Player Bridge、进度表 | 完成策略说明、格式适配和页面回归 |
@@ -608,8 +608,8 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-22 | M2-025 | 进行中 | 正在聚合 Bridge 内存播放会话、PotPlayer 会话匹配和 SMTC 时间线快照，并在 Web 提供每秒更新的当前播放浮层；状态必须区分启动等待、播放、暂停、结束、陈旧、多实例和匹配失败 | Contracts、Web、Player Bridge、进度表 | 完成本地状态契约、浮层及真实更新回归 |
 | 2026-07-22 | M2-024 | 完成 | Web 播放准备弹层现在读取当前用户级 PlaybackInfo，使用 Emby 默认值选择可直接播放的媒体源、音轨和文本字幕，并展示 Bridge、PotPlayer、SMTC 与续播状态；Gateway 签发前重新校验选择。配对 Bridge 一次兑换 PlayTicket，在进程内保存选择，以受限回环媒体/字幕 URL 启动 PotPlayer；Gateway 根据设备绑定 PlaybackSession 恢复加密 Emby 会话并支持 Range 静态流代理，Token 不进入浏览器、回环 URL、Bridge 响应或播放器命令行。Contracts 14、Emby Client 62、Gateway 106、Web 30、Bridge 113 项测试及 Web lint/typecheck、Chromium axe/启动流程/截图回归通过，视觉基线已人工核对 | Contracts、Emby Client、Gateway、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-025 |
 | 2026-07-22 | M2-024 | 进行中 | 正在建立从媒体详情到用户级 PlaybackInfo、默认播放选择、设备绑定 PlayTicket、Bridge 一次兑换和 PotPlayer 安全启动的完整准备流程；高级多版本选择仍留在 M3 | Contracts、Emby Client、Gateway、Web、Player Bridge、进度表 | 完成流代理、安全启动与弹层状态回归 |
-| 2026-07-22 | M2-023 | 完成 | 顶栏静态提示已替换为每 5 秒读取固定回环 `/v1/status?apiVersion=1` 的真实状态控件；弹层将 Bridge 连接/API 兼容、PotPlayer 发现/版本/运行状态和 SMTC 监听能力分项呈现，不把首次未授权 CORS 失败伪装成确定离线。登录用户可签发 60 秒配对码并通过 `newemby://pair` 显式唤起，弹层在配对期间自动复检；便携版正常启动会刷新当前用户协议注册，移动目录后再次运行即可修复，无需安装器或管理员权限。Contracts 14 项、Web 30 项和 Bridge 112 项测试、Web lint/typecheck/build、Chromium 配对/axe/截图回归通过，离线视觉基线已人工核对 | Contracts、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-024 |
-| 2026-07-22 | M2-023 | 进行中 | 正在将顶栏静态“Bridge 未连接”替换为真实回环状态，并实现便携版启动步骤、Gateway 配对码签发、`newemby://pair` 协议唤起、轮询复检及 PotPlayer/SMTC 分项能力提示 | Web、Bridge 回环 API、Gateway 配对 API、进度表 | 完成探测、配对、离线和能力状态回归 |
+| 2026-07-22 | M2-023 | 完成 | 顶栏静态提示已替换为每 5 秒读取固定回环 `/v1/status?apiVersion=1` 的真实状态控件；弹层将 Bridge 连接/API 兼容、PotPlayer 发现/版本/运行状态和 SMTC 监听能力分项呈现，不把首次未授权 CORS 失败伪装成确定离线。登录用户可签发 60 秒配对码并通过 `lumarelay://pair` 显式唤起，弹层在配对期间自动复检；便携版正常启动会刷新当前用户协议注册，移动目录后再次运行即可修复，无需安装器或管理员权限。Contracts 14 项、Web 30 项和 Bridge 112 项测试、Web lint/typecheck/build、Chromium 配对/axe/截图回归通过，离线视觉基线已人工核对 | Contracts、Web、Player Bridge、Playwright、项目计划、README、进度表 | M2-024 |
+| 2026-07-22 | M2-023 | 进行中 | 正在将顶栏静态“Bridge 未连接”替换为真实回环状态，并实现便携版启动步骤、Gateway 配对码签发、`lumarelay://pair` 协议唤起、轮询复检及 PotPlayer/SMTC 分项能力提示 | Web、Bridge 回环 API、Gateway 配对 API、进度表 | 完成探测、配对、离线和能力状态回归 |
 | 2026-07-22 | M2-022 | 完成 | 所有 Playing/Progress/Stopped 请求现携带正整数 `sequence`；Gateway 使用规范化 JSON SHA-256 指纹和 SQLite `playback_events` 表原子声明、完成或释放事件，相同已完成事件直接返回 200，负载冲突、跳号、并发待处理和终态后事件统一返回 409，只有 Emby 成功后才原子推进 PlaybackSession。Bridge 按 PlaySession 串行分配序号，在网络超时、408、429、5xx 或待处理冲突时使用同一序号与负载、新 nonce 重试；临时队列仅覆盖 Bridge 进程生命周期。新增迁移 009 的 `up/down/up` 通过；Contracts 13 项、Emby Client 60 项、Gateway 105 项、Bridge 111 项测试及冻结安装、生产依赖审计、完整 `verify:local`、本地 Smoke 全部通过。审计发现的 `fast-uri` 高危版本已通过精确 override 升级，当前无已知生产依赖漏洞 | Contracts、Gateway、SQLite、Player Bridge、依赖锁文件、项目计划、进度表 | M2-023 |
 | 2026-07-22 | M2-022 | 进行中 | 正在为所有 Playing/Progress/Stopped 请求增加正整数 `sequence`；Bridge 按 PlaySession 串行发送并在可恢复网络错误后以同一负载、同一序号和新 nonce 重试，Gateway 使用 SQLite 事件表先原子声明，Emby 成功后再原子完成并推进 PlaybackSession.lastSequence | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成重复、乱序、并发与断网恢复测试 |
 | 2026-07-22 | M2-021 | 完成 | Bridge 对所有已成功 Playing 的会话建立终态收口：Ended 使用最后有效位置发送一次 `ended` Stopped；Stopped/Closed 发送 `userExit`；已开始会话从匹配快照消失发送 `playerExit`；Bridge 优雅关闭前为仍活跃会话尽力补发 `bridgeExit`。心跳会忽略已确认停止的会话，失败的 Stopped 不会误标完成，可由后续终态观察重试。Gateway 继续按设备绑定 PlaybackSession 恢复加密登录上下文，调用 Emby `/Sessions/Playing/Stopped` 成功后原子保存最终位置和 `stoppedAt`。Contracts 13 项、Emby Client 60 项、Gateway 101 项和 Bridge 110 项测试通过，覆盖自然结束、主动停止/关闭、快照消失和宿主关闭 | Contracts、Emby Client、Gateway、SQLite PlaybackSession、Player Bridge、项目计划、进度表 | M2-022 |
@@ -622,11 +622,11 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-22 | M2-018 | 进行中 | 正在建立已兑换 PlayTicket 对应的持久化播放会话；Bridge 仅发送设备绑定的 `playSessionId` 与新鲜播放器快照，Gateway 从加密认证会话恢复 Emby 上下文并调用 `/Sessions/Playing`，不向 Bridge、浏览器或错误响应暴露 AccessToken | Contracts、Emby Client、Gateway、SQLite、Player Bridge、进度表 | 完成 Playing 契约、隔离测试和迁移验证 |
 | 2026-07-22 | M2-017 | 完成 | 已为每个匹配会话读取 GSMTC PlaybackInfo 与 TimelineProperties，覆盖播放枚举、速率、开始/结束、位置、可跳转范围和最后更新时间；全部时间线归一化为相对媒体起点的非负 Ticks，并对无效范围、负值、越界和极端 `long` 输入安全钳制。状态保留 Playing、Paused、Stopped、Closed、Opened、Changing 和 Unknown，位置偏离按更新时间与速率计算的预期值超过两秒时标记跳转，Playing 时间线超过五秒未更新或速率无效时标记陈旧。针对 PotPlayer 自然结束时仍短暂报告 Playing 却将时间线归零的真实行为，监控器保留上一份有效快照，将接近末尾后归零或末尾附近的 Stopped/Closed 归一化为 Ended；播放/时间线事件立即刷新，一秒轮询兜底，匹配丢失后解除事件订阅并移除快照。本任务未提前发送 Emby 回传。Windows build 26100 与 PotPlayer `1.7.22398.0` 的系统短音频实测确认持续位置/更新时间、暂停为 Paused、跳转请求被接受、恢复以及自然结束归零行为；测试实例均已关闭。最新 self-contained 单文件以 PID 11488 保留后台运行，Bridge/SMTC 为 `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、99 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke、C# 行长和差异检查通过 | Player Bridge、GSMTC PlaybackInfo/Timeline、播放快照、README、项目计划、进度表 | M2-018 |
 | 2026-07-22 | M2-017 | 进行中 | 正在为已匹配的 PotPlayer GSMTC 会话建立播放快照，组合 PlaybackInfo 与 TimelineProperties，处理无效范围、位置钳制、暂停/恢复、跳转、时间线停止更新和媒体结束；本任务不提前发送 Emby Playing/Progress/Stopped | Player Bridge、GSMTC 播放状态、时间线、进度表 | 完成事件归一化、边界测试和 Windows 实机验证 |
-| 2026-07-22 | M2-016 | 完成 | 已在 PotPlayer 安全启动成功后记录进程 ID、启动时间和 PlaySessionId，并实现托管的 GSMTC 会话匹配器：只接受仍为同一存活进程、来源精确属于受支持 PotPlayer 且媒体标题等于 `NewEmby:<PlaySessionId>` 的唯一候选；单一但标题不符时不猜测，重复精确候选标记为歧义，15 秒内等待后超时，进程退出或 PID 复用立即失效。匹配随会话/媒体属性事件刷新并以一秒轮询兜底，多实例按 PlaySessionId 隔离，内部会话句柄可供 M2-017 读取并支持显式解除跟踪，不通过状态 API 泄露。Windows build 26100 使用 PotPlayer `1.7.22398.0` 和系统短音频实测确认 GSMTC 来源为受支持标识、临时媒体标题不会误匹配，最终精确 `/title` 标识仅匹配一次；测试进程已关闭。最新 self-contained 单文件发布成功并以 PID 436 保留后台运行，状态为 Bridge/SMTC `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、88 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、README、项目计划、进度表 | M2-017 |
-| 2026-07-22 | M2-016 | 进行中 | 正在建立 NewEmby 启动记录与 PotPlayer GSMTC 会话之间的确定性匹配：优先使用唯一 `/title` 播放会话标识，并以受控进程生命周期和媒体属性辅助确认；多实例候选冲突时保持未匹配，不把状态写入错误媒体 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、进度表 | 完成匹配状态机、歧义隔离和 Windows 实机验证 |
+| 2026-07-22 | M2-016 | 完成 | 已在 PotPlayer 安全启动成功后记录进程 ID、启动时间和 PlaySessionId，并实现托管的 GSMTC 会话匹配器：只接受仍为同一存活进程、来源精确属于受支持 PotPlayer 且媒体标题等于 `LumaRelay:<PlaySessionId>` 的唯一候选；单一但标题不符时不猜测，重复精确候选标记为歧义，15 秒内等待后超时，进程退出或 PID 复用立即失效。匹配随会话/媒体属性事件刷新并以一秒轮询兜底，多实例按 PlaySessionId 隔离，内部会话句柄可供 M2-017 读取并支持显式解除跟踪，不通过状态 API 泄露。Windows build 26100 使用 PotPlayer `1.7.22398.0` 和系统短音频实测确认 GSMTC 来源为受支持标识、临时媒体标题不会误匹配，最终精确 `/title` 标识仅匹配一次；测试进程已关闭。最新 self-contained 单文件发布成功并以 PID 436 保留后台运行，状态为 Bridge/SMTC `ready`。完整 `verify:local` 通过：215 项 JS/TS 单测、88 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、README、项目计划、进度表 | M2-017 |
+| 2026-07-22 | M2-016 | 进行中 | 正在建立 LumaRelay 启动记录与 PotPlayer GSMTC 会话之间的确定性匹配：优先使用唯一 `/title` 播放会话标识，并以受控进程生命周期和媒体属性辅助确认；多实例候选冲突时保持未匹配，不把状态写入错误媒体 | Player Bridge、PotPlayer 启动跟踪、GSMTC 会话匹配、进度表 | 完成匹配状态机、歧义隔离和 Windows 实机验证 |
 | 2026-07-22 | M2-015 | 完成 | 已接入 Windows `GlobalSystemMediaTransportControlsSessionManager`，由 Bridge 生命周期托管并订阅会话增删、媒体属性、播放信息和时间线变化；状态接口只公开 API 能力、监控状态和聚合数量，不泄露其他应用的会话标识。PotPlayer 空闲且没有 GSMTC 会话时返回“尚未观察”，与 API 不可用或平台不支持明确区分；旧会话刷新、初始化失败和退出均释放订阅及管理器。Windows build 26100 的最新 self-contained 单文件实测为 `ready`、监控中、0 个会话且 PotPlayer 尚未观察，Bridge 已保留运行供本地验证。完整 `verify:local` 通过：215 项 JS/TS 单测、77 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（另 1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；首次全量验证遇到既有滚动恢复用例偶发偏差，定向复跑和第二次完整质量门均通过。本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、Windows GSMTC、状态契约、README、项目计划、进度表 | M2-016 |
 | 2026-07-22 | M2-015 | 进行中 | 正在实现 Windows `GlobalSystemMediaTransportControlsSessionManager` 能力检查和 Bridge 生命周期托管；订阅会话增删、媒体属性、播放信息与时间线变化，仅公开聚合状态，不泄露其他应用会话信息。PotPlayer 空闲且没有 GSMTC 会话时标记为“尚未观察”，不误判为已关闭；会话精确匹配和时间线读取仍留给 M2-016/017 | Player Bridge、Windows GSMTC、状态契约、README、进度表 | 完成订阅释放、事件刷新和实机 API 验证 |
-| 2026-07-22 | M2-014 | 完成 | 已将启动能力纳入 `IPlayerAdapter`，实现 PotPlayer 无 shell 进程启动和独立 `ArgumentList` 参数传递：固定 `/new`，非零续播点使用不跨天回绕的 `/seek=HH:MM:SS.mmm`，`/title` 只含 NewEmby 前缀与规范播放会话 UUID，可选 `/sub` 与最终媒体参数仅接受 Bridge 配置端口上的 `127.0.0.1`/`::1` 精确会话路径。已拒绝错误可执行文件、非回环 Host、其他端口、用户信息、查询、片段、会话错配、非法 Ticks 及空会话 ID，不生成 `/headers`，启动失败统一脱敏；本任务未提前开放浏览器播放入口，也未在尚无本地流端点时实际唤起桌面播放器。完整 `verify:local` 通过：215 项 JS/TS 单测、72 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；Windows self-contained 单文件发布、本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、`IPlayerAdapter`、PotPlayer 参数安全、项目计划、README、进度表 | M2-015 |
+| 2026-07-22 | M2-014 | 完成 | 已将启动能力纳入 `IPlayerAdapter`，实现 PotPlayer 无 shell 进程启动和独立 `ArgumentList` 参数传递：固定 `/new`，非零续播点使用不跨天回绕的 `/seek=HH:MM:SS.mmm`，`/title` 只含 LumaRelay 前缀与规范播放会话 UUID，可选 `/sub` 与最终媒体参数仅接受 Bridge 配置端口上的 `127.0.0.1`/`::1` 精确会话路径。已拒绝错误可执行文件、非回环 Host、其他端口、用户信息、查询、片段、会话错配、非法 Ticks 及空会话 ID，不生成 `/headers`，启动失败统一脱敏；本任务未提前开放浏览器播放入口，也未在尚无本地流端点时实际唤起桌面播放器。完整 `verify:local` 通过：215 项 JS/TS 单测、72 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；Windows self-contained 单文件发布、本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、`IPlayerAdapter`、PotPlayer 参数安全、项目计划、README、进度表 | M2-015 |
 | 2026-07-22 | M2-014 | 进行中 | 正在实现 PotPlayer `/new`、`/seek`、`/title`、`/sub` 参数构建和无 shell 进程启动；媒体及字幕只接受 Bridge 自身的回环 HTTP URL，播放会话 ID 使用规范 UUID，所有参数通过 `ArgumentList` 逐项传递，拒绝用户信息、查询、片段、换行和非回环地址 | Player Bridge、PotPlayer 适配器、启动安全、README、进度表 | 完成参数注入与 Token 泄露回归验证 |
 | 2026-07-22 | M2-013 | 完成 | 已实现 PotPlayer 运行进程、当前用户/本机 App Paths、DAUM 安装信息和有界标准目录的自动发现；候选必须是规范化且实际存在的受支持可执行文件，重复路径合并后优先运行中实例和 x64，状态接口只公开稳定适配器 ID、版本、架构及运行状态。启动器版本为占位 `0.0.0.0` 时安全回退到同目录核心 DLL，本机真实回环与 Windows 单文件便携发布均识别到唯一 x64 PotPlayer `1.7.22398.0`，且未暴露安装路径。完整 `verify:local` 通过：215 项 JS/TS 单测、51 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、26 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；本地 Web/Gateway Smoke 和差异检查通过 | Player Bridge、PotPlayer 发现、状态契约、项目计划、README、进度表 | M2-014 |
 | 2026-07-22 | M2-013 | 进行中 | 正在实现 PotPlayer 运行进程、App Paths、DAUM 安装信息和标准目录的有界自动发现；候选必须是规范化且实际存在的受支持可执行文件，版本读取在启动器报告占位版本时回退到同目录核心 DLL，状态响应不暴露安装路径 | Player Bridge、PotPlayer 适配边界、状态契约、README、进度表 | 完成去重排序、无安装和本机安装验证 |
@@ -636,22 +636,22 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-22 | M2-011 | 进行中 | 正在建立只持久化票据 HMAC 摘要的一次性 PlayTicket 数据模型，显式关联认证会话、Bridge 设备、Server、Emby 用户/条目、媒体源、播放会话、续播点、音字幕选择、过期和兑换状态；本任务不提前实现签发或兑换接口 | Gateway、SQLite、Contracts、项目计划、进度表 | 完成迁移约束和 `up/down/up` 验证 |
 | 2026-07-17 | M2-010 | 完成 | 已新增当前登录用户、当前服务器范围内的 Bridge 设备列表和 CSRF/精确 Origin 保护的网页撤销接口，跨用户设备统一返回不存在；Bridge 可使用设备凭证与新 nonce 自撤销，服务器实际切换会批量撤销旧服务器设备，已撤销凭证不能再认证。便携 Bridge 新增 `--unpair`，仅在 Gateway 撤销成功或已返回 401 时清理当前 Windows 用户 Credential Manager；网页可通过受 Origin 与 nonce 保护的回环接口清理本机凭证。完整 `verify:local` 通过：188 项 JS/TS 单测、45 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（1 项显式跳过）及 Chromium/Firefox 2 项兼容回归全部成功，.NET 构建 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke、Windows 单文件便携发布和差异检查通过，临时数据库及备份已清理 | Contracts、Gateway、SQLite、Player Bridge、项目计划、README、进度表 | M2-011 |
 | 2026-07-17 | M2-010 | 进行中 | 正在实现当前登录用户的 Bridge 设备列表、CSRF 保护的解除配对、设备凭证自撤销、服务器切换批量撤销，以及 Bridge 远端撤销成功后清理 Windows Credential Manager | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成所有权隔离与撤销后认证失败验证 |
-| 2026-07-17 | M2-009 | 完成 | 已为浏览器到回环 Bridge 的带 Origin 请求实施配对来源精确匹配，未配对或非允许网页不获得 CORS；无 Origin 只读状态保留本机诊断，状态写请求要求 Base64URL nonce，并以线程安全五分钟内存窗口拒绝重放，PNA 预检只对允许来源开放。Bridge 到 Gateway 使用 `NewEmbyDevice` 凭证方案和新 nonce，`POST /api/v1/bridge/devices/:deviceId/heartbeat` 验证设备；Gateway 以 SQLite 唯一约束保存 nonce HMAC 摘要，跨进程/重启拒绝五分钟内重放，并区分无效凭证、非法 nonce 和重放。根级 format/lint/typecheck、184 项 JS/TS 单测、40 项 .NET 测试和全量构建通过且 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke 和差异检查通过 | Contracts、Gateway、SQLite、Player Bridge、Origin/CORS、nonce、README、进度表 | M2-010 |
+| 2026-07-17 | M2-009 | 完成 | 已为浏览器到回环 Bridge 的带 Origin 请求实施配对来源精确匹配，未配对或非允许网页不获得 CORS；无 Origin 只读状态保留本机诊断，状态写请求要求 Base64URL nonce，并以线程安全五分钟内存窗口拒绝重放，PNA 预检只对允许来源开放。Bridge 到 Gateway 使用 `LumaRelayDevice` 凭证方案和新 nonce，`POST /api/v1/bridge/devices/:deviceId/heartbeat` 验证设备；Gateway 以 SQLite 唯一约束保存 nonce HMAC 摘要，跨进程/重启拒绝五分钟内重放，并区分无效凭证、非法 nonce 和重放。根级 format/lint/typecheck、184 项 JS/TS 单测、40 项 .NET 测试和全量构建通过且 0 警告/0 错误；临时 SQLite `up/down/up`、本地 Smoke 和差异检查通过 | Contracts、Gateway、SQLite、Player Bridge、Origin/CORS、nonce、README、进度表 | M2-010 |
 | 2026-07-17 | M2-009 | 进行中 | 正在实现已配对 Bridge 的精确 Origin CORS、状态写请求 nonce、内存重放窗口，以及 Gateway 设备凭证认证、nonce 摘要持久化和心跳验证接口；不提前实现设备列表或解除配对 | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成来源隔离与并发重放验证 |
-| 2026-07-17 | M2-008 | 完成 | 已新增配对码兑换契约和 `POST /api/v1/bridge/pairings/redeem`，Gateway 在单一 SQLite 事务中原子删除配对码、创建设备并签发 32 字节设备凭证；过期、未知和重放统一返回 `PAIRING_CODE_INVALID`，数据库仅保存带域分隔的设备凭证 HMAC 摘要。Bridge 支持 `newemby://pair` 与诊断命令，仅允许 HTTPS 或回环 HTTP Gateway，禁止跟随重定向，并将 Gateway、设备 ID、凭证及允许来源保存到当前 Windows 用户 Credential Manager；`/v1/status` 已反映实际配对状态。根级 format/lint/typecheck、178 项 JS/TS 单测、35 项 .NET 测试及全量构建通过且 0 警告/0 错误；Credential Manager 实机往返与清理、临时 SQLite `up/down/up`、本地 Smoke 和 Windows 单文件发布通过 | Contracts、Gateway、SQLite、Player Bridge、Credential Manager、README、进度表 | M2-009 |
+| 2026-07-17 | M2-008 | 完成 | 已新增配对码兑换契约和 `POST /api/v1/bridge/pairings/redeem`，Gateway 在单一 SQLite 事务中原子删除配对码、创建设备并签发 32 字节设备凭证；过期、未知和重放统一返回 `PAIRING_CODE_INVALID`，数据库仅保存带域分隔的设备凭证 HMAC 摘要。Bridge 支持 `lumarelay://pair` 与诊断命令，仅允许 HTTPS 或回环 HTTP Gateway，禁止跟随重定向，并将 Gateway、设备 ID、凭证及允许来源保存到当前 Windows 用户 Credential Manager；`/v1/status` 已反映实际配对状态。根级 format/lint/typecheck、178 项 JS/TS 单测、35 项 .NET 测试及全量构建通过且 0 警告/0 错误；Credential Manager 实机往返与清理、临时 SQLite `up/down/up`、本地 Smoke 和 Windows 单文件发布通过 | Contracts、Gateway、SQLite、Player Bridge、Credential Manager、README、进度表 | M2-009 |
 | 2026-07-17 | M2-008 | 进行中 | 正在实现 Bridge 使用 60 秒配对码换取设备凭证、Gateway 只保存凭证摘要、Bridge 将明文保存到当前 Windows 登录用户的 Credential Manager；本任务不提前实现请求 nonce 或设备管理界面 | Contracts、Gateway、SQLite、Player Bridge、进度表 | 完成原子兑换与凭证安全保存验证 |
 | 2026-07-17 | M2-007 | 完成 | 已新增 `POST /api/v1/bridge/pairing-codes` 契约与 OpenAPI，只有当前服务器的已登录会话可在精确 Origin 和 CSRF 校验后签发；配对码使用 32 字节随机值、固定 60 秒有效期，同一会话重复签发会替换旧码，SQLite 仅持久化带域分隔的 HMAC-SHA256 摘要并在启动时清理过期记录。全仓 format/lint/typecheck、174 项 JS/TS 单测、23 项 .NET 测试、应用与 Storybook 构建、2 项视觉/axe、25 项 Chromium E2E（1 项显式跳过）和 2 项 Chromium/Firefox 兼容回归通过；临时 SQLite 迁移 `up/down/up`、本地 Web/Gateway Smoke 与差异检查通过 | Contracts、Gateway、SQLite 迁移、OpenAPI、项目计划、进度表 | M2-008 |
 | 2026-07-17 | M2-007 | 进行中 | 正在实现仅由当前登录用户签发的 60 秒高熵配对码、SQLite 摘要存储、CSRF/Origin 保护与认证隔离测试；本任务不提前实现 Bridge 兑换设备凭证 | Contracts、Gateway、SQLite、进度表 | 完成配对码安全与过期验证 |
 | 2026-07-17 | M2-006 | 延期 | 按用户确认，当前阶段不实现 Windows 安装器和卸载器，改为直接交付 self-contained single-file 便携版；文档已补充固定目录放置、手工协议注册、移动或删除前注销协议以及进程退出方式。任务保持未勾选且不计入 M2 完成数，不阻塞播放闭环继续开发 | 项目计划、Bridge README、根 README、进度表 | M2-007 |
 | 2026-07-17 | M2-005 | 完成 | 已将 Bridge 拆分为跨平台 `net8.0` 测试目标与 `net8.0-windows` WinForms 发布目标；Windows 单文件以无控制台托盘应用运行，托盘菜单展示身份/版本并提供退出，进程使用当前用户命名互斥量限制单实例，`--shutdown` 通过命名事件触发 HTTP Host 五秒内优雅停止。23 项 .NET 测试、锁定还原、分析器和双目标 Release 构建通过且 0 警告/0 错误。发布产物实机验证确认主进程建立两个回环监听、第二实例以 0 退出且未监听、shutdown 与主进程均以 0 退出并彻底移除监听 | Player Bridge、Windows Forms、生命周期、xUnit、README、进度表 | M2-006 |
 | 2026-07-17 | M2-005 | 进行中 | 正在实现 Windows Forms 托盘上下文、单实例锁、启动与托盘/命令行优雅退出，同时保留跨平台测试目标 | Player Bridge、Windows Forms、进度表 | 完成托盘生命周期实机验证 |
-| 2026-07-17 | M2-004 | 完成 | 已实现当前用户级 `newemby://` Windows 协议注册与卸载命令，精确写入 `HKCU\Software\Classes\newemby` 的 URL 标记、图标和 shell open command；可执行文件与 `%1` 均独立加引号，路径必须为规范化 `.exe`，无需管理员权限。21 项 .NET 测试覆盖命令解析、URI 激活参数保留、精确注册值、安全路径拒绝和只删除协议树；分析器与 Release 构建 0 警告/0 错误。发布单文件已完成可逆实机注册，所有注册值核对通过，随后卸载并确认注册表恢复为无协议键 | Player Bridge、Windows 注册表、xUnit、README、进度表 | M2-005 |
-| 2026-07-17 | M2-004 | 进行中 | 正在实现当前用户级 `newemby://` 协议注册、卸载、可测试注册表边界和带引号的 URI 启动命令 | Player Bridge、Windows 注册表、进度表 | 完成可逆协议注册验证 |
+| 2026-07-17 | M2-004 | 完成 | 已实现当前用户级 `lumarelay://` Windows 协议注册与卸载命令，精确写入 `HKCU\Software\Classes\lumarelay` 的 URL 标记、图标和 shell open command；可执行文件与 `%1` 均独立加引号，路径必须为规范化 `.exe`，无需管理员权限。21 项 .NET 测试覆盖命令解析、URI 激活参数保留、精确注册值、安全路径拒绝和只删除协议树；分析器与 Release 构建 0 警告/0 错误。发布单文件已完成可逆实机注册，所有注册值核对通过，随后卸载并确认注册表恢复为无协议键 | Player Bridge、Windows 注册表、xUnit、README、进度表 | M2-005 |
+| 2026-07-17 | M2-004 | 进行中 | 正在实现当前用户级 `lumarelay://` 协议注册、卸载、可测试注册表边界和带引号的 URI 启动命令 | Player Bridge、Windows 注册表、进度表 | 完成可逆协议注册验证 |
 | 2026-07-17 | M2-003 | 完成 | 已实现 `GET /v1/status` 稳定 JSON，返回 Bridge 身份与版本、API 主版本及兼容范围、ready 状态、Windows/x64 目标、配对状态和播放器摘要；可选 `apiVersion` 对缺省、兼容、不兼容及非法值给出明确兼容判断，响应禁止缓存且不包含机器名、路径或环境信息。13 项 .NET 测试、分析器和 Release 构建通过且 0 警告/0 错误；发布单文件实机请求确认 Bridge 0.1.0/API 1 对版本 1 返回兼容、对版本 2 返回不兼容，当前未配对且播放器列表为空 | Player Bridge、状态契约、xUnit、README、进度表 | M2-004 |
 | 2026-07-17 | M2-003 | 进行中 | 正在实现 `/v1/status` 稳定 JSON 契约、Bridge/API 版本与客户端兼容判断；播放器发现和真实配对状态仍由后续任务接入 | Player Bridge、HTTP 契约、进度表 | 完成状态与兼容响应验证 |
 | 2026-07-17 | M2-002 | 完成 | 已使用 Kestrel 建立 Bridge HTTP 宿主，固定监听 `127.0.0.1` 与可用时的 `::1`，仅启用 HTTP/1.1、关闭 Server 响应头，并清空 URL/Kestrel 外部端点配置，避免命令行或环境变量注入公网监听；端口默认 58080，可由受范围校验的环境变量或参数覆盖。9 项 .NET 测试覆盖默认值、优先级、非法端口、IPv4/IPv6 实际请求和通配端点注入拒绝，Release 构建 0 警告/0 错误。发布单文件实机进程仅出现两个回环监听，根路径保持 404；锁定还原、格式、分析器、包级测试/构建均通过 | Player Bridge、Kestrel、xUnit、README、进度表 | M2-003 |
 | 2026-07-17 | M2-002 | 进行中 | 正在实现固定回环绑定的 HTTP 宿主、可配置端口、进程生命周期与真实监听测试；本任务不提前加入 `/v1/status` 契约 | Player Bridge、Kestrel、进度表 | 完成回环隔离和生命周期验证 |
-| 2026-07-17 | M2-001 | 完成 | 已初始化 .NET 8.0.422 解决方案、Bridge 可执行项目和 xUnit 测试项目，固定 `NewEmby.PlayerBridge` 应用身份并预留 `IPlayerAdapter`；NuGet 依赖使用锁文件，Bridge 已纳入 pnpm 根级 lint/typecheck/test/build 和 CI 的 .NET SDK 配置。Release 构建 0 警告/0 错误、2 项边界测试与锁定还原通过；`win-x64` self-contained single-file 发布仅生成一个约 35 MB 的 EXE，实机启动输出版本 0.1.0。完整 `verify:local`、167 项 JS/TS 单测、Storybook、2 项组件视觉/axe、25 项 Chromium E2E、2 项 Chromium/Firefox 兼容回归、生产依赖审计和本地 Smoke 全部通过 | Player Bridge、.NET 8、pnpm/CI、README、进度表 | M2-002 |
+| 2026-07-17 | M2-001 | 完成 | 已初始化 .NET 8.0.422 解决方案、Bridge 可执行项目和 xUnit 测试项目，固定 `LumaRelay.PlayerBridge` 应用身份并预留 `IPlayerAdapter`；NuGet 依赖使用锁文件，Bridge 已纳入 pnpm 根级 lint/typecheck/test/build 和 CI 的 .NET SDK 配置。Release 构建 0 警告/0 错误、2 项边界测试与锁定还原通过；`win-x64` self-contained single-file 发布仅生成一个约 35 MB 的 EXE，实机启动输出版本 0.1.0。完整 `verify:local`、167 项 JS/TS 单测、Storybook、2 项组件视觉/axe、25 项 Chromium E2E、2 项 Chromium/Firefox 兼容回归、生产依赖审计和本地 Smoke 全部通过 | Player Bridge、.NET 8、pnpm/CI、README、进度表 | M2-002 |
 | 2026-07-17 | M2-001 | 进行中 | 正在初始化 C# / .NET 8 Player Bridge 工程、测试工程与 Windows self-contained single-file 发布配置，并预留播放器适配边界 | Player Bridge、.NET 工具链、进度表 | 完成工程构建、测试和发布验证 |
 | 2026-07-17 | M1-028 | 完成 | Playwright 已建立 Chromium、Chrome、Firefox 和本机 Edge 桌面兼容项目，覆盖首页布局、键盘跳转、媒体导航、顶栏搜索、Escape 关闭与焦点恢复、横向溢出及运行时控制台错误；修复搜索浮层关闭后焦点未回到触发按钮的问题。本机四浏览器 4/4 通过，CI 配置加入 Chromium 与 Firefox（远程 Actions 仍按 M0-004 保持阻塞）；全仓 167 项单测、25 项 Chromium E2E、2 项 Chromium/Firefox 兼容回归、Storybook、axe/视觉、lint/typecheck/build 均通过。生产构建首页可交互 660 ms，本地 Smoke、迁移 `up/down/up` 和差异检查通过。M1 五项发布门全部满足，阶段收口为 28/28 | Web、Playwright、CI、README、进度表 | M2-001 |
 | 2026-07-17 | M1-027 | 完成 | 已引入 TanStack React Virtual 对电影、剧集和通用媒体库执行 window 行级虚拟化，仅保留可见行及相邻一行；100 项回归确认 DOM 不再一次性渲染全部卡片。媒体图片补齐固定宽高，普通图片原生懒加载并使用低优先级，首张媒体图与详情焦点图使用 eager/high；Image Tag 继续作为不可变代理缓存键。媒体路由使用不抛异常的预取，在虚拟网格测量前准备缓存，同时保持 401、403、离线状态和滚动恢复。生产构建在受控 10 Mbps/40 ms 网络下首个有效交互为 698 ms；真实 Emby 4.8.9.0 只读首页聚合 36 项耗时 1095 ms，图片与详情读取正常且会话已退出。全仓 167 项单测、lint/typecheck/build、生产性能门、24 项 E2E（另 1 项显式性能用例在普通套件跳过）、本地 Smoke、格式和差异检查通过，既有卡片视觉基线未改变 | Web、UI、TanStack Virtual、Playwright、Smoke | M1-028 |
@@ -686,7 +686,7 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-16 | M1-013 | 进行中 | 正在修复 Windows 根 `dev` 启动链路，建立认证媒体 API、图片代理和 `/home` 首页 | Contracts、Emby Client、Gateway、Web | 完成首页验证与提交 |
 | 2026-07-16 | QA-004 | 完成 | 已修复缺图、字段关联、查询门控与当前服务器读取失败状态；用户菜单改为具备 Escape、焦点恢复和外部关闭的 Radix 菜单，未实现入口统一禁用，有效导航使用 TanStack Link，非 JSON 代理错误保留状态与 Request ID；全仓 122 项单测、构建、Storybook、2 项组件视觉/axe、5 项认证/守卫/页面 axe/键盘/截图 E2E、本地 smoke、迁移 `up/down/up`、冻结安装、生产审计（0 漏洞）和差异检查通过；真实 Emby 4.8.9.0 再次完成探测、登录、用户、16 个视图、授权媒体、图片和退出，未记录敏感信息 | UI、Web、Playwright/CI、进度表 | M1-013 |
 | 2026-07-16 | QA-004 | 进行中 | 正在修复前端状态、表单可访问性、用户菜单、导航与 API 错误兼容，并扩展页面级回归 | UI、Web、Playwright/CI | 完成 QA-004 验证与提交 |
-| 2026-07-16 | QA-003 | 完成 | 已从 `@newemby/emby-client` 公共入口导出 Server/User/Media/Season/Episode/Person DTO Schema 与适配器，延迟固定为独立 Ping 耗时，未知类型继续安全回退，真实 Smoke 的媒体查询显式限定类型；Emby Client 36 项、全仓 119 项单测、构建、Storybook、2 项视觉/axe、2 项认证 E2E、本地 smoke 与差异检查通过；真实 Emby 4.8.9.0 的公共探测、登录、当前用户、16 个视图、授权媒体、图片及退出全部通过且无敏感输出，目标 Emby 发布门已勾选 | `packages/emby-client`, `scripts/emby-smoke.mjs`, README/进度表 | QA-004 |
+| 2026-07-16 | QA-003 | 完成 | 已从 `@lumarelay/emby-client` 公共入口导出 Server/User/Media/Season/Episode/Person DTO Schema 与适配器，延迟固定为独立 Ping 耗时，未知类型继续安全回退，真实 Smoke 的媒体查询显式限定类型；Emby Client 36 项、全仓 119 项单测、构建、Storybook、2 项视觉/axe、2 项认证 E2E、本地 smoke 与差异检查通过；真实 Emby 4.8.9.0 的公共探测、登录、当前用户、16 个视图、授权媒体、图片及退出全部通过且无敏感输出，目标 Emby 发布门已勾选 | `packages/emby-client`, `scripts/emby-smoke.mjs`, README/进度表 | QA-004 |
 | 2026-07-16 | QA-003 | 进行中 | 正在补齐 Emby Client 公共领域导出、修正 Ping 延迟语义并建立真实 Emby Smoke | `packages/emby-client`, 根脚本、README/进度表 | 完成 QA-003 验证与提交 |
 | 2026-07-16 | QA-002 | 完成 | 已新增签名双提交 CSRF，服务器选择/登录/退出同时校验精确 Origin；切换 Server ID 会先撤销旧会话并尽力上游退出，同服务器和探测失败不破坏会话；会话错配、损坏密文、过期/撤销数据与登录落库失败均安全收口，`/admin` 具备服务器/登录/管理员能力守卫；117 项单测、构建、Storybook、2 项视觉/axe、2 项认证与管理 E2E、本地 smoke 和差异检查通过 | Contracts、Gateway、Web | QA-003 |
 | 2026-07-16 | QA-002 | 进行中 | 正在实现签名双提交 CSRF、服务器切换会话撤销、失效会话清理和管理路由能力守卫 | Contracts、Gateway、Web | 完成 QA-002 验证与提交 |
@@ -718,13 +718,13 @@ M4 可以在 M2 后半段开始，但不能早于 M1 的认证、权限和 Emby 
 | 2026-07-16 | M0-015 | 完成 | 已实现 Button、Input、Select、Dialog、Drawer、Toast、Skeleton、EmptyState、ErrorState、ConfirmDangerDialog；15 项 UI 测试、lint/typecheck 与 UI/Web 构建通过 | `packages/ui/src` | M0-016 |
 | 2026-07-16 | M0-014 | 完成 | 已实现 240px 管理侧栏、64px 顶栏、面包屑、1440px 内容区与高密度概览骨架；AdminShell 语义测试、UI/Web 全量验证通过 | `packages/ui/src/admin-shell.tsx`, `apps/web/src/routes/admin.tsx` | M0-015 |
 | 2026-07-16 | M0-013 | 完成 | 已实现 72/224px 前台侧栏、64px 上下文顶栏、跳转链接、Bridge/用户状态入口和应用路由布局；AppShell 语义测试、UI lint/build、Web typecheck/build 通过 | `packages/ui/src/app-shell.tsx`, `apps/web/src/routes/_app*` | M0-014 |
-| 2026-07-16 | M0-012 | 完成 | UX 颜色、字体、4px 间距、圆角、阴影、断点、焦点与减弱动效已映射到 Tailwind 主题变量，并加入仓库自有 SVG 标志；8 项令牌/资源测试及 Web 构建通过 | `packages/ui/src/theme.css`, `newemby-mark.svg`, `apps/web/src/styles.css` | M0-013 |
+| 2026-07-16 | M0-012 | 完成 | UX 颜色、字体、4px 间距、圆角、阴影、断点、焦点与减弱动效已映射到 Tailwind 主题变量，并加入仓库自有 SVG 标志；8 项令牌/资源测试及 Web 构建通过 | `packages/ui/src/theme.css`, `lumarelay-mark.svg`, `apps/web/src/styles.css` | M0-013 |
 | 2026-07-16 | M0-011 | 完成 | React 19、Vite 8、TanStack 文件路由、Query 默认缓存、Zustand UI 状态及开发 API 代理已初始化；路由树生成、单测、lint/typecheck/build 通过 | `apps/web` | M0-012 |
 | 2026-07-16 | M0-010 | 完成 | 已加入虚构 PublicInfo/Ping fixture、递归敏感键和值脱敏及失败闭合检查；4 项 fixture 测试和适配包全量验证通过 | `packages/emby-client/fixtures`, `fixture-safety.ts` | M0-011 |
 | 2026-07-16 | M0-009 | 完成 | 已实现允许列表保护的 Ping/PublicInfo 探测、子路径 URL 处理及不可达/TLS/超时/版本分类；Emby 适配 4 项与 Gateway 路由 3 项新增测试通过，真实目标服务器验证保留在 M0 发布门 | `packages/emby-client`, `apps/gateway/src/app.ts` | M0-010 |
 | 2026-07-16 | M0-008 | 完成 | Kysely/better-sqlite3 迁移框架、单活动服务器约束和迁移 CLI 已建立；临时数据库 up/down/up 测试通过 | `apps/gateway/src/database` | M0-009 |
 | 2026-07-16 | M0-007 | 完成 | Fastify Gateway 已实现健康检查、Request ID 透传/生成、敏感头脱敏结构化日志、统一错误和 OpenAPI 注册；4 项注入测试及 lint/typecheck/build 通过 | `apps/gateway/src` | M0-008 |
-| 2026-07-16 | M0-006 | 完成 | `@newemby/contracts` 已集中导出 Zod Schema、TS 类型、路由契约和 OpenAPI 元数据；4 项契约测试及 lint/typecheck/build 通过 | `packages/contracts` | M0-007 |
+| 2026-07-16 | M0-006 | 完成 | `@lumarelay/contracts` 已集中导出 Zod Schema、TS 类型、路由契约和 OpenAPI 元数据；4 项契约测试及 lint/typecheck/build 通过 | `packages/contracts` | M0-007 |
 | 2026-07-16 | M0-005 | 完成 | README 已记录分支、任务粒度、Conventional Commits、SemVer、里程碑版本和发布标签约定，格式检查通过 | `README.md` | M0-006 |
 | 2026-07-16 | M0-004 | 阻塞 | GitHub Actions workflow 已配置 format、lint、typecheck、test、build、Storybook 和 Playwright 视觉回归；待首次远程运行通过后勾选 | `.github/workflows/ci.yml` | M0-005 |
 | 2026-07-16 | M0-003 | 完成 | 已建立安全环境模板、开发说明、Compose/Caddy 同源生产模式和容器构建文件；变量完整性与跟踪规则检查通过，Docker 实构建待发布门验证 | `.env.example`, `compose.yaml`, `deploy/`, `README.md` | M0-004 |

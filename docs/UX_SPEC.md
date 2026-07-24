@@ -1,4 +1,4 @@
-# NewEmby 界面与视觉规范
+# LumaRelay 界面与视觉规范
 
 > 文档版本：v1.5
 > 视觉方向：紧凑、沉浸、玻璃质感、内容优先
@@ -19,7 +19,7 @@
 - 其他 `src/views/*.vue`：对应连接、登录、媒体库、详情和设置页面。
 
 参考应用只规定表现层，不复制其 Tauri、播放器、认证或直连 Emby 的实现。
-NewEmby 继续使用 React、Gateway 认证代理、TanStack、Radix 和既有领域契约；
+LumaRelay 继续使用 React、Gateway 认证代理、TanStack、Radix 和既有领域契约；
 强调色仍固定为 `#7C5CFF`，品牌标志仍使用仓库自有 SVG。参考路径在其他
 开发机不可用时，以本规范、已提交组件和 Chromium 视觉基线为准。
 
@@ -40,9 +40,9 @@ Hover、焦点、进度等短暂反馈中出现，静止卡片不持续发光。
 
 ### 1.1 品牌标识
 
-- 正式显示名称：`NewEmby`。
-- Player Bridge 应用 ID：`NewEmby.PlayerBridge`。
-- 自定义协议：`newemby://`。
+- 正式显示名称：`LumaRelay`。
+- Player Bridge 应用 ID：`LumaRelay.PlayerBridge`。
+- 自定义协议：`lumarelay://`。
 - 主强调色：`#7C5CFF`。
 - Logo 使用仓库自有 SVG，由播放三角形与字母 N 的几何关系构成。
 - 现有方向稿只用于视觉参考，正式 SVG 在 M0-012 中统一绘制，不直接
