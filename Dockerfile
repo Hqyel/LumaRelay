@@ -14,7 +14,7 @@ COPY packages/ui ./packages/ui
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @lumarelay/gateway... build \
   && pnpm --filter @lumarelay/web... build
-RUN pnpm --filter @lumarelay/gateway deploy --prod /opt/lumarelay
+RUN pnpm --filter @lumarelay/gateway deploy --prod --legacy /opt/lumarelay
 
 FROM node:22.13-bookworm-slim
 
