@@ -14,7 +14,7 @@ import {
   type PersonKind,
   type PersonSummary,
   type SeasonSummary,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import { z } from "zod";
 
 export const EmbyUserDataDtoSchema = z.object({

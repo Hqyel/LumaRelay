@@ -1,5 +1,5 @@
-import type { UserProfile } from "@newemby/contracts";
-import type { SideNavigationItem } from "@newemby/ui";
+import type { UserProfile } from "@lumarelay/contracts";
+import type { SideNavigationItem } from "@lumarelay/ui";
 import {
   Film,
   Heart,

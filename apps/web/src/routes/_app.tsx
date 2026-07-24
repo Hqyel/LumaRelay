@@ -1,5 +1,5 @@
-import type { UserProfile } from "@newemby/contracts";
-import { AppShell, type NavigationLinkRenderOptions } from "@newemby/ui";
+import type { UserProfile } from "@lumarelay/contracts";
+import { AppShell, type NavigationLinkRenderOptions } from "@lumarelay/ui";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -26,7 +26,7 @@ import { useUiStore } from "../stores/ui-store.js";
 
 function renderHomeLink(children: ReactNode, className: string) {
   return (
-    <Link aria-label="NewEmby 首页" className={className} to="/home">
+    <Link aria-label="LumaRelay 首页" className={className} to="/home">
       {children}
     </Link>
   );
@@ -133,7 +133,7 @@ function HeaderActions({ user }: { user: UserProfile }) {
         <DropdownMenu.Portal>
           <DropdownMenu.Content
             align="end"
-            className="z-50 min-w-52 overflow-hidden rounded-[16px] border border-border bg-glass p-2 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-select-in_150ms_cubic-bezier(0.16,1,0.3,1)]"
+            className="z-50 min-w-52 overflow-hidden rounded-[16px] border border-border bg-glass p-2 shadow-panel backdrop-blur-xl data-[state=open]:animate-[lumarelay-select-in_150ms_cubic-bezier(0.16,1,0.3,1)]"
             sideOffset={8}
           >
             <DropdownMenu.Label className="px-3 py-2 text-small text-text-muted">

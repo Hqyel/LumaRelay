@@ -115,7 +115,7 @@ describe("Web Gateway client", () => {
       year: [2024, 2026],
     });
     const requestedUrl = String(fetcher.mock.calls[0]?.[0]);
-    const params = new URL(requestedUrl, "http://newemby.local").searchParams;
+    const params = new URL(requestedUrl, "http://lumarelay.local").searchParams;
     expect(params.getAll("genre")).toEqual(["剧情", "科幻"]);
     expect(params.getAll("kind")).toEqual(["movie", "series"]);
     expect(params.getAll("year")).toEqual(["2024", "2026"]);
@@ -153,9 +153,9 @@ describe("Web Gateway client", () => {
     const selectionCall = fetcher.mock.calls.find(
       ([input]) => input === "/api/v1/servers/select",
     );
-    expect(new Headers(selectionCall?.[1]?.headers).get("x-newemby-csrf")).toBe(
-      "test-csrf-token-with-at-least-32-characters",
-    );
+    expect(
+      new Headers(selectionCall?.[1]?.headers).get("x-lumarelay-csrf"),
+    ).toBe("test-csrf-token-with-at-least-32-characters");
   });
 
   it("reads public users through the Gateway", async () => {

@@ -1,4 +1,4 @@
-import type { UserProfile } from "@newemby/contracts";
+import type { UserProfile } from "@lumarelay/contracts";
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "./api.js";

@@ -173,47 +173,47 @@ a {
   background: rgb(124 92 255 / 42%);
 }
 
-@keyframes newemby-shimmer {
+@keyframes lumarelay-shimmer {
   100% {
     transform: translateX(100%);
   }
 }
 
-@keyframes newemby-dialog-in {
+@keyframes lumarelay-dialog-in {
   from {
     opacity: 0;
     transform: translate(-50%, -48%) scale(0.96);
   }
 }
 
-@keyframes newemby-fade-in {
+@keyframes lumarelay-fade-in {
   from {
     opacity: 0;
   }
 }
 
-@keyframes newemby-drawer-in {
+@keyframes lumarelay-drawer-in {
   from {
     transform: translateX(1.5rem);
     opacity: 0;
   }
 }
 
-@keyframes newemby-toast-in {
+@keyframes lumarelay-toast-in {
   from {
     transform: translateY(0.75rem);
     opacity: 0;
   }
 }
 
-@keyframes newemby-select-in {
+@keyframes lumarelay-select-in {
   from {
     opacity: 0;
     transform: translateY(-0.25rem) scale(0.98);
   }
 }
 
-.newemby-select-value-scroll {
+.lumarelay-select-value-scroll {
   min-width: 0;
   max-width: calc(100% - 1.75rem);
   flex: 1 1 auto;
@@ -222,12 +222,12 @@ a {
   white-space: nowrap;
 }
 
-.newemby-select-value-scroll > span {
+.lumarelay-select-value-scroll > span {
   display: inline-block;
   min-width: max-content;
 }
 
-.newemby-select-trigger > svg {
+.lumarelay-select-trigger > svg {
   flex: none;
 }
 

@@ -1,4 +1,4 @@
-import { EmptyState } from "@newemby/ui";
+import { EmptyState } from "@lumarelay/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 

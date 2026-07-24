@@ -9,7 +9,7 @@ import {
   PLAY_TICKET_LIFETIME_SECONDS,
   PlayTicketSchema,
   type PlayTicketSelection,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import type { Kysely } from "kysely";
 
 import type { GatewayConfig } from "../config.js";
@@ -117,7 +117,7 @@ export interface PlayTicketRandomSource {
 
 function hashPlayTicketSecret(value: string, secret: string): string {
   return createHmac("sha256", secret)
-    .update("newemby:play-ticket-secret:")
+    .update("lumarelay:play-ticket-secret:")
     .update(value)
     .digest("hex");
 }

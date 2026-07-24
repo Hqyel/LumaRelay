@@ -1,4 +1,4 @@
-import { Button, ErrorState, Input } from "@newemby/ui";
+import { Button, ErrorState, Input } from "@lumarelay/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Server } from "lucide-react";

@@ -1,4 +1,4 @@
-import type { BridgeDeviceSummary } from "@newemby/contracts";
+import type { BridgeDeviceSummary } from "@lumarelay/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { AuthSessionStore } from "./database/auth-session-store.js";
@@ -6,7 +6,7 @@ import type { BridgeDeviceStore } from "./database/bridge-device-store.js";
 import type { ServerStore } from "./database/server-store.js";
 import { errorEnvelope } from "./errors.js";
 
-const DEVICE_AUTHORIZATION_PATTERN = /^NewEmbyDevice ([A-Za-z0-9_-]{43})$/;
+const DEVICE_AUTHORIZATION_PATTERN = /^LumaRelayDevice ([A-Za-z0-9_-]{43})$/;
 const NONCE_PATTERN = /^[A-Za-z0-9_-]{22,128}$/;
 
 export interface BridgeWebAuthDependencies {
@@ -39,7 +39,7 @@ export async function currentWebBridgeOwner(
     return null;
   }
 
-  const cookieToken = request.cookies.newemby_session;
+  const cookieToken = request.cookies.lumarelay_session;
   if (
     cookieToken === undefined ||
     dependencies.authSessionStore === undefined
@@ -56,13 +56,13 @@ export async function currentWebBridgeOwner(
   if (session === null || session.user.serverId !== server.serverId) {
     if (session !== null)
       await dependencies.authSessionStore.revoke(cookieToken);
-    void reply.clearCookie("newemby_session", { path: "/" });
+    void reply.clearCookie("lumarelay_session", { path: "/" });
     await reply
       .status(401)
       .send(
         errorEnvelope(
           "UNAUTHENTICATED",
-          "The NewEmby session has expired",
+          "The LumaRelay session has expired",
           request.id,
         ),
       );
@@ -96,7 +96,7 @@ export async function authenticateBridgeRequest(
     return null;
   }
 
-  const nonceHeader = request.headers["x-newemby-nonce"];
+  const nonceHeader = request.headers["x-lumarelay-nonce"];
   const nonce = Array.isArray(nonceHeader) ? nonceHeader[0] : nonceHeader;
   if (nonce === undefined || !NONCE_PATTERN.test(nonce)) {
     await reply

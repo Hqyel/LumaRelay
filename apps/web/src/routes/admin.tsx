@@ -2,7 +2,7 @@ import {
   AdminShell,
   type NavigationLinkRenderOptions,
   type SideNavigationItem,
-} from "@newemby/ui";
+} from "@lumarelay/ui";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   Activity,
@@ -76,7 +76,7 @@ const navigation: SideNavigationItem[] = [
 
 function renderHomeLink(children: ReactNode, className: string) {
   return (
-    <Link aria-label="NewEmby 管理概览" className={className} to="/admin">
+    <Link aria-label="LumaRelay 管理概览" className={className} to="/admin">
       {children}
     </Link>
   );
@@ -135,7 +135,7 @@ function AdminFoundationPage() {
         />
         <header className="relative mb-6">
           <p className="text-label font-semibold uppercase tracking-[0.14em] text-accent-hover">
-            NewEmby Control Center
+            LumaRelay Control Center
           </p>
           <h2 className="mt-1 text-h2 font-semibold text-text">服务器概览</h2>
           <p className="mt-2 max-w-2xl text-small text-text-muted">

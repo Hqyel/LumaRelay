@@ -1,4 +1,4 @@
-import type { UserProfile } from "@newemby/contracts";
+import type { UserProfile } from "@lumarelay/contracts";
 import { z } from "zod";
 
 import { EmbyAuthError } from "./auth-errors.js";
@@ -31,7 +31,7 @@ function authorizationHeader(deviceId: string): string {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
 
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
+    'Emby Client="LumaRelay", Device="Gateway", ' +
     `DeviceId="${safeDeviceId}", Version="0.0.0"`
   );
 }

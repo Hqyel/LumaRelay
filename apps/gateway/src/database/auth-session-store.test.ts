@@ -18,7 +18,7 @@ afterEach(() => {
 
 describe("Auth session store", () => {
   it("stores only a session hash and encrypted Emby token", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-auth-session-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-auth-session-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -68,7 +68,7 @@ describe("Auth session store", () => {
   });
 
   it("revokes damaged encrypted sessions instead of repeatedly throwing", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-damaged-session-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-damaged-session-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -117,7 +117,7 @@ describe("Auth session store", () => {
   });
 
   it("revokes all server sessions and prunes inactive rows", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-prune-session-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-prune-session-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 

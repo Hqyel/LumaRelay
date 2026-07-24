@@ -10,7 +10,7 @@ import {
   type PlaybackMediaSource,
   type PagedMediaResponse,
   type SeasonsResponse,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import {
   EmbyMediaError,
   getMediaHome,
@@ -27,7 +27,7 @@ import {
   type AuthenticatedImage,
   type AuthenticatedImageRequest,
   type AuthenticatedMediaRequest,
-} from "@newemby/emby-client";
+} from "@lumarelay/emby-client";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 import type { GatewayConfig } from "./config.js";
@@ -122,7 +122,7 @@ async function mediaContext(
     return null;
   }
 
-  const cookieToken = request.cookies.newemby_session;
+  const cookieToken = request.cookies.lumarelay_session;
   if (
     cookieToken === undefined ||
     dependencies.authSessionStore === undefined
@@ -139,13 +139,13 @@ async function mediaContext(
   if (session === null || session.user.serverId !== server.serverId) {
     if (session !== null)
       await dependencies.authSessionStore.revoke(cookieToken);
-    void reply.clearCookie("newemby_session", { path: "/" });
+    void reply.clearCookie("lumarelay_session", { path: "/" });
     await reply
       .status(401)
       .send(
         errorEnvelope(
           "UNAUTHENTICATED",
-          "The NewEmby session has expired",
+          "The LumaRelay session has expired",
           request.id,
         ),
       );
@@ -177,13 +177,13 @@ async function mediaFailure(
         });
 
   if (mediaError.kind === "unauthorized") {
-    const cookieToken = request.cookies.newemby_session;
+    const cookieToken = request.cookies.lumarelay_session;
     if (
       cookieToken !== undefined &&
       dependencies.authSessionStore !== undefined
     )
       await dependencies.authSessionStore.revoke(cookieToken);
-    void reply.clearCookie("newemby_session", { path: "/" });
+    void reply.clearCookie("lumarelay_session", { path: "/" });
     await reply
       .status(401)
       .send(

@@ -29,8 +29,8 @@ export function Dialog({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--color-overlay)] backdrop-blur-sm data-[state=open]:animate-[newemby-fade-in_150ms_ease-out]" />
-        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-panel border border-border bg-glass p-6 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-dialog-in_250ms_cubic-bezier(0.16,1,0.3,1)] sm:p-8">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--color-overlay)] backdrop-blur-sm data-[state=open]:animate-[lumarelay-fade-in_150ms_ease-out]" />
+        <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-panel border border-border bg-glass p-6 shadow-panel backdrop-blur-xl data-[state=open]:animate-[lumarelay-dialog-in_250ms_cubic-bezier(0.16,1,0.3,1)] sm:p-8">
           <div className="pr-12">
             <DialogPrimitive.Title className="text-h3 font-semibold text-text">
               {title}

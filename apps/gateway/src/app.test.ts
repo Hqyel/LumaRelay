@@ -1,4 +1,4 @@
-import { EmbyAuthError, EmbyProbeError } from "@newemby/emby-client";
+import { EmbyAuthError, EmbyProbeError } from "@lumarelay/emby-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
@@ -37,7 +37,7 @@ async function stateChangeHeaders(
   return {
     cookie,
     origin: "http://127.0.0.1:5173",
-    "x-newemby-csrf": response.json().csrfToken as string,
+    "x-lumarelay-csrf": response.json().csrfToken as string,
   };
 }
 
@@ -104,7 +104,7 @@ describe("Gateway application", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().csrfToken).toHaveLength(43);
-    expect(response.headers["set-cookie"]).toContain("newemby_csrf=");
+    expect(response.headers["set-cookie"]).toContain("lumarelay_csrf=");
     expect(response.headers["set-cookie"]).toContain("HttpOnly");
     expect(response.headers["set-cookie"]).toContain("SameSite=Lax");
   });
@@ -147,7 +147,7 @@ describe("Gateway application", () => {
     const app = await createTestApp();
     const headers = await stateChangeHeaders(app);
     const response = await app.inject({
-      headers: { ...headers, "x-newemby-csrf": "tampered-token" },
+      headers: { ...headers, "x-lumarelay-csrf": "tampered-token" },
       method: "POST",
       url: "/api/v1/auth/logout",
     });
@@ -500,7 +500,7 @@ describe("Gateway application", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers["set-cookie"]).toContain(
-      "newemby_session=browser-session-token",
+      "lumarelay_session=browser-session-token",
     );
     expect(response.headers["set-cookie"]).toContain("HttpOnly");
     expect(response.headers["set-cookie"]).toContain("SameSite=Lax");
@@ -624,7 +624,7 @@ describe("Gateway application", () => {
     });
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=browser-session-token" },
+      headers: { cookie: "lumarelay_session=browser-session-token" },
       method: "GET",
       url: "/api/v1/auth/me",
     });
@@ -690,7 +690,7 @@ describe("Gateway application", () => {
     });
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=browser-session-token" },
+      headers: { cookie: "lumarelay_session=browser-session-token" },
       method: "GET",
       url: "/api/v1/auth/me",
     });
@@ -701,7 +701,7 @@ describe("Gateway application", () => {
     );
   });
 
-  it("rejects an absent NewEmby session", async () => {
+  it("rejects an absent LumaRelay session", async () => {
     const app = await buildApp({
       config: loadConfig({ NODE_ENV: "test" }),
       logger: false,
@@ -801,7 +801,7 @@ describe("Gateway application", () => {
       headers: {
         ...(await stateChangeHeaders(
           app,
-          "newemby_session=browser-session-token",
+          "lumarelay_session=browser-session-token",
         )),
       },
       method: "POST",
@@ -811,8 +811,8 @@ describe("Gateway application", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ success: true });
     const clearedCookies = String(response.headers["set-cookie"]);
-    expect(clearedCookies).toContain("newemby_session=");
-    expect(clearedCookies).toContain("newemby_csrf=");
+    expect(clearedCookies).toContain("lumarelay_session=");
+    expect(clearedCookies).toContain("lumarelay_csrf=");
     expect(clearedCookies).toContain("Max-Age=0");
     expect(events).toEqual(["local-revoke", "upstream-logout"]);
     expect(JSON.stringify(response.json())).not.toContain("emby-secret-token");
@@ -869,7 +869,7 @@ describe("Gateway application", () => {
       headers: {
         ...(await stateChangeHeaders(
           app,
-          "newemby_session=browser-session-token",
+          "lumarelay_session=browser-session-token",
         )),
       },
       method: "POST",
@@ -942,7 +942,7 @@ describe("Gateway application", () => {
     });
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=browser-session-token" },
+      headers: { cookie: "lumarelay_session=browser-session-token" },
       method: "GET",
       url: "/api/v1/auth/me",
     });

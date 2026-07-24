@@ -4,11 +4,11 @@ import { describe, expect, it } from "vitest";
 
 const theme = readFileSync(new URL("./theme.css", import.meta.url), "utf8");
 const mark = readFileSync(
-  new URL("./assets/newemby-mark.svg", import.meta.url),
+  new URL("./assets/lumarelay-mark.svg", import.meta.url),
   "utf8",
 );
 
-describe("NewEmby design foundation", () => {
+describe("LumaRelay design foundation", () => {
   it.each([
     "--color-bg: #0f0f23",
     "--color-accent: #7c5cff",

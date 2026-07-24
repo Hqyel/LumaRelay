@@ -32,7 +32,7 @@ export function AdminShell({
     <>
       <BrandMark className="size-6 text-accent drop-shadow-[0_0_8px_rgb(124_92_255_/_42%)]" />
       <span className="bg-[linear-gradient(135deg,#7C5CFF,#A995FF)] bg-clip-text text-small font-bold text-transparent">
-        NewEmby
+        LumaRelay
       </span>
     </>
   );
@@ -49,7 +49,7 @@ export function AdminShell({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 border-r border-border bg-glass shadow-[4px_0_24px_rgb(var(--theme-shadow-rgb)_/_16%)] backdrop-blur-xl lg:flex lg:flex-col">
         {renderHomeLink?.(homeContent, homeClassName) ?? (
           <a
-            aria-label="NewEmby 管理概览"
+            aria-label="LumaRelay 管理概览"
             className={homeClassName}
             href="/admin"
           >

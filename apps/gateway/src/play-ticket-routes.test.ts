@@ -186,9 +186,9 @@ async function stateChangeHeaders(app: Awaited<ReturnType<typeof buildApp>>) {
     Array.isArray(setCookie) ? setCookie[0] : setCookie
   )?.split(";")[0];
   return {
-    cookie: `${csrfCookie}; newemby_session=session-cookie`,
+    cookie: `${csrfCookie}; lumarelay_session=session-cookie`,
     origin: "http://127.0.0.1:5173",
-    "x-newemby-csrf": response.json().csrfToken as string,
+    "x-lumarelay-csrf": response.json().csrfToken as string,
   };
 }
 
@@ -240,9 +240,9 @@ describe("PlayTicket routes", () => {
     const { app, bridgeDeviceStore, playTicketStore } = await createTestApp();
     const response = await app.inject({
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
         range: "bytes=100-",
-        "x-newemby-nonce": NONCE,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "GET",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${PLAY_SESSION_ID}/media`,
@@ -264,7 +264,7 @@ describe("PlayTicket routes", () => {
     const missingCsrf = await app.inject({
       body: createRequestBody(),
       headers: {
-        cookie: "newemby_session=session-cookie",
+        cookie: "lumarelay_session=session-cookie",
         origin: "http://127.0.0.1:5173",
       },
       method: "POST",
@@ -307,8 +307,8 @@ describe("PlayTicket routes", () => {
     const response = await app.inject({
       body: { playTicket: PLAY_TICKET },
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": NONCE,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/play-tickets/redeem`,
@@ -334,8 +334,8 @@ describe("PlayTicket routes", () => {
     const response = await app.inject({
       body: { playTicket: "not-a-ticket" },
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": NONCE,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/play-tickets/redeem`,

@@ -96,12 +96,12 @@ async function stateChangeHeaders(
   return {
     cookie: [
       csrfCookie,
-      includeSession ? "newemby_session=session-cookie" : undefined,
+      includeSession ? "lumarelay_session=session-cookie" : undefined,
     ]
       .filter(Boolean)
       .join("; "),
     origin: "http://127.0.0.1:5173",
-    "x-newemby-csrf": response.json().csrfToken as string,
+    "x-lumarelay-csrf": response.json().csrfToken as string,
   };
 }
 
@@ -174,7 +174,7 @@ describe("Bridge pairing routes", () => {
 
     expect(response.statusCode).toBe(401);
     expect(response.json().error.code).toBe("UNAUTHENTICATED");
-    expect(response.headers["set-cookie"]).toContain("newemby_session=;");
+    expect(response.headers["set-cookie"]).toContain("lumarelay_session=;");
     expect(response.headers["set-cookie"]).toContain("Path=/");
     expect(authSessionStore.revoke).toHaveBeenCalledWith("session-cookie");
     expect(pairingCodeStore.issue).not.toHaveBeenCalled();

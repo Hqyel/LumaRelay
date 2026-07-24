@@ -241,7 +241,7 @@ async function mockPageApi(
       return;
     }
     if (path === "/api/v1/bridge/pairing-codes") {
-      expect(route.request().headers()["x-newemby-csrf"]).toBe(
+      expect(route.request().headers()["x-lumarelay-csrf"]).toBe(
         "e2e-csrf-token-with-at-least-32-characters",
       );
       await route.fulfill({
@@ -463,7 +463,7 @@ async function mockPageApi(
       path === "/api/v1/bridge/play-tickets" &&
       route.request().method() === "POST"
     ) {
-      expect(route.request().headers()["x-newemby-csrf"]).toBe(
+      expect(route.request().headers()["x-lumarelay-csrf"]).toBe(
         "e2e-csrf-token-with-at-least-32-characters",
       );
       await route.fulfill({
@@ -648,7 +648,7 @@ test("Bridge setup separates local connection and capabilities", async ({
       headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
       json: {
         apiVersion: 1,
-        applicationId: "NewEmby.PlayerBridge",
+        applicationId: "LumaRelay.PlayerBridge",
         architecture: "x64",
         bridgeVersion: "0.1.0",
         compatibility: {
@@ -700,13 +700,13 @@ test("Bridge setup separates local connection and capabilities", async ({
     page.getByRole("link", { name: "打开 Bridge 完成配对" }),
   ).toHaveAttribute(
     "href",
-    `newemby://pair?code=${"A".repeat(43)}&gateway=http%3A%2F%2F127.0.0.1%3A4173`,
+    `lumarelay://pair?code=${"A".repeat(43)}&gateway=http%3A%2F%2F127.0.0.1%3A4173`,
   );
 
   connected = true;
   await page.getByRole("button", { name: "重新检测" }).click();
   await expect(
-    page.getByText("本机已可以接收 NewEmby 的播放请求。"),
+    page.getByText("本机已可以接收 LumaRelay 的播放请求。"),
   ).toBeVisible();
   await expect(page.getByText("已发现 1.7.22398.0")).toBeVisible();
   await expect(page.getByText("系统媒体会话监听正常")).toBeVisible();
@@ -767,15 +767,15 @@ test("application shell is accessible and matches its baseline", async ({
   await expect(page.getByRole("heading", { name: "首页" })).toBeVisible();
   await expect(page.getByText("第 1 季 · 第 2 集 · 静默信号")).toBeVisible();
   await expect(page.getByText("已观看 22:00 · 剩余 26:00")).toBeVisible();
-  await expect(page.locator(".newemby-app-header")).toHaveCSS(
+  await expect(page.locator(".lumarelay-app-header")).toHaveCSS(
     "border-bottom-width",
     "0px",
   );
-  await expect(page.locator(".newemby-app-header")).toHaveCSS(
+  await expect(page.locator(".lumarelay-app-header")).toHaveCSS(
     "box-shadow",
     "none",
   );
-  await expect(page.locator(".newemby-app-header")).not.toHaveCSS(
+  await expect(page.locator(".lumarelay-app-header")).not.toHaveCSS(
     "background-color",
     "rgba(0, 0, 0, 0)",
   );
@@ -875,7 +875,7 @@ test("movie details match the reference immersive layout", async ({ page }) => {
   await expect(page.getByLabel("详情字幕")).toContainText("简体中文");
   const versionValue = page
     .getByLabel("版本")
-    .locator(".newemby-select-value-scroll");
+    .locator(".lumarelay-select-value-scroll");
   await expect(versionValue).toHaveCSS("white-space", "nowrap");
   await expect(versionValue).toHaveCSS("overflow-x", "hidden");
   expect(
@@ -902,7 +902,7 @@ test("movie details match the reference immersive layout", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "剧情简介" })).toBeVisible();
   await expect(page.getByText(movieOverview, { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  const immersiveHeader = page.locator(".newemby-app-header");
+  const immersiveHeader = page.locator(".lumarelay-app-header");
   await expect(immersiveHeader).toHaveAttribute("data-immersive", "true");
   await expect(immersiveHeader).not.toHaveAttribute("data-scrolled", "true");
   await waitForImages(page);
@@ -922,7 +922,7 @@ test("local playback preparation is accessible and starts the Bridge", async ({
       headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
       json: {
         apiVersion: 1,
-        applicationId: "NewEmby.PlayerBridge",
+        applicationId: "LumaRelay.PlayerBridge",
         architecture: "x64",
         bridgeVersion: "0.1.0",
         compatibility: {
@@ -959,7 +959,7 @@ test("local playback preparation is accessible and starts the Bridge", async ({
     "http://127.0.0.1:58080/v1/playback/start",
     async (route) => {
       started = true;
-      expect(route.request().headers()["x-newemby-nonce"]).toHaveLength(32);
+      expect(route.request().headers()["x-lumarelay-nonce"]).toHaveLength(32);
       await route.fulfill({
         headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
         json: {
@@ -1002,7 +1002,7 @@ test("current playback reflects live Bridge timeline states", async ({
       headers: { "access-control-allow-origin": "http://127.0.0.1:4173" },
       json: {
         apiVersion: 1,
-        applicationId: "NewEmby.PlayerBridge",
+        applicationId: "LumaRelay.PlayerBridge",
         architecture: "x64",
         bridgeVersion: "0.1.0",
         compatibility: {
@@ -1298,7 +1298,7 @@ test("light theme covers authentication, library controls, and details", async (
   page,
 }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem("newemby.theme", "light");
+    window.localStorage.setItem("lumarelay.theme", "light");
   });
   await mockPageApi(page, true);
 

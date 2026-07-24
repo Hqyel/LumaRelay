@@ -1,5 +1,5 @@
-import type { MediaCard, MediaLibrary } from "@newemby/contracts";
-import { ImageFallback } from "@newemby/ui";
+import type { MediaCard, MediaLibrary } from "@lumarelay/contracts";
+import { ImageFallback } from "@lumarelay/ui";
 import { Link } from "@tanstack/react-router";
 import {
   CheckCircle2,

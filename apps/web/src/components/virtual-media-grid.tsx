@@ -1,4 +1,4 @@
-import type { MediaCard } from "@newemby/contracts";
+import type { MediaCard } from "@lumarelay/contracts";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 

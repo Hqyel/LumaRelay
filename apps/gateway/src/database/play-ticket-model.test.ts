@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 async function createTicketDatabase() {
-  const directory = mkdtempSync(join(tmpdir(), "newemby-play-ticket-"));
+  const directory = mkdtempSync(join(tmpdir(), "lumarelay-play-ticket-"));
   temporaryDirectories.push(directory);
   const database = createDatabase(join(directory, "test.db"));
   await migrateToLatest(database);

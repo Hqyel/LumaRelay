@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import type { BridgeDeviceSummary } from "@newemby/contracts";
+import type { BridgeDeviceSummary } from "@lumarelay/contracts";
 import type { Kysely } from "kysely";
 
 import type { GatewayConfig } from "../config.js";
@@ -53,7 +53,7 @@ function toDeviceSummary(device: {
 
 function hashNonce(value: string, secret: string): string {
   return createHmac("sha256", secret)
-    .update("newemby:bridge-request-nonce:")
+    .update("lumarelay:bridge-request-nonce:")
     .update(value)
     .digest("hex");
 }

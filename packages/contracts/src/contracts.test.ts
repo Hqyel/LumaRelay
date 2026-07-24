@@ -119,7 +119,7 @@ describe("shared API contracts", () => {
   it("accepts a device credential without exposing an Emby token", () => {
     expect(
       RedeemBridgePairingCodeResponseSchema.safeParse({
-        allowedOrigins: ["https://newemby.example.com"],
+        allowedOrigins: ["https://lumarelay.example.com"],
         device: {
           bridgeVersion: "0.1.0",
           deviceId: "11111111-1111-4111-8111-111111111111",
@@ -237,7 +237,7 @@ describe("shared API contracts", () => {
     expect(
       LocalBridgeStatusSchema.parse({
         apiVersion: 1,
-        applicationId: "NewEmby.PlayerBridge",
+        applicationId: "LumaRelay.PlayerBridge",
         architecture: "x64",
         bridgeVersion: "0.1.0",
         compatibility: {

@@ -48,7 +48,7 @@ test("desktop browser supports navigation, keyboard search, and layout", async (
       },
       json: {
         apiVersion: 1,
-        applicationId: "NewEmby.PlayerBridge",
+        applicationId: "LumaRelay.PlayerBridge",
         architecture: "x64",
         bridgeVersion: "0.1.0",
         compatibility: {

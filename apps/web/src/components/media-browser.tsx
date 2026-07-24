@@ -1,4 +1,4 @@
-import type { MediaLibrary } from "@newemby/contracts";
+import type { MediaLibrary } from "@lumarelay/contracts";
 import {
   ImageFallback,
   Select,
@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@newemby/ui";
+} from "@lumarelay/ui";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
@@ -78,7 +78,7 @@ function listValue(value: FormDataEntryValue | null): string[] {
   ].sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
-const allValue = "__newemby_all__";
+const allValue = "__lumarelay_all__";
 
 function formValue(data: FormData, name: string) {
   const value = data.get(name);

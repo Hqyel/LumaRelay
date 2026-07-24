@@ -1,24 +1,24 @@
-# NewEmby Player Bridge
+# LumaRelay Player Bridge
 
-`NewEmby.PlayerBridge` is the Windows companion process for local-player
+`LumaRelay.PlayerBridge` is the Windows companion process for local-player
 integration. M2 begins with a .NET 8 executable and an isolated player-adapter
 boundary; the loopback service, pairing, protocol registration and PotPlayer
 implementation are introduced by later progress items.
 
 ## Projects
 
-- `src/NewEmby.PlayerBridge`: executable application.
-- `tests/NewEmby.PlayerBridge.Tests`: adapter-boundary unit tests.
-- `NewEmby.PlayerBridge.sln`: solution used by local and CI quality gates.
+- `src/LumaRelay.PlayerBridge`: executable application.
+- `tests/LumaRelay.PlayerBridge.Tests`: adapter-boundary unit tests.
+- `LumaRelay.PlayerBridge.sln`: solution used by local and CI quality gates.
 
 ## Commands
 
 Run these commands from the repository root with .NET SDK 8.0.422 installed:
 
 ```text
-pnpm --filter @newemby/player-bridge build
-pnpm --filter @newemby/player-bridge test
-pnpm --filter @newemby/player-bridge lint
+pnpm --filter @lumarelay/player-bridge build
+pnpm --filter @lumarelay/player-bridge test
+pnpm --filter @lumarelay/player-bridge lint
 pnpm bridge:publish
 ```
 
@@ -29,25 +29,26 @@ installed .NET Runtime.
 ## Portable use
 
 The current release is portable and does not include an installer or
-uninstaller. Copy `NewEmby.PlayerBridge.exe` to a stable user-selected directory
-and run it directly. Register the browser protocol once from that final
-location:
+uninstaller. Copy `LumaRelay.PlayerBridge.exe` to a stable user-selected
+directory and run it directly. Register the browser protocol once from that
+final location:
 
 ```text
-NewEmby.PlayerBridge.exe --register-protocol
+LumaRelay.PlayerBridge.exe --register-protocol
 ```
 
 Before moving or deleting the executable, stop the running Bridge and remove the
 old protocol registration. Register it again after moving it:
 
 ```text
-NewEmby.PlayerBridge.exe --shutdown
-NewEmby.PlayerBridge.exe --unregister-protocol
+LumaRelay.PlayerBridge.exe --shutdown
+LumaRelay.PlayerBridge.exe --unregister-protocol
 ```
 
 The HTTP host always binds directly to `127.0.0.1` and, when available, `::1`.
 It never honors wildcard URL bindings. The default port is `58080`; override it
-with `NEWEMBY_BRIDGE_PORT` or `--bridge-port` using a value from 1024 to 65535.
+with `LUMARELAY_BRIDGE_PORT` or `--bridge-port` using a value from 1024
+to 65535.
 
 `GET /v1/status` returns the Bridge identity and version, API compatibility
 range, target platform, pairing state and discovered-player summary. Pass the
@@ -77,14 +78,14 @@ PotPlayer setting is disabled while the player is idle.
 The monitor follows session additions and removals and subscribes to media
 properties, playback information and timeline changes for every current session.
 Individual source application IDs stay inside the Bridge; the status API exposes
-counts only. NewEmby targets Windows 10 version 2004 (build 19041) or newer,
+counts only. LumaRelay targets Windows 10 version 2004 (build 19041) or newer,
 above the Windows 10 version 1809 introduction of the global media control API.
 
-The Web pairing flow opens a short-lived `newemby://pair` URI. For local
+The Web pairing flow opens a short-lived `lumarelay://pair` URI. For local
 diagnostics, the equivalent command is:
 
 ```text
-NewEmby.PlayerBridge.exe --pair https://newemby.example.com PAIRING_CODE
+LumaRelay.PlayerBridge.exe --pair https://lumarelay.example.com PAIRING_CODE
 ```
 
 The Gateway must use HTTPS; plain HTTP is accepted only for a loopback Gateway.
@@ -97,11 +98,11 @@ Browser requests carrying an `Origin` are accepted only when the exact origin
 was supplied by the Gateway during pairing. Local command-line diagnostics may
 read `/v1/status` without an Origin. Browser state changes require both an
 allowed Origin and a fresh 22–128 character Base64URL value in
-`X-NewEmby-Nonce`; a nonce cannot be reused within five minutes.
+`X-LumaRelay-Nonce`; a nonce cannot be reused within five minutes.
 
 `OPTIONS /v1/*` returns CORS and Private Network Access headers only for an
 allowed origin. `POST /v1/pairing/verify` is the non-destructive state-change
-probe. Bridge-to-Gateway requests use the `NewEmbyDevice` authorization scheme
+probe. Bridge-to-Gateway requests use the `LumaRelayDevice` authorization scheme
 and a new nonce; the first authenticated endpoint is
 `POST /api/v1/bridge/devices/:deviceId/heartbeat`.
 
@@ -140,7 +141,7 @@ user-facing media name through `/title=<display-title>`, and adds
 `/sub=<loopback-uri>` only when an external subtitle is selected. Movie titles
 contain only the movie name; episode titles use
 `series-episode-episode-position/episode-count`. The media URI is the final
-separate argument. If concurrent NewEmby launches have the same display title,
+separate argument. If concurrent LumaRelay launches have the same display title,
 SMTC matching reports them as ambiguous instead of guessing a session.
 
 Both media and subtitle inputs must be literal IPv4 or IPv6 loopback HTTP URLs
@@ -158,7 +159,7 @@ recorded process is still the same live process, the source application is an
 exact supported PotPlayer executable identity, and the media title exactly
 matches the validated display title stored for the PlaySession. A unique
 PotPlayer session without that title is never guessed. Duplicate exact
-candidates and concurrent NewEmby launches with the same display title remain
+candidates and concurrent LumaRelay launches with the same display title remain
 `ambiguous`; a live process without a candidate remains `awaiting` for 15
 seconds and then becomes `timedOut`; an exited or reused process becomes
 `processExited`.
@@ -188,7 +189,7 @@ and Stopped calls begin with M2-018 rather than being inferred in this task.
 To revoke the current portable Bridge from both sides, run:
 
 ```text
-NewEmby.PlayerBridge.exe --unpair
+LumaRelay.PlayerBridge.exe --unpair
 ```
 
 The Bridge first calls the authenticated Gateway credential-revocation endpoint.
@@ -203,17 +204,17 @@ user. It revokes the Gateway device before calling the protected loopback
 the local Generic Credential. Calling the loopback endpoint alone does not
 revoke the Gateway device.
 
-The portable executable refreshes the per-user `newemby://` protocol whenever
+The portable executable refreshes the per-user `lumarelay://` protocol whenever
 the normal tray process starts, so moving the portable folder is repaired by
 running the executable again. It can also be registered explicitly with
-`--register-protocol`. It writes only below `HKCU\Software\Classes\newemby`,
+`--register-protocol`. It writes only below `HKCU\Software\Classes\lumarelay`,
 quotes both the executable and `%1`, and needs no administrator access. Use
 `--unregister-protocol` before removing or moving the portable executable.
 
 The Windows build runs without a console window and remains available through a
 notification-area icon. Its compact menu shows the Bridge version and an exit
 action. Only one Bridge instance can run per user. For automated maintenance,
-`NewEmby.PlayerBridge.exe --shutdown` signals the running instance to stop its
+`LumaRelay.PlayerBridge.exe --shutdown` signals the running instance to stop its
 HTTP host and exit cleanly.
 
 The automated recovery suite drives the real event reporter and Gateway HTTP

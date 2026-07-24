@@ -8,8 +8,8 @@ const preview: Preview = {
       test: "error",
     },
     backgrounds: {
-      default: "NewEmby",
-      values: [{ name: "NewEmby", value: "#090b0f" }],
+      default: "LumaRelay",
+      values: [{ name: "LumaRelay", value: "#090b0f" }],
     },
     controls: {
       expanded: true,

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { ApiRoutes, type PlaybackEventRequest } from "@newemby/contracts";
+import { ApiRoutes, type PlaybackEventRequest } from "@lumarelay/contracts";
 import {
   EmbyMediaError,
   reportPlaybackProgress,
@@ -8,7 +8,7 @@ import {
   reportPlaybackStopped,
   type PlaybackProgressEvent,
   type PlaybackSessionInput,
-} from "@newemby/emby-client";
+} from "@lumarelay/emby-client";
 import type { FastifyInstance } from "fastify";
 
 import { authenticateBridgeRequest } from "./bridge-route-auth.js";
@@ -208,7 +208,7 @@ export function registerPlaybackRoutes(
           .send(
             errorEnvelope(
               "UNAUTHENTICATED",
-              "The NewEmby playback session has expired",
+              "The LumaRelay playback session has expired",
               request.id,
             ),
           );

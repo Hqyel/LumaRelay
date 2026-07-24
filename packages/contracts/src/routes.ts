@@ -474,8 +474,8 @@ export const ApiRoutes = {
 export const OpenApiInfo = {
   openapi: "3.1.0",
   info: {
-    title: "NewEmby Gateway API",
+    title: "LumaRelay Gateway API",
     version: "0.0.0",
-    description: "Shared API contract for NewEmby Web and Player Bridge.",
+    description: "Shared API contract for LumaRelay Web and Player Bridge.",
   },
 } as const;

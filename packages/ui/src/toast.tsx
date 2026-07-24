@@ -21,7 +21,7 @@ export function Toast({
 }: ToastProps) {
   return (
     <ToastPrimitive.Root
-      className="grid grid-cols-[1fr_auto] gap-x-4 rounded-panel border border-border bg-glass p-4 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-toast-in_250ms_cubic-bezier(0.16,1,0.3,1)]"
+      className="grid grid-cols-[1fr_auto] gap-x-4 rounded-panel border border-border bg-glass p-4 shadow-panel backdrop-blur-xl data-[state=open]:animate-[lumarelay-toast-in_250ms_cubic-bezier(0.16,1,0.3,1)]"
       onOpenChange={onOpenChange}
       open={open}
     >

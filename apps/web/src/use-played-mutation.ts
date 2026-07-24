@@ -1,4 +1,4 @@
-import type { MediaCard } from "@newemby/contracts";
+import type { MediaCard } from "@lumarelay/contracts";
 import {
   useMutation,
   useQueryClient,

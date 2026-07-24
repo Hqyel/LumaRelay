@@ -30,7 +30,7 @@ export function Drawer({
       )}
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--color-overlay)] backdrop-blur-sm" />
-        <DialogPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-glass p-6 shadow-panel backdrop-blur-xl data-[state=open]:animate-[newemby-drawer-in_250ms_cubic-bezier(0.16,1,0.3,1)] sm:p-8">
+        <DialogPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-glass p-6 shadow-panel backdrop-blur-xl data-[state=open]:animate-[lumarelay-drawer-in_250ms_cubic-bezier(0.16,1,0.3,1)] sm:p-8">
           <DialogPrimitive.Title className="pr-12 text-h3 font-semibold">
             {title}
           </DialogPrimitive.Title>

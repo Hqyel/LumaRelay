@@ -51,7 +51,7 @@ export const BridgeSmtcStatusSchema = z.object({
 
 export const LocalBridgeStatusSchema = z.object({
   apiVersion: z.number().int().positive(),
-  applicationId: z.literal("NewEmby.PlayerBridge"),
+  applicationId: z.literal("LumaRelay.PlayerBridge"),
   architecture: z.string().trim().min(1).max(32),
   bridgeVersion: BridgeVersionSchema,
   compatibility: BridgeApiCompatibilitySchema,
@@ -131,7 +131,7 @@ export const BridgeDeviceParamsSchema = z.object({
 
 export const BridgeDeviceAuthHeadersSchema = z.object({
   authorization: z.string().optional(),
-  "x-newemby-nonce": z.string().optional(),
+  "x-lumarelay-nonce": z.string().optional(),
 });
 
 export const BridgeHeartbeatResponseSchema = z.object({

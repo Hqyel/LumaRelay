@@ -1,4 +1,4 @@
-import { Button, ErrorState } from "@newemby/ui";
+import { Button, ErrorState } from "@lumarelay/ui";
 import { ShieldAlert } from "lucide-react";
 
 import { mediaErrorPresentation } from "./media-state-model.js";

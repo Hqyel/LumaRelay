@@ -141,8 +141,8 @@ function requestOptions() {
       sequence: 1,
     },
     headers: {
-      authorization: `NewEmbyDevice ${"A".repeat(43)}`,
-      "x-newemby-nonce": "N".repeat(43),
+      authorization: `LumaRelayDevice ${"A".repeat(43)}`,
+      "x-lumarelay-nonce": "N".repeat(43),
     },
     method: "POST" as const,
     url: `/api/v1/bridge/devices/${DEVICE_ID}/playback-events`,

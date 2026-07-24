@@ -10,7 +10,7 @@ import { migrateToLatest } from "./migrator.js";
 import { hashDeviceCredential } from "./pairing-code-store.js";
 import { createServerStore } from "./server-store.js";
 
-const SESSION_SECRET = "test-session-secret-with-32-characters";
+const LUMARELAY_SESSION_SECRET = "test-session-secret-with-32-characters";
 const DEVICE_CREDENTIAL = "B".repeat(43);
 const DEVICE_ID = "11111111-1111-4111-8111-111111111111";
 const NONCE = "N".repeat(43);
@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe("Bridge device authentication store", () => {
   it("authenticates a credential and rejects nonce replay", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-device-auth-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-device-auth-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -45,7 +45,7 @@ describe("Bridge device authentication store", () => {
           createdAt: "2026-07-17T12:00:00.000Z",
           credentialHash: hashDeviceCredential(
             DEVICE_CREDENTIAL,
-            SESSION_SECRET,
+            LUMARELAY_SESSION_SECRET,
           ),
           embyUserId: "user-1",
           id: DEVICE_ID,
@@ -60,7 +60,7 @@ describe("Bridge device authentication store", () => {
       let currentTime = new Date("2026-07-17T12:01:00.000Z");
       const store = createBridgeDeviceStore(
         database,
-        { sessionSecret: SESSION_SECRET },
+        { sessionSecret: LUMARELAY_SESSION_SECRET },
         () => currentTime,
       );
       const input = {
@@ -105,14 +105,14 @@ describe("Bridge device authentication store", () => {
   });
 
   it("does not record a nonce for an invalid credential", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-device-invalid-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-device-invalid-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
     try {
       await migrateToLatest(database);
       const store = createBridgeDeviceStore(database, {
-        sessionSecret: SESSION_SECRET,
+        sessionSecret: LUMARELAY_SESSION_SECRET,
       });
 
       await expect(

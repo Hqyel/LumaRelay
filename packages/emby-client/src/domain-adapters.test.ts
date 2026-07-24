@@ -1,4 +1,4 @@
-import { ServerSummarySchema, UserProfileSchema } from "@newemby/contracts";
+import { ServerSummarySchema, UserProfileSchema } from "@lumarelay/contracts";
 import { describe, expect, it } from "vitest";
 
 import {

@@ -1,4 +1,4 @@
-import { BrandMark } from "@newemby/ui";
+import { BrandMark } from "@lumarelay/ui";
 import type { ReactNode } from "react";
 
 import { ThemeToggle } from "./theme-toggle.js";
@@ -19,10 +19,10 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <span className="auth-logo-icon">
             <BrandMark className="size-11 text-white" />
           </span>
-          <span className="auth-logo-text">NewEmby</span>
+          <span className="auth-logo-text">LumaRelay</span>
         </div>
         {children}
-        <p className="auth-footer">NewEmby · 安全连接你的 Emby</p>
+        <p className="auth-footer">LumaRelay · 安全连接你的 Emby</p>
       </section>
     </main>
   );

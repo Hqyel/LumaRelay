@@ -1,4 +1,4 @@
-import type { MediaItemsQuery, MediaKind } from "@newemby/contracts";
+import type { MediaItemsQuery, MediaKind } from "@lumarelay/contracts";
 
 export interface MediaBrowserSearch {
   favorite?: true;

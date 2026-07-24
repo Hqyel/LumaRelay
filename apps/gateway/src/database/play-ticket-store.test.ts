@@ -10,8 +10,9 @@ import { migrateToLatest } from "./migrator.js";
 import { createPlayTicketStore } from "./play-ticket-store.js";
 import { createServerStore } from "./server-store.js";
 
-const SESSION_SECRET = "test-session-secret-with-32-characters";
-const TOKEN_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+const LUMARELAY_SESSION_SECRET = "test-session-secret-with-32-characters";
+const LUMARELAY_TOKEN_ENCRYPTION_KEY =
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 const DEVICE_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_DEVICE_ID = "99999999-9999-4999-8999-999999999999";
 const TICKET_ID = "33333333-3333-4333-8333-333333333333";
@@ -25,7 +26,7 @@ afterEach(() => {
 });
 
 async function createFixture() {
-  const directory = mkdtempSync(join(tmpdir(), "newemby-play-ticket-store-"));
+  const directory = mkdtempSync(join(tmpdir(), "lumarelay-play-ticket-store-"));
   temporaryDirectories.push(directory);
   const database = createDatabase(join(directory, "test.db"));
   await migrateToLatest(database);
@@ -40,8 +41,8 @@ async function createFixture() {
   });
 
   const authStore = createAuthSessionStore(database, {
-    sessionSecret: SESSION_SECRET,
-    tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+    sessionSecret: LUMARELAY_SESSION_SECRET,
+    tokenEncryptionKey: LUMARELAY_TOKEN_ENCRYPTION_KEY,
   });
   const cookie = await authStore.create({
     accessToken: "upstream-secret-token",
@@ -81,7 +82,7 @@ async function createFixture() {
   const ids = [TICKET_ID, PLAY_SESSION_ID];
   const store = createPlayTicketStore(
     database,
-    { sessionSecret: SESSION_SECRET },
+    { sessionSecret: LUMARELAY_SESSION_SECRET },
     () => currentTime,
     {
       id: () => ids.shift() ?? crypto.randomUUID(),

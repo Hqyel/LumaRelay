@@ -1,5 +1,5 @@
 {
-  "name": "@newemby/gateway",
+  "name": "@lumarelay/gateway",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,9 +16,10 @@
   "dependencies": {
     "@fastify/cookie": "11.1.1",
     "@fastify/rate-limit": "^10.3.0",
+    "@fastify/static": "^10.1.2",
     "@fastify/swagger": "^9.5.1",
-    "@newemby/contracts": "workspace:*",
-    "@newemby/emby-client": "workspace:*",
+    "@lumarelay/contracts": "workspace:*",
+    "@lumarelay/emby-client": "workspace:*",
     "better-sqlite3": "^12.2.0",
     "fastify": "^5.4.0",
     "fastify-plugin": "^5.0.1",

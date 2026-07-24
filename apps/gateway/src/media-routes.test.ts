@@ -1,5 +1,8 @@
-import type { MediaHomeResponse, MediaItemResponse } from "@newemby/contracts";
-import { EmbyMediaError } from "@newemby/emby-client";
+import type {
+  MediaHomeResponse,
+  MediaItemResponse,
+} from "@lumarelay/contracts";
+import { EmbyMediaError } from "@lumarelay/emby-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "./app.js";
@@ -23,9 +26,9 @@ async function stateChangeHeaders(app: Awaited<ReturnType<typeof buildApp>>) {
   )?.split(";")[0];
 
   return {
-    cookie: `${csrfCookie}; newemby_session=session-cookie`,
+    cookie: `${csrfCookie}; lumarelay_session=session-cookie`,
     origin: "http://127.0.0.1:5173",
-    "x-newemby-csrf": response.json().csrfToken as string,
+    "x-lumarelay-csrf": response.json().csrfToken as string,
   };
 }
 
@@ -87,7 +90,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "GET",
       url: "/api/v1/media/home",
     });
@@ -101,7 +104,7 @@ describe("authenticated media routes", () => {
     );
   });
 
-  it("requires a NewEmby session before proxying media", async () => {
+  it("requires a LumaRelay session before proxying media", async () => {
     const app = await buildApp({
       config: loadConfig({ NODE_ENV: "test" }),
       logger: false,
@@ -157,7 +160,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "GET",
       url: "/api/v1/media/items?kind=movie&genre=Drama&genre=Sci-Fi&year=2024&year=2026&startIndex=40&limit=40&sortBy=dateAdded&sortOrder=descending",
     });
@@ -212,7 +215,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "GET",
       url: "/api/v1/media/items/movie-1",
     });
@@ -275,7 +278,7 @@ describe("authenticated media routes", () => {
     });
     apps.push(app);
 
-    const headers = { cookie: "newemby_session=session-cookie" };
+    const headers = { cookie: "lumarelay_session=session-cookie" };
     const seasons = await app.inject({
       headers,
       method: "GET",
@@ -331,7 +334,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const rejected = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "PUT",
       payload: { favorite: true },
       url: "/api/v1/media/items/movie-1/favorite",
@@ -403,7 +406,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const rejected = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "PUT",
       payload: { played: true },
       url: "/api/v1/media/items/movie-1/played",
@@ -459,7 +462,7 @@ describe("authenticated media routes", () => {
     apps.push(app);
 
     const response = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "GET",
       url: "/api/v1/media/items?libraryId=hidden-library",
     });

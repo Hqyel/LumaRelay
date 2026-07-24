@@ -65,84 +65,93 @@ const EnvironmentSchema = z
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    NEWEMBY_PUBLIC_ORIGIN: z.url().default("http://127.0.0.1:5173"),
-    EMBY_BASE_URL: z.url().default("http://127.0.0.1:8096"),
-    EMBY_ALLOWED_SERVER_ORIGINS: z.string().default("http://127.0.0.1:8096"),
-    GATEWAY_HOST: z.string().min(1).default("127.0.0.1"),
-    GATEWAY_PORT: IntegerStringSchema.default(3000),
-    GATEWAY_TRUST_PROXY: TrustProxySchema,
-    DATABASE_PATH: z.string().min(1).default("./data/newemby.db"),
-    SESSION_SECRET: z.string().min(32).default(DEVELOPMENT_SESSION_SECRET),
-    TOKEN_ENCRYPTION_KEY: z
+    LUMARELAY_PUBLIC_ORIGIN: z.url().default("http://127.0.0.1:5173"),
+    LUMARELAY_EMBY_BASE_URL: z.url().default("http://127.0.0.1:8096"),
+    LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS: z
+      .string()
+      .default("http://127.0.0.1:8096"),
+    LUMARELAY_HOST: z.string().min(1).default("127.0.0.1"),
+    LUMARELAY_PORT: IntegerStringSchema.default(3000),
+    LUMARELAY_TRUST_PROXY: TrustProxySchema,
+    LUMARELAY_DATABASE_PATH: z.string().min(1).default("./data/lumarelay.db"),
+    LUMARELAY_SESSION_SECRET: z
+      .string()
+      .min(32)
+      .default(DEVELOPMENT_SESSION_SECRET),
+    LUMARELAY_TOKEN_ENCRYPTION_KEY: z
       .string()
       .refine(isValidEncryptionKey, {
         message: "Must be canonical Base64 that decodes to exactly 32 bytes",
       })
       .default(DEVELOPMENT_TOKEN_KEY),
-    COOKIE_SECURE: BooleanStringSchema.default(false),
-    LOG_LEVEL: z
+    LUMARELAY_COOKIE_SECURE: BooleanStringSchema.default(false),
+    LUMARELAY_LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
       .default("info"),
-    BRIDGE_ALLOWED_ORIGINS: z.string().default("http://127.0.0.1:5173"),
+    LUMARELAY_BRIDGE_ALLOWED_ORIGINS: z
+      .string()
+      .default("http://127.0.0.1:5173"),
   })
   .superRefine((value, context) => {
-    const embyOrigin = new URL(value.EMBY_BASE_URL).origin;
-    const allowedOrigins = splitOrigins(value.EMBY_ALLOWED_SERVER_ORIGINS);
+    const embyOrigin = new URL(value.LUMARELAY_EMBY_BASE_URL).origin;
+    const allowedOrigins = splitOrigins(
+      value.LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS,
+    );
 
     if (!allowedOrigins.includes(embyOrigin)) {
       context.addIssue({
         code: "custom",
         message: "Emby base origin must appear in the allowed server list",
-        path: ["EMBY_ALLOWED_SERVER_ORIGINS"],
+        path: ["LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS"],
       });
     }
 
     if (value.NODE_ENV !== "production") return;
 
-    if (new URL(value.NEWEMBY_PUBLIC_ORIGIN).protocol !== "https:") {
+    if (new URL(value.LUMARELAY_PUBLIC_ORIGIN).protocol !== "https:") {
       context.addIssue({
         code: "custom",
         message: "Production public origin must use HTTPS",
-        path: ["NEWEMBY_PUBLIC_ORIGIN"],
+        path: ["LUMARELAY_PUBLIC_ORIGIN"],
       });
     }
 
-    if (!value.COOKIE_SECURE) {
+    if (!value.LUMARELAY_COOKIE_SECURE) {
       context.addIssue({
         code: "custom",
         message: "Production cookies must be secure",
-        path: ["COOKIE_SECURE"],
+        path: ["LUMARELAY_COOKIE_SECURE"],
       });
     }
 
-    if (new URL(value.EMBY_BASE_URL).protocol !== "https:") {
+    if (new URL(value.LUMARELAY_EMBY_BASE_URL).protocol !== "https:") {
       context.addIssue({
         code: "custom",
         message: "Production Emby origin must use HTTPS",
-        path: ["EMBY_BASE_URL"],
+        path: ["LUMARELAY_EMBY_BASE_URL"],
       });
     }
 
     if (
-      value.SESSION_SECRET === DEVELOPMENT_SESSION_SECRET ||
-      looksLikePlaceholder(value.SESSION_SECRET)
+      value.LUMARELAY_SESSION_SECRET === DEVELOPMENT_SESSION_SECRET ||
+      looksLikePlaceholder(value.LUMARELAY_SESSION_SECRET)
     ) {
       context.addIssue({
         code: "custom",
         message: "Production session secret must be independently generated",
-        path: ["SESSION_SECRET"],
+        path: ["LUMARELAY_SESSION_SECRET"],
       });
     }
 
     if (
-      value.TOKEN_ENCRYPTION_KEY === DEVELOPMENT_TOKEN_KEY ||
-      looksLikePlaceholder(value.TOKEN_ENCRYPTION_KEY)
+      value.LUMARELAY_TOKEN_ENCRYPTION_KEY === DEVELOPMENT_TOKEN_KEY ||
+      looksLikePlaceholder(value.LUMARELAY_TOKEN_ENCRYPTION_KEY)
     ) {
       context.addIssue({
         code: "custom",
         message:
           "Production token encryption key must be independently generated",
-        path: ["TOKEN_ENCRYPTION_KEY"],
+        path: ["LUMARELAY_TOKEN_ENCRYPTION_KEY"],
       });
     }
   });
@@ -187,18 +196,20 @@ export function loadConfig(environment?: NodeJS.ProcessEnv): GatewayConfig {
   const parsed = EnvironmentSchema.parse(environment ?? process.env);
 
   return {
-    allowedBridgeOrigins: splitOrigins(parsed.BRIDGE_ALLOWED_ORIGINS),
-    allowedServerOrigins: splitOrigins(parsed.EMBY_ALLOWED_SERVER_ORIGINS),
-    cookieSecure: parsed.COOKIE_SECURE,
-    databasePath: parsed.DATABASE_PATH,
-    embyBaseUrl: new URL(parsed.EMBY_BASE_URL).toString(),
-    host: parsed.GATEWAY_HOST,
-    logLevel: parsed.LOG_LEVEL,
+    allowedBridgeOrigins: splitOrigins(parsed.LUMARELAY_BRIDGE_ALLOWED_ORIGINS),
+    allowedServerOrigins: splitOrigins(
+      parsed.LUMARELAY_EMBY_ALLOWED_SERVER_ORIGINS,
+    ),
+    cookieSecure: parsed.LUMARELAY_COOKIE_SECURE,
+    databasePath: parsed.LUMARELAY_DATABASE_PATH,
+    embyBaseUrl: new URL(parsed.LUMARELAY_EMBY_BASE_URL).toString(),
+    host: parsed.LUMARELAY_HOST,
+    logLevel: parsed.LUMARELAY_LOG_LEVEL,
     nodeEnv: parsed.NODE_ENV,
-    port: parsed.GATEWAY_PORT,
-    publicOrigin: new URL(parsed.NEWEMBY_PUBLIC_ORIGIN).origin,
-    sessionSecret: parsed.SESSION_SECRET,
-    tokenEncryptionKey: parsed.TOKEN_ENCRYPTION_KEY,
-    trustProxy: parsed.GATEWAY_TRUST_PROXY,
+    port: parsed.LUMARELAY_PORT,
+    publicOrigin: new URL(parsed.LUMARELAY_PUBLIC_ORIGIN).origin,
+    sessionSecret: parsed.LUMARELAY_SESSION_SECRET,
+    tokenEncryptionKey: parsed.LUMARELAY_TOKEN_ENCRYPTION_KEY,
+    trustProxy: parsed.LUMARELAY_TRUST_PROXY,
   };
 }

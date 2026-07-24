@@ -5,7 +5,7 @@ import {
   EpisodeSummarySchema,
   PersonSummarySchema,
   SeasonSummarySchema,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import { describe, expect, it } from "vitest";
 
 import {

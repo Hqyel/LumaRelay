@@ -7,13 +7,13 @@ import {
   type CreatePlayTicketRequest,
   type PlaybackMediaSource,
   type RedeemPlayTicketRequest,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import {
   EmbyMediaError,
   getPlaybackOptions,
   loadPlaybackResource,
   type AuthenticatedMediaRequest,
-} from "@newemby/emby-client";
+} from "@lumarelay/emby-client";
 import type { FastifyInstance, FastifyReply } from "fastify";
 
 import {
@@ -109,7 +109,7 @@ export function registerPlayTicketRoutes(
           .send(
             errorEnvelope(
               "UNAUTHENTICATED",
-              "The NewEmby session has expired",
+              "The LumaRelay session has expired",
               request.id,
             ),
           );
@@ -241,7 +241,7 @@ export function registerPlayTicketRoutes(
             .send(
               errorEnvelope(
                 "UNAUTHENTICATED",
-                "The NewEmby playback session has expired",
+                "The LumaRelay playback session has expired",
                 request.id,
               ),
             );

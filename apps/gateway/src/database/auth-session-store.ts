@@ -6,7 +6,7 @@ import {
   randomUUID,
 } from "node:crypto";
 
-import { UserPermissionsSchema, type UserProfile } from "@newemby/contracts";
+import { UserPermissionsSchema, type UserProfile } from "@lumarelay/contracts";
 import type { Kysely } from "kysely";
 
 import type { GatewayConfig } from "../config.js";
@@ -48,7 +48,9 @@ function encryptionKey(value: string): Buffer {
   const key = Buffer.from(value, "base64");
 
   if (key.length !== 32)
-    throw new Error("TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes");
+    throw new Error(
+      "LUMARELAY_TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes",
+    );
 
   return key;
 }

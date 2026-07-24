@@ -1,3 +1,6 @@
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { createDatabase } from "./database/database.js";
@@ -9,6 +12,7 @@ import { createPairingCodeStore } from "./database/pairing-code-store.js";
 import { createPlayTicketStore } from "./database/play-ticket-store.js";
 
 const config = loadConfig();
+const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../public");
 const database = createDatabase(config.databasePath);
 await migrateToLatest(database);
 const authSessionStore = createAuthSessionStore(database, config);
@@ -26,6 +30,8 @@ const app = await buildApp({
   pairingCodeStore,
   playTicketStore,
   serverStore: createServerStore(database),
+  version: process.env.LUMARELAY_VERSION ?? "0.0.0",
+  webRoot,
 });
 app.addHook("onClose", async () => database.destroy());
 

@@ -1,13 +1,14 @@
-name: newemby
+name: lumarelay
 
 services:
   proxy:
     image: caddy:2.10-alpine
+    profiles:
+      - https
     depends_on:
-      - gateway
-      - web
+      - app
     environment:
-      NEWEMBY_DOMAIN: ${NEWEMBY_DOMAIN}
+      LUMARELAY_DOMAIN: ${LUMARELAY_DOMAIN}
     ports:
       - "80:80"
       - "443:443"
@@ -17,33 +18,21 @@ services:
       - caddy_config:/config
       - caddy_data:/data
 
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api/v1}
-    expose:
-      - "80"
-    restart: unless-stopped
-
-  gateway:
-    build:
-      context: .
-      dockerfile: apps/gateway/Dockerfile
+  app:
+    image: ghcr.io/hqyel/lumarelay:${LUMARELAY_IMAGE_TAG:-edge}
     env_file:
       - .env
     environment:
-      COOKIE_SECURE: "true"
-      DATABASE_PATH: /data/newemby.db
+      LUMARELAY_COOKIE_SECURE: "true"
+      LUMARELAY_DATABASE_PATH: /data/lumarelay.db
       NODE_ENV: production
     expose:
       - "3000"
     restart: unless-stopped
     volumes:
-      - newemby_data:/data
+      - lumarelay_data:/data
 
 volumes:
   caddy_config:
   caddy_data:
-  newemby_data:
+  lumarelay_data:

@@ -1,0 +1,91 @@
+using LumaRelay.PlayerBridge.Protocol;
+
+namespace LumaRelay.PlayerBridge.Tests;
+
+public sealed class ProtocolRegistrationTests
+{
+  [Fact]
+  public void WritesPerUserProtocolRegistrationWithQuotedArguments()
+  {
+    var executablePath = Path.GetFullPath(
+      Path.Combine("bridge", "LumaRelay.PlayerBridge.exe"));
+    var registry = new RecordingProtocolRegistry();
+
+    ProtocolRegistration.Register(executablePath, registry);
+
+    var quotedPath = $"\"{executablePath}\"";
+    Assert.Equal(
+      "URL:LumaRelay Protocol",
+      registry.Values[(ProtocolRegistration.ProtocolKey, string.Empty)]);
+    Assert.Equal(
+      string.Empty,
+      registry.Values[(ProtocolRegistration.ProtocolKey, "URL Protocol")]);
+    Assert.Equal(
+      $"{quotedPath},0",
+      registry.Values[(ProtocolRegistration.DefaultIconKey, string.Empty)]);
+    Assert.Equal(
+      $"{quotedPath} --protocol \"%1\"",
+      registry.Values[(ProtocolRegistration.CommandKey, string.Empty)]);
+  }
+
+  [Fact]
+  public void RemovesOnlyTheLumaRelayProtocolTree()
+  {
+    var registry = new RecordingProtocolRegistry();
+
+    ProtocolRegistration.Unregister(registry);
+
+    Assert.Equal(ProtocolRegistration.ProtocolKey, registry.DeletedTree);
+  }
+
+  [Theory]
+  [InlineData("")]
+  [InlineData("not-an-executable.txt")]
+  [InlineData("bad\"path.exe")]
+  public void RejectsUnsafeExecutablePath(string executablePath)
+  {
+    var registry = new RecordingProtocolRegistry();
+
+    Assert.Throws<ArgumentException>(() =>
+      ProtocolRegistration.Register(executablePath, registry));
+    Assert.Empty(registry.Values);
+  }
+
+  [Fact]
+  public void PortableRunRefreshesProtocolRegistration()
+  {
+    var executablePath = Path.GetFullPath(
+      Path.Combine("portable", "LumaRelay.PlayerBridge.exe"));
+    var registry = new RecordingProtocolRegistry();
+
+    Assert.True(PortableProtocolRegistration.TryRegister(
+      executablePath,
+      registry));
+    Assert.Contains(
+      executablePath,
+      registry.Values[(ProtocolRegistration.CommandKey, string.Empty)]);
+  }
+
+  private sealed class RecordingProtocolRegistry : IProtocolRegistry
+  {
+    public string? DeletedTree { get; private set; }
+
+    public Dictionary<(string KeyPath, string ValueName), string> Values
+    {
+      get;
+    } = [];
+
+    public void DeleteTree(string keyPath)
+    {
+      DeletedTree = keyPath;
+    }
+
+    public void WriteString(
+      string keyPath,
+      string valueName,
+      string value)
+    {
+      Values[(keyPath, valueName)] = value;
+    }
+  }
+}

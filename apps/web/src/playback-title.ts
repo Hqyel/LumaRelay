@@ -1,4 +1,4 @@
-import type { EpisodeSummary, MediaCard } from "@newemby/contracts";
+import type { EpisodeSummary, MediaCard } from "@lumarelay/contracts";
 
 const MAXIMUM_PLAYER_TITLE_LENGTH = 256;
 
@@ -32,7 +32,7 @@ export function episodePlaybackTitle(
   const parts = [seriesName, episodeName, position].filter(
     (part): part is string => part !== undefined,
   );
-  return limit(parts.join("-") || "NewEmby");
+  return limit(parts.join("-") || "LumaRelay");
 }
 
 export function mediaPlaybackTitle(
@@ -49,5 +49,5 @@ export function mediaPlaybackTitle(
       episodeCount,
     );
   }
-  return limit(clean(item.title) ?? "NewEmby");
+  return limit(clean(item.title) ?? "LumaRelay");
 }

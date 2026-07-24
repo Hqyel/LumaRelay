@@ -5,8 +5,8 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import type { GatewayConfig } from "./config.js";
 import { errorEnvelope } from "./errors.js";
 
-export const CSRF_COOKIE_NAME = "newemby_csrf";
-export const CSRF_HEADER_NAME = "x-newemby-csrf";
+export const CSRF_COOKIE_NAME = "lumarelay_csrf";
+export const CSRF_HEADER_NAME = "x-lumarelay-csrf";
 
 function signToken(token: string, secret: string): string {
   return createHmac("sha256", secret).update(token).digest("base64url");

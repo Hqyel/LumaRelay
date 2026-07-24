@@ -12,14 +12,14 @@ import {
   setPlayedState,
 } from "../packages/emby-client/dist/index.js";
 
-const baseUrl = process.env.EMBY_SMOKE_BASE_URL;
-const username = process.env.EMBY_SMOKE_USERNAME;
-const password = process.env.EMBY_SMOKE_PASSWORD;
-const confirmed = process.env.EMBY_WRITE_SMOKE_CONFIRM === "true";
+const baseUrl = process.env.LUMARELAY_EMBY_SMOKE_BASE_URL;
+const username = process.env.LUMARELAY_EMBY_SMOKE_USERNAME;
+const password = process.env.LUMARELAY_EMBY_SMOKE_PASSWORD;
+const confirmed = process.env.LUMARELAY_EMBY_WRITE_SMOKE_CONFIRM === "true";
 
 if (!confirmed)
   throw new Error(
-    "Set EMBY_WRITE_SMOKE_CONFIRM=true to allow a reversible write",
+    "Set LUMARELAY_EMBY_WRITE_SMOKE_CONFIRM=true to allow a reversible write",
   );
 if (!baseUrl || !username || !password)
   throw new Error(
@@ -29,7 +29,7 @@ if (!baseUrl || !username || !password)
 function authorizationHeader(deviceId) {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
+    'Emby Client="LumaRelay", Device="Gateway", ' +
     `DeviceId="${safeDeviceId}", Version="0.0.0"`
   );
 }

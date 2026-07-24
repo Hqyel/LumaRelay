@@ -67,7 +67,7 @@ test("completes login, browse, filter, favorite restore, and logout", async ({
       return;
     }
     if (path === "/api/v1/servers/select" && method === "POST") {
-      expect(request.headers()["x-newemby-csrf"]).toBe(
+      expect(request.headers()["x-lumarelay-csrf"]).toBe(
         "test-csrf-token-with-at-least-32-characters",
       );
       selected = true;
@@ -86,7 +86,7 @@ test("completes login, browse, filter, favorite restore, and logout", async ({
       return;
     }
     if (path === "/api/v1/auth/login" && method === "POST") {
-      expect(request.headers()["x-newemby-csrf"]).toBe(
+      expect(request.headers()["x-lumarelay-csrf"]).toBe(
         "test-csrf-token-with-at-least-32-characters",
       );
       authenticated = true;
@@ -116,7 +116,7 @@ test("completes login, browse, filter, favorite restore, and logout", async ({
       return;
     }
     if (path === "/api/v1/auth/logout" && method === "POST") {
-      expect(request.headers()["x-newemby-csrf"]).toBe(
+      expect(request.headers()["x-lumarelay-csrf"]).toBe(
         "test-csrf-token-with-at-least-32-characters",
       );
       authenticated = false;
@@ -184,7 +184,7 @@ test("completes login, browse, filter, favorite restore, and logout", async ({
       return;
     }
     if (path === "/api/v1/media/items/movie-1/favorite" && method === "PUT") {
-      expect(request.headers()["x-newemby-csrf"]).toBe(
+      expect(request.headers()["x-lumarelay-csrf"]).toBe(
         "test-csrf-token-with-at-least-32-characters",
       );
       favorite = (request.postDataJSON() as { favorite: boolean }).favorite;

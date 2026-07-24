@@ -1,4 +1,4 @@
-import { ApiRoutes, type BridgeHeartbeatResponse } from "@newemby/contracts";
+import { ApiRoutes, type BridgeHeartbeatResponse } from "@lumarelay/contracts";
 import type { FastifyInstance } from "fastify";
 
 import {

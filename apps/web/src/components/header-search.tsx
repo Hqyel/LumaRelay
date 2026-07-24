@@ -1,4 +1,4 @@
-import { ImageFallback } from "@newemby/ui";
+import { ImageFallback } from "@lumarelay/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Search, X } from "lucide-react";

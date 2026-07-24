@@ -4,7 +4,7 @@ import {
   BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
   type BridgeDeviceSummary,
   type RedeemBridgePairingCodeRequest,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import type { Kysely } from "kysely";
 
 import type { GatewayConfig } from "../config.js";
@@ -32,14 +32,14 @@ export interface RedeemedPairingCode {
 
 function hashPairingCode(value: string, secret: string): string {
   return createHmac("sha256", secret)
-    .update("newemby:bridge-pairing-code:")
+    .update("lumarelay:bridge-pairing-code:")
     .update(value)
     .digest("hex");
 }
 
 export function hashDeviceCredential(value: string, secret: string): string {
   return createHmac("sha256", secret)
-    .update("newemby:bridge-device-credential:")
+    .update("lumarelay:bridge-device-credential:")
     .update(value)
     .digest("hex");
 }

@@ -103,9 +103,9 @@ async function stateChangeHeaders(app: Awaited<ReturnType<typeof buildApp>>) {
   )?.split(";")[0];
 
   return {
-    cookie: `${csrfCookie}; newemby_session=session-cookie`,
+    cookie: `${csrfCookie}; lumarelay_session=session-cookie`,
     origin: "http://127.0.0.1:5173",
-    "x-newemby-csrf": response.json().csrfToken as string,
+    "x-lumarelay-csrf": response.json().csrfToken as string,
   };
 }
 
@@ -114,8 +114,8 @@ describe("Bridge device routes", () => {
     const { app, bridgeDeviceStore } = await createTestApp();
     const response = await app.inject({
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": NONCE,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/heartbeat`,
@@ -133,14 +133,14 @@ describe("Bridge device routes", () => {
   it("rejects missing credentials and malformed nonces", async () => {
     const { app, bridgeDeviceStore } = await createTestApp();
     const missingCredential = await app.inject({
-      headers: { "x-newemby-nonce": NONCE },
+      headers: { "x-lumarelay-nonce": NONCE },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/heartbeat`,
     });
     const malformedNonce = await app.inject({
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": "short",
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": "short",
       },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/heartbeat`,
@@ -161,8 +161,8 @@ describe("Bridge device routes", () => {
     const { app } = await createTestApp(bridgeDeviceStore);
     const response = await app.inject({
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": NONCE,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "POST",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/heartbeat`,
@@ -193,7 +193,7 @@ describe("Bridge device routes", () => {
     });
     apps.push(app);
     const response = await app.inject({
-      headers: { cookie: "newemby_session=session-cookie" },
+      headers: { cookie: "lumarelay_session=session-cookie" },
       method: "GET",
       url: "/api/v1/bridge/devices",
     });
@@ -239,8 +239,8 @@ describe("Bridge device routes", () => {
     const { app } = await createTestApp(bridgeDeviceStore);
     const response = await app.inject({
       headers: {
-        authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-        "x-newemby-nonce": NONCE,
+        authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+        "x-lumarelay-nonce": NONCE,
       },
       method: "DELETE",
       url: `/api/v1/bridge/devices/${DEVICE_ID}/credential`,

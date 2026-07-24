@@ -1,4 +1,4 @@
-import type { MediaItemResponse } from "@newemby/contracts";
+import type { MediaItemResponse } from "@lumarelay/contracts";
 import {
   EmptyState,
   Select,
@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@newemby/ui";
+} from "@lumarelay/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tv } from "lucide-react";

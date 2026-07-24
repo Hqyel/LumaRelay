@@ -22,7 +22,7 @@ import type {
   PublicUsersResponse,
   SessionResponse,
   SeasonsResponse,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 
 type UnauthorizedListener = () => void;
 
@@ -95,7 +95,7 @@ async function requestJson<T>(
   const headers = new Headers(init?.headers);
   headers.set("accept", "application/json");
   if (!["GET", "HEAD", "OPTIONS"].includes(method))
-    headers.set("x-newemby-csrf", await getCsrfToken());
+    headers.set("x-lumarelay-csrf", await getCsrfToken());
 
   const response = await fetch(input, {
     ...init,

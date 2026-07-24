@@ -1,7 +1,7 @@
 import {
   ServerCapabilityFlagsSchema,
   type ServerSummary,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import type { Kysely, Selectable } from "kysely";
 
 import type { DatabaseSchema, ServersTable } from "./types.js";

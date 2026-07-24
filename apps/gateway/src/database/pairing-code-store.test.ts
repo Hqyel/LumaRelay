@@ -10,8 +10,9 @@ import { migrateToLatest } from "./migrator.js";
 import { createPairingCodeStore } from "./pairing-code-store.js";
 import { createServerStore } from "./server-store.js";
 
-const SESSION_SECRET = "test-session-secret-with-32-characters";
-const TOKEN_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+const LUMARELAY_SESSION_SECRET = "test-session-secret-with-32-characters";
+const LUMARELAY_TOKEN_ENCRYPTION_KEY =
+  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -21,7 +22,7 @@ afterEach(() => {
 
 describe("Bridge pairing code store", () => {
   it("stores only a hash bound to the current auth session", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-pairing-code-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-pairing-code-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -37,8 +38,8 @@ describe("Bridge pairing code store", () => {
         version: "4.8.11.0",
       });
       const authStore = createAuthSessionStore(database, {
-        sessionSecret: SESSION_SECRET,
-        tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+        sessionSecret: LUMARELAY_SESSION_SECRET,
+        tokenEncryptionKey: LUMARELAY_TOKEN_ENCRYPTION_KEY,
       });
       const cookieToken = await authStore.create({
         accessToken: "emby-secret-token",
@@ -59,7 +60,7 @@ describe("Bridge pairing code store", () => {
       const currentTime = new Date("2026-07-17T12:00:00.000Z");
       const store = createPairingCodeStore(
         database,
-        { sessionSecret: SESSION_SECRET },
+        { sessionSecret: LUMARELAY_SESSION_SECRET },
         () => currentTime,
       );
       const issued = await store.issue(session!.sessionId);
@@ -79,7 +80,7 @@ describe("Bridge pairing code store", () => {
   });
 
   it("replaces an earlier session code and prunes it after 60 seconds", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-pairing-expiry-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-pairing-expiry-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -95,8 +96,8 @@ describe("Bridge pairing code store", () => {
         version: "4.8.11.0",
       });
       const authStore = createAuthSessionStore(database, {
-        sessionSecret: SESSION_SECRET,
-        tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+        sessionSecret: LUMARELAY_SESSION_SECRET,
+        tokenEncryptionKey: LUMARELAY_TOKEN_ENCRYPTION_KEY,
       });
       const cookieToken = await authStore.create({
         accessToken: "emby-secret-token",
@@ -117,7 +118,7 @@ describe("Bridge pairing code store", () => {
       let currentTime = new Date("2026-07-17T12:00:00.000Z");
       const store = createPairingCodeStore(
         database,
-        { sessionSecret: SESSION_SECRET },
+        { sessionSecret: LUMARELAY_SESSION_SECRET },
         () => currentTime,
       );
       const first = await store.issue(session!.sessionId);
@@ -139,7 +140,7 @@ describe("Bridge pairing code store", () => {
   });
 
   it("atomically exchanges a live code for a hashed device credential", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-pairing-redeem-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-pairing-redeem-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 
@@ -155,8 +156,8 @@ describe("Bridge pairing code store", () => {
         version: "4.8.11.0",
       });
       const authStore = createAuthSessionStore(database, {
-        sessionSecret: SESSION_SECRET,
-        tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+        sessionSecret: LUMARELAY_SESSION_SECRET,
+        tokenEncryptionKey: LUMARELAY_TOKEN_ENCRYPTION_KEY,
       });
       const cookieToken = await authStore.create({
         accessToken: "emby-secret-token",
@@ -177,7 +178,7 @@ describe("Bridge pairing code store", () => {
       let currentTime = new Date("2026-07-17T12:00:00.000Z");
       const store = createPairingCodeStore(
         database,
-        { sessionSecret: SESSION_SECRET },
+        { sessionSecret: LUMARELAY_SESSION_SECRET },
         () => currentTime,
       );
       const issued = await store.issue(session!.sessionId);

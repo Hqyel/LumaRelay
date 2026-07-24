@@ -1,5 +1,5 @@
 {
-  "name": "@newemby/emby-client",
+  "name": "@lumarelay/emby-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@newemby/contracts": "workspace:*",
+    "@lumarelay/contracts": "workspace:*",
     "zod": "^4.0.5"
   }
 }

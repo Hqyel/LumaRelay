@@ -1,4 +1,4 @@
-import type { MediaCard } from "@newemby/contracts";
+import type { MediaCard } from "@lumarelay/contracts";
 import { describe, expect, it } from "vitest";
 
 import { updateMediaStateCache } from "./media-state-cache.js";

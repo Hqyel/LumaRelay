@@ -3,14 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 
-const GATEWAY_PORT = 3310;
+const LUMARELAY_PORT = 3310;
 const WEB_PORT = 5180;
 const PNPM_PATH = process.env.npm_execpath;
 
 if (PNPM_PATH === undefined)
   throw new Error("Run the smoke test through pnpm smoke:local");
 
-const temporaryDirectory = await mkdtemp(join(tmpdir(), "newemby-smoke-"));
+const temporaryDirectory = await mkdtemp(join(tmpdir(), "lumarelay-smoke-"));
 const children = [];
 
 function runPnpm(arguments_, environment = {}) {
@@ -69,27 +69,27 @@ async function stopChild(child) {
 
 try {
   const environment = {
-    COOKIE_SECURE: "false",
-    DATABASE_PATH: join(temporaryDirectory, "newemby.db"),
-    GATEWAY_HOST: "127.0.0.1",
-    GATEWAY_PORT: String(GATEWAY_PORT),
-    NEWEMBY_PUBLIC_ORIGIN: `http://127.0.0.1:${WEB_PORT}`,
+    LUMARELAY_COOKIE_SECURE: "false",
+    LUMARELAY_DATABASE_PATH: join(temporaryDirectory, "lumarelay.db"),
+    LUMARELAY_HOST: "127.0.0.1",
+    LUMARELAY_PORT: String(LUMARELAY_PORT),
+    LUMARELAY_PUBLIC_ORIGIN: `http://127.0.0.1:${WEB_PORT}`,
     NODE_ENV: "test",
   };
 
   const migration = runPnpm(
-    ["--filter", "@newemby/gateway", "db:migrate"],
+    ["--filter", "@lumarelay/gateway", "db:migrate"],
     environment,
   );
   await waitForExit(migration, "database migration");
 
   runPnpm(
-    ["--filter", "@newemby/gateway", "exec", "tsx", "src/index.ts"],
+    ["--filter", "@lumarelay/gateway", "exec", "tsx", "src/index.ts"],
     environment,
   );
   runPnpm([
     "--filter",
-    "@newemby/web",
+    "@lumarelay/web",
     "exec",
     "vite",
     "--host",
@@ -100,7 +100,7 @@ try {
   ]);
 
   await waitForUrl(
-    `http://127.0.0.1:${GATEWAY_PORT}/api/v1/health`,
+    `http://127.0.0.1:${LUMARELAY_PORT}/api/v1/health`,
     async (response) => (await response.json()).status === "ok",
   );
   await waitForUrl(`http://127.0.0.1:${WEB_PORT}`, async (response) =>

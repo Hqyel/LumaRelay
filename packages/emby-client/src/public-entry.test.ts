@@ -15,7 +15,7 @@ import {
   toServerSummary,
   toUserProfile,
   ticksToSeconds,
-} from "@newemby/emby-client";
+} from "@lumarelay/emby-client";
 import { describe, expect, it } from "vitest";
 
 describe("public package entry", () => {

@@ -4,7 +4,7 @@ import type {
   PersonSummary,
   PlaybackMediaSource,
   PlaybackTrack,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import {
   Button,
   Dialog,
@@ -16,7 +16,7 @@ import {
   SelectValue,
   startOverflowMarquee,
   stopOverflowMarquee,
-} from "@newemby/ui";
+} from "@lumarelay/ui";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Link } from "@tanstack/react-router";
 import {

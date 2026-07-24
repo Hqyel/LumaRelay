@@ -15,20 +15,20 @@ import {
   probeEmbyServer,
 } from "../packages/emby-client/dist/index.js";
 
-const baseUrl = process.env.EMBY_SMOKE_BASE_URL;
-const username = process.env.EMBY_SMOKE_USERNAME;
-const password = process.env.EMBY_SMOKE_PASSWORD;
+const baseUrl = process.env.LUMARELAY_EMBY_SMOKE_BASE_URL;
+const username = process.env.LUMARELAY_EMBY_SMOKE_USERNAME;
+const password = process.env.LUMARELAY_EMBY_SMOKE_PASSWORD;
 
-if (!baseUrl) throw new Error("EMBY_SMOKE_BASE_URL is required");
+if (!baseUrl) throw new Error("LUMARELAY_EMBY_SMOKE_BASE_URL is required");
 if ((username === undefined) !== (password === undefined))
   throw new Error(
-    "EMBY_SMOKE_USERNAME and EMBY_SMOKE_PASSWORD must be provided together",
+    "LUMARELAY_EMBY_SMOKE_USERNAME and LUMARELAY_EMBY_SMOKE_PASSWORD must be provided together",
   );
 
 function authorizationHeader(deviceId) {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
+    'Emby Client="LumaRelay", Device="Gateway", ' +
     `DeviceId="${safeDeviceId}", Version="0.0.0"`
   );
 }

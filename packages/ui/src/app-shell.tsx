@@ -132,7 +132,7 @@ export function AppShell({
     <>
       <BrandMark className="size-6 text-accent drop-shadow-[0_0_8px_rgb(124_92_255_/_42%)]" />
       <span className="hidden bg-[linear-gradient(135deg,#7C5CFF_0%,#A995FF_100%)] bg-clip-text text-small font-bold text-transparent sm:inline">
-        NewEmby
+        LumaRelay
       </span>
     </>
   );
@@ -146,7 +146,7 @@ export function AppShell({
         跳到主要内容
       </a>
       <header
-        className="newemby-app-header fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between gap-3 border-b border-border bg-transparent px-3 shadow-none sm:px-4"
+        className="lumarelay-app-header fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between gap-3 border-b border-border bg-transparent px-3 shadow-none sm:px-4"
         data-immersive={immersiveHeader || undefined}
         data-scrolled={
           immersiveHeader && immersiveHeaderScrolled ? true : undefined
@@ -154,7 +154,7 @@ export function AppShell({
       >
         <div className="flex min-w-0 items-center gap-2">
           {renderHomeLink?.(brand, brandClassName) ?? (
-            <a aria-label="NewEmby 首页" className={brandClassName} href="/">
+            <a aria-label="LumaRelay 首页" className={brandClassName} href="/">
               {brand}
             </a>
           )}

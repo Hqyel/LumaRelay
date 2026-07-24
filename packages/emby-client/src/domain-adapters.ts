@@ -4,7 +4,7 @@ import {
   type ServerCapabilityFlags,
   type ServerSummary,
   type UserProfile,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import { z } from "zod";
 
 import { normalizeEmbyBaseUrl } from "./url.js";

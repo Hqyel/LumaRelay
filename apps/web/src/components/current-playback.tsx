@@ -1,4 +1,4 @@
-import type { LocalPlaybackStatusItem } from "@newemby/contracts";
+import type { LocalPlaybackStatusItem } from "@lumarelay/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Pause, Play, Radio } from "lucide-react";

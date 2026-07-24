@@ -2,7 +2,7 @@ export const themeModes = ["dark", "light", "system"] as const;
 
 export type ThemeMode = (typeof themeModes)[number];
 
-const storageKey = "newemby.theme";
+const storageKey = "lumarelay.theme";
 const systemThemeQuery = "(prefers-color-scheme: light)";
 let removeSystemListener: (() => void) | undefined;
 

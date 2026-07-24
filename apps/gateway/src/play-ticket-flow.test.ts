@@ -25,7 +25,7 @@ afterEach(() => {
 
 describe("PlayTicket integrated flow", () => {
   it("issues, redeems once, and never exposes stored credentials", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-play-flow-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-play-flow-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
     const config = loadConfig({ NODE_ENV: "test" });
@@ -136,9 +136,9 @@ describe("PlayTicket integrated flow", () => {
           subtitleStreamIndex: null,
         },
         headers: {
-          cookie: `${csrfCookie}; newemby_session=${sessionCookie}`,
+          cookie: `${csrfCookie}; lumarelay_session=${sessionCookie}`,
           origin: "http://127.0.0.1:5173",
-          "x-newemby-csrf": csrf.json().csrfToken as string,
+          "x-lumarelay-csrf": csrf.json().csrfToken as string,
         },
         method: "POST",
         url: "/api/v1/bridge/play-tickets",
@@ -150,8 +150,8 @@ describe("PlayTicket integrated flow", () => {
         app!.inject({
           body: { playTicket },
           headers: {
-            authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-            "x-newemby-nonce": nonce,
+            authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+            "x-lumarelay-nonce": nonce,
           },
           method: "POST",
           url: `/api/v1/bridge/devices/${DEVICE_ID}/play-tickets/redeem`,
@@ -170,8 +170,8 @@ describe("PlayTicket integrated flow", () => {
       const playSessionId = issued.json().playSessionId as string;
       const media = await app.inject({
         headers: {
-          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-          "x-newemby-nonce": "M".repeat(43),
+          authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+          "x-lumarelay-nonce": "M".repeat(43),
         },
         method: "GET",
         url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${playSessionId}/media`,
@@ -180,8 +180,8 @@ describe("PlayTicket integrated flow", () => {
 
       const secondMedia = await app.inject({
         headers: {
-          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-          "x-newemby-nonce": "S".repeat(43),
+          authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+          "x-lumarelay-nonce": "S".repeat(43),
         },
         method: "GET",
         url: `/api/v1/bridge/devices/${DEVICE_ID}/playback/${playSessionId}/media`,
@@ -209,8 +209,8 @@ describe("PlayTicket integrated flow", () => {
           sequence: 1,
         },
         headers: {
-          authorization: `NewEmbyDevice ${DEVICE_CREDENTIAL}`,
-          "x-newemby-nonce": "P".repeat(43),
+          authorization: `LumaRelayDevice ${DEVICE_CREDENTIAL}`,
+          "x-lumarelay-nonce": "P".repeat(43),
         },
         method: "POST",
         url: `/api/v1/bridge/devices/${DEVICE_ID}/playback-events`,

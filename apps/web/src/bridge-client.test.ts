@@ -1,4 +1,4 @@
-import type { LocalBridgeStatus } from "@newemby/contracts";
+import type { LocalBridgeStatus } from "@lumarelay/contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -10,7 +10,7 @@ import {
 
 const status: LocalBridgeStatus = {
   apiVersion: 1,
-  applicationId: "NewEmby.PlayerBridge",
+  applicationId: "LumaRelay.PlayerBridge",
   architecture: "x64",
   bridgeVersion: "0.1.0",
   compatibility: {
@@ -56,7 +56,7 @@ describe("local Bridge client", () => {
 
   it("encodes the Gateway origin and pairing code in the protocol URI", () => {
     const uri = bridgePairingUri("http://127.0.0.1:5173", "A".repeat(43));
-    expect(uri).toContain("newemby://pair?");
+    expect(uri).toContain("lumarelay://pair?");
     expect(uri).toContain("gateway=http%3A%2F%2F127.0.0.1%3A5173");
     expect(uri).toContain(`code=${"A".repeat(43)}`);
   });

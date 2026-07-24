@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const production = process.env.NEWEMBY_E2E_PRODUCTION === "true";
+const production = process.env.LUMARELAY_E2E_PRODUCTION === "true";
 
 test.skip(!production, "Run through the explicit production performance gate");
 

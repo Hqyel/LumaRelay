@@ -2,7 +2,7 @@ import type {
   PlaybackMediaSource,
   PlaybackTrack,
   PlayTicketSelection,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import { z } from "zod";
 
 import {

@@ -1,8 +1,8 @@
 @import "tailwindcss";
-@import "@newemby/ui/theme.css";
+@import "@lumarelay/ui/theme.css";
 @source "../../../packages/ui/src";
 
-.newemby-app-header:not([data-immersive]) {
+.lumarelay-app-header:not([data-immersive]) {
   border-bottom-width: 0;
   background: var(--color-bg);
   box-shadow: none;
@@ -59,7 +59,7 @@
   background: var(--color-glass);
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(24px);
-  animation: newemby-select-in 150ms var(--ease-standard);
+  animation: lumarelay-select-in 150ms var(--ease-standard);
 }
 
 .theme-menu-label {
@@ -1132,7 +1132,7 @@
   border-radius: 1rem;
 }
 
-#main-content > [data-newemby-state] {
+#main-content > [data-lumarelay-state] {
   width: calc(100% - 4rem);
   max-width: 60rem;
   margin: 5rem auto;
@@ -1371,7 +1371,7 @@
   background: var(--color-bg);
 }
 
-.newemby-app-header[data-immersive="true"] {
+.lumarelay-app-header[data-immersive="true"] {
   --color-border: rgb(255 255 255 / 12%);
   --color-text: #fff;
   --color-text-muted: rgb(255 255 255 / 72%);
@@ -1395,7 +1395,7 @@
     backdrop-filter 220ms var(--ease-standard);
 }
 
-.newemby-app-header[data-immersive="true"][data-scrolled="true"] {
+.lumarelay-app-header[data-immersive="true"][data-scrolled="true"] {
   border-bottom-width: 1px;
   border-bottom-color: var(--color-border);
   background: rgb(13 14 29 / 88%);
@@ -1404,7 +1404,7 @@
 }
 
 :root[data-theme="light"]
-  .newemby-app-header[data-immersive="true"][data-scrolled="true"] {
+  .lumarelay-app-header[data-immersive="true"][data-scrolled="true"] {
   --color-border: rgb(26 26 46 / 12%);
   --color-text: #1a1a2e;
   --color-text-muted: rgb(26 26 46 / 70%);
@@ -1415,8 +1415,8 @@
   box-shadow: 0 2px 12px rgb(15 23 42 / 12%);
 }
 
-.newemby-app-header[data-immersive="true"] + main .movie-reference-back,
-.newemby-app-header[data-immersive="true"] + main .movie-reference-more {
+.lumarelay-app-header[data-immersive="true"] + main .movie-reference-back,
+.lumarelay-app-header[data-immersive="true"] + main .movie-reference-more {
   top: 4rem;
 }
 
@@ -1492,7 +1492,7 @@
   background: var(--color-glass);
   box-shadow: var(--shadow-panel);
   backdrop-filter: blur(20px);
-  animation: newemby-select-in 150ms var(--ease-standard);
+  animation: lumarelay-select-in 150ms var(--ease-standard);
 }
 
 .movie-reference-menu [role="menuitem"] {
@@ -3162,7 +3162,7 @@
     padding: 0.875rem;
   }
 
-  #main-content > [data-newemby-state] {
+  #main-content > [data-lumarelay-state] {
     width: calc(100% - 2rem);
     margin: 3rem auto;
   }

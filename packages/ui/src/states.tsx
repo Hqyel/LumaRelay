@@ -12,7 +12,7 @@ export function Skeleton({
       aria-hidden="true"
       className={cn(
         "relative overflow-hidden rounded-control bg-field before:absolute " +
-          "before:inset-0 before:-translate-x-full before:animate-[newemby-shimmer_1.6s_infinite] " +
+          "before:inset-0 before:-translate-x-full before:animate-[lumarelay-shimmer_1.6s_infinite] " +
           "before:bg-[linear-gradient(90deg,transparent,rgb(var(--theme-foreground-rgb)_/_7%),transparent)] " +
           "motion-reduce:before:animate-none",
         className,
@@ -35,7 +35,7 @@ export function EmptyState({ action, description, icon, title }: StateProps) {
   return (
     <section
       className="grid min-h-64 place-items-center rounded-panel border border-dashed border-border bg-glass p-8 text-center shadow-card backdrop-blur-xl"
-      data-newemby-state="empty"
+      data-lumarelay-state="empty"
     >
       <div className="max-w-md">
         <div
@@ -59,7 +59,7 @@ export function ErrorState({ action, description, icon, title }: StateProps) {
     <section
       aria-live="polite"
       className="grid min-h-64 place-items-center rounded-panel border border-danger/25 bg-glass p-8 text-center shadow-card backdrop-blur-xl"
-      data-newemby-state="error"
+      data-lumarelay-state="error"
       role="alert"
     >
       <div className="max-w-md">

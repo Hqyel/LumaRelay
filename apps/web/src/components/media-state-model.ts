@@ -47,7 +47,7 @@ export function mediaErrorPresentation(
 
   const description =
     error instanceof ApiError && error.statusCode === 0
-      ? `无法连接 NewEmby Gateway，暂时不能读取${subject}。`
+      ? `无法连接 LumaRelay Gateway，暂时不能读取${subject}。`
       : `无法从媒体服务器读取${subject}，请检查连接后重试。`;
 
   return {

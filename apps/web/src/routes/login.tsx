@@ -1,4 +1,4 @@
-import { Button, ErrorState, Input, Skeleton } from "@newemby/ui";
+import { Button, ErrorState, Input, Skeleton } from "@lumarelay/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { LogIn, Server, UserRound } from "lucide-react";

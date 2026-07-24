@@ -12,18 +12,18 @@ import {
   reportPlaybackStopped,
 } from "../packages/emby-client/dist/index.js";
 
-const baseUrl = process.env.EMBY_SMOKE_BASE_URL;
-const username = process.env.EMBY_SMOKE_USERNAME;
-const password = process.env.EMBY_SMOKE_PASSWORD;
+const baseUrl = process.env.LUMARELAY_EMBY_SMOKE_BASE_URL;
+const username = process.env.LUMARELAY_EMBY_SMOKE_USERNAME;
+const password = process.env.LUMARELAY_EMBY_SMOKE_PASSWORD;
 
-if (!baseUrl) throw new Error("EMBY_SMOKE_BASE_URL is required");
-if (!username) throw new Error("EMBY_SMOKE_USERNAME is required");
-if (!password) throw new Error("EMBY_SMOKE_PASSWORD is required");
+if (!baseUrl) throw new Error("LUMARELAY_EMBY_SMOKE_BASE_URL is required");
+if (!username) throw new Error("LUMARELAY_EMBY_SMOKE_USERNAME is required");
+if (!password) throw new Error("LUMARELAY_EMBY_SMOKE_PASSWORD is required");
 
 function authorizationHeader(deviceId) {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
+    'Emby Client="LumaRelay", Device="Gateway", ' +
     `DeviceId="${safeDeviceId}", Version="0.0.0"`
   );
 }

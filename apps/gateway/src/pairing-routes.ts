@@ -2,7 +2,7 @@ import {
   ApiRoutes,
   BRIDGE_PAIRING_CODE_LIFETIME_SECONDS,
   type RedeemBridgePairingCodeRequest,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import type { FastifyInstance } from "fastify";
 
 import type { GatewayConfig } from "./config.js";
@@ -41,7 +41,7 @@ export function registerPairingRoutes(
           );
       }
 
-      const cookieToken = request.cookies.newemby_session;
+      const cookieToken = request.cookies.lumarelay_session;
       if (
         cookieToken === undefined ||
         dependencies.authSessionStore === undefined
@@ -57,13 +57,13 @@ export function registerPairingRoutes(
       if (session === null || session.user.serverId !== server.serverId) {
         if (session !== null)
           await dependencies.authSessionStore.revoke(cookieToken);
-        void reply.clearCookie("newemby_session", { path: "/" });
+        void reply.clearCookie("lumarelay_session", { path: "/" });
         return reply
           .status(401)
           .send(
             errorEnvelope(
               "UNAUTHENTICATED",
-              "The NewEmby session has expired",
+              "The LumaRelay session has expired",
               request.id,
             ),
           );

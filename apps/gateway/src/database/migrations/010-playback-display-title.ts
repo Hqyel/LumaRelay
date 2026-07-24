@@ -15,13 +15,13 @@ export const PlaybackDisplayTitleMigration: Migration = {
     await database.schema
       .alterTable("play_tickets")
       .addColumn("display_title", "text", (column) =>
-        column.notNull().defaultTo("NewEmby"),
+        column.notNull().defaultTo("LumaRelay"),
       )
       .execute();
     await database.schema
       .alterTable("playback_sessions")
       .addColumn("display_title", "text", (column) =>
-        column.notNull().defaultTo("NewEmby"),
+        column.notNull().defaultTo("LumaRelay"),
       )
       .execute();
   },

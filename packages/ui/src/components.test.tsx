@@ -78,12 +78,12 @@ describe("base UI components", () => {
     );
 
     expect(screen.getByLabelText("版本").className).toContain(
-      "newemby-select-trigger",
+      "lumarelay-select-trigger",
     );
     expect(
       screen
         .getByLabelText("版本")
-        .querySelector(".newemby-select-value-scroll"),
+        .querySelector(".lumarelay-select-value-scroll"),
     ).not.toBeNull();
   });
 });

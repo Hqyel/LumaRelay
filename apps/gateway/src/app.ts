@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import staticFiles from "@fastify/static";
 import swagger from "@fastify/swagger";
 import {
   ApiRoutes,
@@ -11,7 +12,7 @@ import {
   type PublicUser,
   type ServerSummary,
   type UserProfile,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 import {
   EmbyAuthError,
   EmbyProbeError,
@@ -25,7 +26,7 @@ import {
   type AuthenticateUserResult,
   type CurrentUserRequest,
   type LogoutSessionRequest,
-} from "@newemby/emby-client";
+} from "@lumarelay/emby-client";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -89,6 +90,7 @@ export interface BuildAppOptions {
   probeServer?: (baseUrl: string) => Promise<ServerSummary>;
   serverStore?: ServerStore;
   version?: string;
+  webRoot?: string;
   media?: Omit<
     MediaRouteDependencies,
     "authSessionStore" | "config" | "serverStore"
@@ -223,6 +225,16 @@ export async function buildApp(
     transform: jsonSchemaTransform,
   });
 
+  if (options.webRoot !== undefined) {
+    await app.register(staticFiles, {
+      cacheControl: true,
+      index: false,
+      maxAge: "1h",
+      root: options.webRoot,
+      wildcard: false,
+    });
+  }
+
   app.addHook("onSend", async (request, reply) => {
     void reply.header("x-request-id", request.id);
   });
@@ -275,7 +287,7 @@ export async function buildApp(
             ),
           );
 
-      const cookieToken = request.cookies.newemby_session;
+      const cookieToken = request.cookies.lumarelay_session;
       if (cookieToken === undefined || options.authSessionStore === undefined)
         return reply
           .status(401)
@@ -287,13 +299,13 @@ export async function buildApp(
       if (session === null || session.user.serverId !== server.serverId) {
         if (session !== null)
           await options.authSessionStore.revoke(cookieToken);
-        void reply.clearCookie("newemby_session", { path: "/" });
+        void reply.clearCookie("lumarelay_session", { path: "/" });
         return reply
           .status(401)
           .send(
             errorEnvelope(
               "UNAUTHENTICATED",
-              "The NewEmby session has expired",
+              "The LumaRelay session has expired",
               request.id,
             ),
           );
@@ -324,7 +336,7 @@ export async function buildApp(
 
         if (authError.kind === "unauthorized") {
           await options.authSessionStore.revoke(cookieToken);
-          void reply.clearCookie("newemby_session", { path: "/" });
+          void reply.clearCookie("lumarelay_session", { path: "/" });
           return reply
             .status(401)
             .send(
@@ -352,8 +364,8 @@ export async function buildApp(
     async handler(request, reply) {
       if (!validateStateChange(request, reply, options.config)) return;
 
-      const cookieToken = request.cookies.newemby_session;
-      void reply.clearCookie("newemby_session", { path: "/" });
+      const cookieToken = request.cookies.lumarelay_session;
+      void reply.clearCookie("lumarelay_session", { path: "/" });
       clearCsrfCookie(reply, options.config);
 
       if (cookieToken === undefined || options.authSessionStore === undefined)
@@ -529,7 +541,7 @@ export async function buildApp(
         throw error;
       }
 
-      void reply.setCookie("newemby_session", cookieToken, {
+      void reply.setCookie("lumarelay_session", cookieToken, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60,
         path: "/",
@@ -630,7 +642,7 @@ export async function buildApp(
         currentServer !== null &&
         currentServer.serverId !== server.serverId
       ) {
-        void reply.clearCookie("newemby_session", { path: "/" });
+        void reply.clearCookie("lumarelay_session", { path: "/" });
         if (options.bridgeDeviceStore !== undefined) {
           await options.bridgeDeviceStore.revokeServerDevices(
             currentServer.serverId,
@@ -698,7 +710,7 @@ export async function buildApp(
     serverStore,
   });
 
-  registerNotFoundHandler(app);
+  registerNotFoundHandler(app, options.webRoot !== undefined);
 
   app.setErrorHandler((error, request, reply) => {
     const statusCode =

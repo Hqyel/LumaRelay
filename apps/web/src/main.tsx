@@ -12,7 +12,7 @@ initializeTheme();
 
 const root = document.getElementById("root");
 
-if (root === null) throw new Error("NewEmby root element was not found");
+if (root === null) throw new Error("LumaRelay root element was not found");
 
 createRoot(root).render(
   <StrictMode>

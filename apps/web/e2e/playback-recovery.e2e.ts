@@ -53,7 +53,7 @@ interface RecoveryState {
 function localBridgeStatus(smtcReady: boolean) {
   return {
     apiVersion: 1,
-    applicationId: "NewEmby.PlayerBridge",
+    applicationId: "LumaRelay.PlayerBridge",
     architecture: "x64",
     bridgeVersion: "0.1.0",
     compatibility: {

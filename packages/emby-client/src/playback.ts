@@ -30,7 +30,7 @@ export type PlaybackProgressEvent =
 function authorizationHeader(deviceId: string): string {
   const safeDeviceId = deviceId.replace(/["\\]/g, "");
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
+    'Emby Client="LumaRelay", Device="Gateway", ' +
     `DeviceId="${safeDeviceId}", Version="0.0.0"`
   );
 }

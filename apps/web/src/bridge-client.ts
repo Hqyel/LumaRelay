@@ -5,7 +5,7 @@ import {
   type LocalBridgeStatus,
   type LocalPlaybackStartResponse,
   type LocalPlaybackStatusResponse,
-} from "@newemby/contracts";
+} from "@lumarelay/contracts";
 
 export const LOCAL_BRIDGE_API_VERSION = 1;
 export const LOCAL_BRIDGE_BASE_URL = "http://127.0.0.1:58080";
@@ -109,7 +109,7 @@ export function bridgePairingUri(
     code: pairingCode,
     gateway: gatewayOrigin,
   });
-  return `newemby://pair?${query.toString()}`;
+  return `lumarelay://pair?${query.toString()}`;
 }
 
 function localNonce(): string {
@@ -129,7 +129,7 @@ export async function startLocalPlayback(
     body: JSON.stringify({ playTicket }),
     headers: {
       "content-type": "application/json",
-      "x-newemby-nonce": localNonce(),
+      "x-lumarelay-nonce": localNonce(),
     },
     method: "POST",
   });

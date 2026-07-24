@@ -1,4 +1,4 @@
-import type { ServerSummary } from "@newemby/contracts";
+import type { ServerSummary } from "@lumarelay/contracts";
 
 import { EmbyPublicInfoDtoSchema, toServerSummary } from "./domain-adapters.js";
 import { EmbyProbeError } from "./errors.js";
@@ -68,7 +68,7 @@ async function fetchWithTimeout(
     return await fetcher(url, {
       headers: {
         accept: "application/json",
-        "user-agent": "NewEmby-Gateway/0.0.0",
+        "user-agent": "LumaRelay-Gateway/0.0.0",
       },
       redirect: "error",
       signal,

@@ -1,5 +1,5 @@
-import type { MediaCard } from "@newemby/contracts";
-import { EmptyState, Skeleton } from "@newemby/ui";
+import type { MediaCard } from "@lumarelay/contracts";
+import { EmptyState, Skeleton } from "@lumarelay/ui";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {

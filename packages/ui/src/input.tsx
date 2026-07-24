@@ -16,7 +16,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, error, hint, id, label, ...props }, ref) => {
     const generatedId = useId();
-    const inputId = id ?? props.name ?? `newemby-input-${generatedId}`;
+    const inputId = id ?? props.name ?? `lumarelay-input-${generatedId}`;
     const hintId = hint === undefined ? undefined : `${inputId}-hint`;
     const errorId = error === undefined ? undefined : `${inputId}-error`;
     const describedBy =

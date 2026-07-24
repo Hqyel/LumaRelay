@@ -1,4 +1,4 @@
-import { Button, Dialog } from "@newemby/ui";
+import { Button, Dialog } from "@lumarelay/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
@@ -101,7 +101,7 @@ export function BridgeStatusControl() {
                   ? "已响应，但 API 版本与当前网页不兼容"
                   : "可能未运行，或尚未允许当前网页连接"
             }
-            label="NewEmby Player Bridge"
+            label="LumaRelay Player Bridge"
             state={
               connected
                 ? "ready"
@@ -137,15 +137,17 @@ export function BridgeStatusControl() {
         {connected ? (
           <div className="bridge-ready-message" role="status">
             <Radio aria-hidden="true" size={18} />
-            本机已可以接收 NewEmby 的播放请求。
+            本机已可以接收 LumaRelay 的播放请求。
           </div>
         ) : (
           <section className="bridge-portable-guide">
             <h3>连接便携版</h3>
             <ol>
-              <li>解压并运行 `NewEmby.PlayerBridge.exe`，保持托盘程序运行。</li>
               <li>
-                生成一次性配对请求，再允许浏览器打开 NewEmby Player Bridge。
+                解压并运行 `LumaRelay.PlayerBridge.exe`，保持托盘程序运行。
+              </li>
+              <li>
+                生成一次性配对请求，再允许浏览器打开 LumaRelay Player Bridge。
               </li>
               <li>配对完成后，本页会自动重新检测，无需刷新。</li>
             </ol>

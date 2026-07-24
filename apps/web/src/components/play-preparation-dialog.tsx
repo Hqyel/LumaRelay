@@ -1,4 +1,4 @@
-import type { PlaybackMediaSource } from "@newemby/contracts";
+import type { PlaybackMediaSource } from "@lumarelay/contracts";
 import {
   Button,
   Dialog,
@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@newemby/ui";
+} from "@lumarelay/ui";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Play, Radio } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";

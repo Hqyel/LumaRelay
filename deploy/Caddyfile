@@ -1,13 +1,7 @@
-{$NEWEMBY_DOMAIN} {
+{$LUMARELAY_DOMAIN} {
   encode zstd gzip
 
-  handle /api/* {
-    reverse_proxy gateway:3000
-  }
-
-  handle {
-    reverse_proxy web:80
-  }
+  reverse_proxy app:3000
 
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains"

@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("SQLite migrations", () => {
   it("can migrate up, down and up again", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-migration-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-migration-"));
     temporaryDirectories.push(directory);
     const databasePath = join(directory, "test.db");
     const backupPath = `${databasePath}.backups`;
@@ -68,7 +68,7 @@ describe("SQLite migrations", () => {
   });
 
   it("retains only the five newest migration backups", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-backups-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-backups-"));
     temporaryDirectories.push(directory);
     const databasePath = join(directory, "test.db");
     const database = createDatabase(databasePath);
@@ -87,7 +87,7 @@ describe("SQLite migrations", () => {
   });
 
   it("persists the selected server", async () => {
-    const directory = mkdtempSync(join(tmpdir(), "newemby-server-store-"));
+    const directory = mkdtempSync(join(tmpdir(), "lumarelay-server-store-"));
     temporaryDirectories.push(directory);
     const database = createDatabase(join(directory, "test.db"));
 

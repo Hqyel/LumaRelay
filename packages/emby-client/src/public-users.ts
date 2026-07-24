@@ -1,4 +1,4 @@
-import type { PublicUser } from "@newemby/contracts";
+import type { PublicUser } from "@lumarelay/contracts";
 import { z } from "zod";
 
 import { EmbyAuthError } from "./auth-errors.js";
@@ -27,8 +27,8 @@ export interface PublicUserRequestOptions {
 
 function authorizationHeader(): string {
   return (
-    'Emby Client="NewEmby", Device="Gateway", ' +
-    'DeviceId="newemby-gateway", Version="0.0.0"'
+    'Emby Client="LumaRelay", Device="Gateway", ' +
+    'DeviceId="lumarelay-gateway", Version="0.0.0"'
   );
 }
 

@@ -33,7 +33,7 @@ function run(args, env = process.env) {
   });
 }
 
-await run(["--filter", "@newemby/web", "build"]);
+await run(["--filter", "@lumarelay/web", "build"]);
 await run(
   [
     "exec",
@@ -41,9 +41,9 @@ await run(
     "test",
     "-c",
     "apps/web/playwright.config.ts",
-    "apps/web/e2e/performance.e2e.ts",
+    "performance.e2e.ts",
     "--project",
     "chromium",
   ],
-  { ...process.env, NEWEMBY_E2E_PRODUCTION: "true" },
+  { ...process.env, LUMARELAY_E2E_PRODUCTION: "true" },
 );
