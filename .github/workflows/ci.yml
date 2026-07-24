@@ -28,6 +28,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  bridge:
+    name: Windows Player Bridge
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.422
+
+      - name: Restore
+        run:
+          dotnet restore apps/player-bridge/LumaRelay.PlayerBridge.sln
+          --locked-mode
+
+      - name: Check formatting
+        run:
+          dotnet format apps/player-bridge/LumaRelay.PlayerBridge.sln
+          --verify-no-changes --no-restore
+
+      - name: Build
+        run:
+          dotnet build apps/player-bridge/LumaRelay.PlayerBridge.sln
+          --configuration Release --no-restore
+
+      - name: Test
+        run:
+          dotnet test apps/player-bridge/LumaRelay.PlayerBridge.sln
+          --configuration Release --no-build
+
+      - name: Publish win-x64
+        run: >-
+          dotnet publish
+          apps/player-bridge/src/LumaRelay.PlayerBridge/LumaRelay.PlayerBridge.csproj
+          --configuration Release --framework net8.0-windows10.0.19041.0
+          --output artifacts/win-x64
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -47,11 +88,6 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
 
-      - name: Install .NET SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.422
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -65,16 +101,24 @@ jobs:
         run: pnpm format:check
 
       - name: Lint
-        run: pnpm lint
+        run:
+          pnpm --filter "!@lumarelay/player-bridge" --recursive --if-present
+          lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run:
+          pnpm --filter "!@lumarelay/player-bridge" --recursive --if-present
+          typecheck
 
       - name: Unit tests
-        run: pnpm test
+        run:
+          pnpm --filter "!@lumarelay/player-bridge" --recursive --if-present
+          test
 
       - name: Build
-        run: pnpm build
+        run:
+          pnpm --filter "!@lumarelay/player-bridge" --recursive --if-present
+          build
 
       - name: Build Storybook
         run: pnpm storybook:build
