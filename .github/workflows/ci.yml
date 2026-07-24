@@ -12,6 +12,22 @@ permissions:
   contents: read
 
 jobs:
+  secrets:
+    name: Secret history
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan Git history
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -39,6 +55,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit public repository data
+        run: pnpm audit:public
+
       - name: Audit production dependencies
         run: pnpm audit:prod
 
@@ -65,6 +84,9 @@ jobs:
 
       - name: Authentication and page regression
         run: pnpm test:e2e
+
+      - name: Production performance budget
+        run: pnpm test:performance
 
       - name: Chromium and Firefox compatibility
         run: pnpm test:compat

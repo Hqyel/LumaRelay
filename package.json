@@ -8,6 +8,7 @@
     "node": ">=22.13.0 <23"
   },
   "scripts": {
+    "audit:public": "node scripts/public-repo-audit.mjs",
     "build": "pnpm -r --if-present build",
     "audit:prod": "pnpm audit --prod --audit-level=high",
     "bridge:publish": "pnpm --filter @lumarelay/player-bridge run publish:win-x64",
