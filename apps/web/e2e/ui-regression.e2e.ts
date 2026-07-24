@@ -635,6 +635,12 @@ async function settleVisualState(page: Page) {
   await page.waitForTimeout(300);
 }
 
+async function stabilizeLibraryScreenshotHeight(page: Page) {
+  await page.addStyleTag({
+    content: "html, body, #root { min-height: 1163px !important; }",
+  });
+}
+
 test("Bridge setup separates local connection and capabilities", async ({
   page,
 }) => {
@@ -1179,6 +1185,7 @@ test("movie library matches the reference card grid", async ({ page }) => {
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
+  await stabilizeLibraryScreenshotHeight(page);
   await expect(page).toHaveScreenshot("movie-library.png", { fullPage: true });
 });
 
@@ -1318,6 +1325,7 @@ test("light theme covers authentication, library controls, and details", async (
   await expect(page.getByLabel("观看状态")).toBeVisible();
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
+  await stabilizeLibraryScreenshotHeight(page);
   await expect(page).toHaveScreenshot("movie-library-light.png", {
     fullPage: true,
   });
@@ -1377,6 +1385,7 @@ test("series library matches the reference card grid", async ({ page }) => {
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
+  await stabilizeLibraryScreenshotHeight(page);
   await expect(page).toHaveScreenshot("series-library.png", { fullPage: true });
 });
 
@@ -1418,6 +1427,7 @@ test("generic media library matches the reference card grid", async ({
   await waitForImages(page);
   await expectNoAccessibilityViolations(page);
   await settleVisualState(page);
+  await stabilizeLibraryScreenshotHeight(page);
   await expect(page).toHaveScreenshot("generic-library.png", {
     fullPage: true,
   });
